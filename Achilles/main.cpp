@@ -6,6 +6,7 @@ int main()
     std::cout << "Hello World!\n";
 
     std::unique_ptr<Achilles> achilles = std::make_unique<Achilles>(L"Achilles");
+    achilles->Initialize();
     achilles->Run();
 
     return 0;

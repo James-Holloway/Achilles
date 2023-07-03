@@ -3,10 +3,12 @@
 #include <iostream>
 #include <algorithm>
 #include <utility>
+#include <cstdint>
 #include <cassert>
 #include <chrono>
 #include <vector>
 #include <map>
+#include <queue>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -24,8 +26,12 @@ using namespace Microsoft::WRL;
 using namespace DirectX;
 #include <directx/d3dx12.h>
 #pragma warning( pop )
+#include <directxtk12/SimpleMath.h>
 
 #include "Helpers.h"
+
+#include <directxtk12/Keyboard.h>
+#include <directxtk12/Mouse.h>
 
 #if defined(min)
 #undef min

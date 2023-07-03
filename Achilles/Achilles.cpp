@@ -68,7 +68,7 @@ void Achilles::EnableDebugLayer()
 #if defined(_DEBUG)
 	// Always enable the debug layer before doing anything DX12 related so all possible errors generated while creating DX12 objects are caught by the debug layer
 	ComPtr<ID3D12Debug> debugInterface;
-	ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(debugInterface.GetAddressOf())));
+	ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
 	debugInterface->EnableDebugLayer();
 #endif
 }
@@ -214,6 +214,7 @@ ComPtr<ID3D12Device2> Achilles::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+		// pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_INFO, TRUE);
 		// Suppress whole categories of messages
 		//D3D12_MESSAGE_CATEGORY Categories[] = {};
 
@@ -243,21 +244,6 @@ ComPtr<ID3D12Device2> Achilles::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
 #endif
 
 	return d3d12Device2;
-}
-
-ComPtr<ID3D12CommandQueue> Achilles::CreateCommandQueue(ComPtr<ID3D12Device2>, D3D12_COMMAND_LIST_TYPE type)
-{
-	ComPtr<ID3D12CommandQueue> d3d12CommandQueue;
-
-	D3D12_COMMAND_QUEUE_DESC desc = {};
-	desc.Type = type;
-	desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-	desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	desc.NodeMask = 0;
-
-	ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
-
-	return d3d12CommandQueue;
 }
 
 ComPtr<IDXGISwapChain4> Achilles::CreateSwapChain(HWND hWnd, ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount)
@@ -336,60 +322,198 @@ ComPtr<ID3D12CommandAllocator> Achilles::CreateCommandAllocator(ComPtr<ID3D12Dev
 	return commandAllocator;
 }
 
-ComPtr<ID3D12GraphicsCommandList> Achilles::CreateCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type)
+// Clear functions
+void Achilles::ClearRTV(ComPtr<ID3D12GraphicsCommandList2> commandList, D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor)
 {
-	ComPtr<ID3D12GraphicsCommandList> commandList;
-	ThrowIfFailed(device->CreateCommandList(0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
-
-	ThrowIfFailed(commandList->Close()); // close as we start in recording state
-
-	return commandList;
+	commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+}
+void Achilles::ClearDepth(ComPtr<ID3D12GraphicsCommandList2> commandList, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
+{
+	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 }
 
-ComPtr<ID3D12Fence> Achilles::CreateFence(ComPtr<ID3D12Device2> device)
+// Get functions
+std::shared_ptr<CommandQueue> Achilles::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
 {
-	ComPtr<ID3D12Fence> fence;
-
-	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
-
-	return fence;
+	return std::make_shared<CommandQueue>(device, type);
 }
 
-HANDLE Achilles::CreateEventHandle()
+D3D12_CPU_DESCRIPTOR_HANDLE Achilles::GetCurrentRenderTargetView() const
 {
-	HANDLE fenceEvent;
-
-	fenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL); // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa
-	assert(fenceEvent && "Failed to create fence event.");
-
-	return fenceEvent;
-}
-
-uint64_t Achilles::Signal(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue)
-{
-	uint64_t fenceValueForSignal = ++fenceValue;
-	ThrowIfFailed(commandQueue->Signal(fence.Get(), fenceValueForSignal));
-
-	return fenceValueForSignal;
-}
-
-void Achilles::WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent, std::chrono::milliseconds duration)
-{
-	if (fence->GetCompletedValue() < fenceValue)
-	{
-		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, fenceEvent));
-		::WaitForSingleObject(fenceEvent, static_cast<DWORD>(duration.count()));
-	}
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBufferIndex, RTVDescriptorSize);
 }
 
 // Stall CPU while we signal and wait
-void Achilles::Flush(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue, HANDLE fenceEvent)
+void Achilles::Flush()
 {
-	uint64_t fenceValueForSignal = Signal(commandQueue, fence, fenceValue);
-	WaitForFenceValue(fence, fenceValueForSignal, fenceEvent);
+	directCommandQueue->Flush();
+	computeCommandQueue->Flush();
+	copyCommandQueue->Flush();
 }
 
-// Achilles Functions
+void Achilles::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
+{
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), beforeState, afterState);
+	commandList->ResourceBarrier(1, &barrier);
+}
+
+void Achilles::ResizeDepthBuffer(int width, int height)
+{
+	// Commands might be referencing the depth buffer, so flush
+	Flush();
+
+	width = std::max(1, width);
+	height = std::max(1, height);
+
+	// Create a depth buffer
+	D3D12_CLEAR_VALUE optimizedClearValue = {};
+	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	optimizedClearValue.DepthStencil = { 1.0f, 0 };
+	CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+	CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &optimizedClearValue, IID_PPV_ARGS(&depthBuffer)));
+
+	// Update the depth-stencil view
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+	dsv.Format = DXGI_FORMAT_D32_FLOAT;
+	dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsv.Texture2D.MipSlice = 0;
+	dsv.Flags = D3D12_DSV_FLAG_NONE;
+
+	device->CreateDepthStencilView(depthBuffer.Get(), &dsv, DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+}
+
+LRESULT Achilles::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (isInitialized)
+	{
+		switch (message)
+		{
+		case WM_PAINT:
+			Update();
+			Render();
+			break;
+		case WM_SIZE:
+		{
+			RECT clientRect = {};
+			::GetClientRect(hWnd, &clientRect);
+
+			int width = clientRect.right - clientRect.left;
+			int height = clientRect.bottom - clientRect.top;
+
+			Resize(width, height);
+		}
+		// The default window procedure will play a system notification sound when pressing the Alt+Enter keyboard combination if this message is not handled.
+		case WM_SYSCHAR:
+			break;
+		case WM_DESTROY:
+			::PostQuitMessage(0);
+			break;
+
+			// DirectXTK12 Keyboard.h processing
+		case WM_ACTIVATE:
+		case WM_ACTIVATEAPP:
+			Keyboard::ProcessMessage(message, wParam, lParam);
+			Mouse::ProcessMessage(message, wParam, lParam);
+			break;
+		case WM_SYSKEYDOWN:
+			if (wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000)
+			{
+				SetFullscreen(!fullscreen);
+			}
+			Keyboard::ProcessMessage(message, wParam, lParam);
+			break;
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+			Keyboard::ProcessMessage(message, wParam, lParam);
+			break;
+		case WM_MENUCHAR:
+			// A menu is active and the user presses a key that does not correspond to any mnemonic or accelerator key. Ignore so we don't produce an error beep.
+			return MAKELRESULT(0, MNC_CLOSE);
+
+			// DirectXTK12 Mouse.h processing
+		case WM_INPUT:
+		case WM_MOUSEMOVE:
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+		case WM_MOUSEWHEEL:
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+		case WM_MOUSEHOVER:
+			Mouse::ProcessMessage(message, wParam, lParam);
+			break;
+		case WM_MOUSEACTIVATE:
+			// When you click to activate the window, we want Mouse to ignore that event.
+			return MA_ACTIVATEANDEAT;
+		default:
+			return ::DefWindowProcW(hwnd, message, wParam, lParam);
+		}
+	}
+	else
+	{
+		return ::DefWindowProcW(hwnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+// Protected Achilles functions
+void Achilles::HandleKeyboard()
+{
+	auto keyboardState = keyboard->GetState();
+	keyboardTracker.Update(keyboardState);
+
+	if (keyboardTracker.pressed.Escape)
+	{
+		PostQuitMessage(0);
+	}
+
+	if (keyboardTracker.pressed.V)
+	{
+		vSync = !vSync;
+	}
+
+	if (keyboardTracker.pressed.F11)
+	{
+		SetFullscreen(!fullscreen);
+	}
+}
+
+void Achilles::HandleMouse()
+{
+	auto mouseState = mouse->GetState();
+	mouseTracker.Update(mouseState);
+
+	if (mouseTracker.leftButton == Mouse::ButtonStateTracker::PRESSED)
+	{
+		OutputDebugString(L"Left mouse button pressed\n");
+	}
+}
+
+
+void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, ComPtr<ID3D12GraphicsCommandList2> commandList)
+{
+	ComPtr<ID3D12Resource> backBuffer = backBuffers[currentBackBufferIndex];
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCurrentRenderTargetView();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	TransitionResource(commandList, backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+	frameFenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+	UINT syncInterval = vSync ? 1 : 0;
+	UINT presentFlags = tearingSupported && !vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+	ThrowIfFailed(swapChain->Present(syncInterval, presentFlags));
+	currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
+
+	// Stall CPU thread until GPU has executed
+	commandQueue->WaitForFenceValue(frameFenceValues[currentBackBufferIndex]);
+}
+
+// Achilles functions
 void Achilles::Update()
 {
 	frameCounter++;
@@ -409,51 +533,39 @@ void Achilles::Update()
 		frameCounter = 0;
 		elapsedSeconds = 0.0;
 	}
+
+	HandleKeyboard();
+	HandleMouse();
 }
 
 void Achilles::Render()
 {
+	std::cout << "Starting to render frame " << totalFrameCount << std::endl;
 	ComPtr<ID3D12CommandAllocator> commandAllocator = commandAllocators[currentBackBufferIndex];
 	ComPtr<ID3D12Resource> backBuffer = backBuffers[currentBackBufferIndex];
 
 	commandAllocator->Reset();
-	commandList->Reset(commandAllocator.Get(), nullptr);
 
-	// Clear the render target.
+	ComPtr<ID3D12GraphicsCommandList2> directCommandList = directCommandQueue->GetCommandList();
+
+	directCommandList->Close();
+	ThrowIfFailed(directCommandList->Reset(commandAllocator.Get(), nullptr));
+
+	// Clear the render target
 	{
 		// Transition the resource (back) into a render target state. We must know the previous state, which means it should be tracked
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		TransitionResource(directCommandList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		commandList->ResourceBarrier(1, &barrier);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCurrentRenderTargetView();
+		D3D12_CPU_DESCRIPTOR_HANDLE dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBufferIndex, RTVDescriptorSize);
-
-		commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+		ClearRTV(directCommandList, rtv, clearColor);
+		ClearDepth(directCommandList, dsv);
 	}
 
-	// Present
-	{
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		commandList->ResourceBarrier(1, &barrier);
-
-		ThrowIfFailed(commandList->Close()); // Close must be called on the command list before being executed on the command queue
-
-		ID3D12CommandList* const commandLists[] = {
-			commandList.Get()
-		};
-		commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
-
-		UINT syncInterval = vSync ? 1 : 0;
-		UINT presentFlags = tearingSupported && !vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
-		ThrowIfFailed(swapChain->Present(syncInterval, presentFlags));
-
-		frameFenceValues[currentBackBufferIndex] = Signal(commandQueue, fence, fenceValue);
-
-		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
-
-		// Stall CPU thread until GPU has executed
-		WaitForFenceValue(fence, frameFenceValues[currentBackBufferIndex], fenceEvent);
-	}
+	Present(directCommandQueue, directCommandList);
+	std::cout << "Finished renderering frame " << totalFrameCount << std::endl;
+	totalFrameCount++;
 }
 
 void Achilles::Resize(uint32_t width, uint32_t height)
@@ -465,7 +577,7 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 		clientHeight = std::max(1u, height);
 
 		// Flush the GPU queue to make sure the swap chain's back buffers are not being referenced by an in-flight command list.
-		Flush(commandQueue, fence, fenceValue, fenceEvent);
+		Flush();
 
 		for (int i = 0; i < numFrames; ++i)
 		{
@@ -533,69 +645,7 @@ void Achilles::SetFullscreen(bool fs)
 	}
 }
 
-LRESULT Achilles::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	if (isInitialized)
-	{
-		switch (message)
-		{
-		case WM_PAINT:
-			Update();
-			Render();
-			break;
-		case WM_SYSKEYDOWN:
-		case WM_KEYDOWN:
-		{
-			bool alt = (::GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
-
-			switch (wParam)
-			{
-			case 'V':
-				vSync = !vSync;
-				break;
-			case VK_ESCAPE:
-				::PostQuitMessage(0);
-				break;
-			case VK_F11:
-				SetFullscreen(!fullscreen);
-				break;
-			case VK_RETURN:
-				if (alt)
-				{
-					SetFullscreen(!fullscreen);
-				}
-				break;
-			}
-		}
-		case WM_SIZE:
-		{
-			RECT clientRect = {};
-			::GetClientRect(hWnd, &clientRect);
-
-			int width = clientRect.right - clientRect.left;
-			int height = clientRect.bottom - clientRect.top;
-
-			Resize(width, height);
-		}
-		// The default window procedure will play a system notification sound when pressing the Alt+Enter keyboard combination if this message is not handled.
-		case WM_SYSCHAR:
-			break;
-		case WM_DESTROY:
-			::PostQuitMessage(0);
-			break;
-		default:
-			return ::DefWindowProcW(hwnd, message, wParam, lParam);
-		}
-	}
-	else
-	{
-		return ::DefWindowProcW(hwnd, message, wParam, lParam);
-	}
-	return 0;
-}
-
-// TODO split into CreateDevice & CreateResources
-void Achilles::Run()
+void Achilles::Initialize()
 {
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
 	// Using this awareness context allows the client area of the window to achieve 100% scaling while still allowing non-client window content to be rendered in a DPI sensitive fashion.
@@ -620,27 +670,44 @@ void Achilles::Run()
 
 	device = CreateDevice(dxgiAdapter4);
 
-	commandQueue = CreateCommandQueue(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	directCommandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	computeCommandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+	copyCommandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 
-	swapChain = CreateSwapChain(hWnd, commandQueue, clientWidth, clientHeight, numFrames);
+	swapChain = CreateSwapChain(hWnd, directCommandQueue->GetD3D12CommandQueue(), clientWidth, clientHeight, numFrames);
 
 	currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
+	// Create the descriptor heap for the render target view
 	RTVDescriptorHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, numFrames);
 	RTVDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	UpdateRenderTargetViews(device, swapChain, RTVDescriptorHeap);
 
+	// Create the descriptor heap for the depth-stencil view.
+	DSVDescriptorHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1);
+
 	for (int i = 0; i < numFrames; ++i)
 	{
 		commandAllocators[i] = CreateCommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
-	commandList = CreateCommandList(device, commandAllocators[currentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-	fence = CreateFence(device);
-	fenceEvent = CreateEventHandle();
+	Flush();
+
+	ResizeDepthBuffer(clientWidth, clientHeight);
+
+	// Init Achilles objects
+	keyboard = std::make_unique<Keyboard>();
+	mouse = std::make_unique<Mouse>();
+	mouse->SetWindow(hWnd);
 
 	isInitialized = true;
+}
+
+void Achilles::Run()
+{
+	if (!isInitialized || hWnd == NULL)
+		throw std::exception();
 
 	// Show window
 	::ShowWindow(hWnd, SW_SHOW);
@@ -657,9 +724,7 @@ void Achilles::Run()
 	}
 
 	// Make sure the command queue has finished all commands before closing.
-	Flush(commandQueue, fence, fenceValue, fenceEvent);
-
-	::CloseHandle(fenceEvent);
+	Flush();
 
 	Destroy();
 }
