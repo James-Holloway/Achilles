@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Achilles.h"
 
 static LRESULT CALLBACK AchillesWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -29,13 +28,20 @@ static LRESULT CALLBACK AchillesWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
 
 Achilles::Achilles()
 {
-	prevClock = clock.now();
+	prevUpdateClock = clock.now();
+	prevRenderClock = clock.now();
 }
 
 Achilles::Achilles(std::wstring _name)
 {
-	prevClock = clock.now();
+	prevUpdateClock = clock.now();
+	prevRenderClock = clock.now();
 	name = _name;
+}
+
+Achilles::~Achilles()
+{
+	assert(!hWnd && "Use Achilles::Destroy before destruction!");
 }
 
 void Achilles::ParseCommandLineArguments()
@@ -516,10 +522,9 @@ void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, ComPtr<ID3D12
 // Achilles functions
 void Achilles::Update()
 {
-	frameCounter++;
 	std::chrono::steady_clock::time_point currClock = clock.now();
-	std::chrono::duration<long long, std::nano> deltaTime = currClock - prevClock;
-	prevClock = currClock;
+	std::chrono::duration<long long, std::nano> deltaTime = currClock - prevUpdateClock;
+	prevUpdateClock = currClock;
 
 	elapsedSeconds += deltaTime.count() * 1e-9;
 	// Print FPS every second
@@ -536,10 +541,20 @@ void Achilles::Update()
 
 	HandleKeyboard();
 	HandleMouse();
+
+	OnUpdate(deltaTime.count() * 1e-9);
+
+	OnKeyboard(keyboardTracker);
+	OnMouse(mouseTracker);
 }
 
 void Achilles::Render()
 {
+	frameCounter++;
+	std::chrono::steady_clock::time_point currClock = clock.now();
+	std::chrono::duration<long long, std::nano> deltaTime = currClock - prevRenderClock;
+	prevRenderClock = currClock;
+
 	std::cout << "Starting to render frame " << totalFrameCount << std::endl;
 	ComPtr<ID3D12CommandAllocator> commandAllocator = commandAllocators[currentBackBufferIndex];
 	ComPtr<ID3D12Resource> backBuffer = backBuffers[currentBackBufferIndex];
@@ -562,6 +577,8 @@ void Achilles::Render()
 		ClearRTV(directCommandList, rtv, clearColor);
 		ClearDepth(directCommandList, dsv);
 	}
+
+	OnRender(deltaTime.count() * 1e-9);
 
 	Present(directCommandQueue, directCommandList);
 	std::cout << "Finished renderering frame " << totalFrameCount << std::endl;
@@ -594,6 +611,8 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
 		UpdateRenderTargetViews(device, swapChain, RTVDescriptorHeap);
+
+		OntResize(clientWidth, clientHeight);
 	}
 }
 
@@ -702,6 +721,8 @@ void Achilles::Initialize()
 	mouse->SetWindow(hWnd);
 
 	isInitialized = true;
+
+	LoadContent();
 }
 
 void Achilles::Run()
@@ -731,6 +752,9 @@ void Achilles::Run()
 
 void Achilles::Destroy()
 {
+	UnloadContent();
 	// Remove instance from instance mappings
 	instanceMapping.erase(hWnd);
+	DestroyWindow(hWnd);
+	hWnd = nullptr;
 }

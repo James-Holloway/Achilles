@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include "CommandQueue.h"
 
 static LRESULT CALLBACK AchillesWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -43,7 +44,8 @@ protected:
 	uint64_t frameCounter = 0;
 	double elapsedSeconds = 0.0;
 	std::chrono::high_resolution_clock clock;
-	std::chrono::steady_clock::time_point prevClock;
+	std::chrono::steady_clock::time_point prevUpdateClock;
+	std::chrono::steady_clock::time_point prevRenderClock;
 	uint64_t totalFrameCount = 0;
 
 public:
@@ -52,7 +54,7 @@ public:
 
 public:
 	// Public variables
-	FLOAT clearColor[4] = { 0.4f, 0.58f, 0.93f, 1.0f}; // Cornflower Blue
+	FLOAT clearColor[4] = { 0.4f, 0.58f, 0.93f, 1.0f }; // Cornflower Blue
 
 protected:
 	// Protected variables for internal use
@@ -67,6 +69,7 @@ public:
 	// Constructor and destructor functions
 	Achilles();
 	Achilles(std::wstring name);
+	~Achilles();
 
 protected:
 	// Setup functions
@@ -115,6 +118,16 @@ public:
 	void SetFullscreen(bool fs);
 	void Initialize();
 	void Run();
-
 	void Destroy(); // Optional (call Run otherwise)
+
+public:
+	// Achilles callbacks
+	virtual void OnUpdate(float deltaTime) {}; // Post internal Update
+	virtual void OnRender(float deltaTime) {}; // Called after RTV + DSV clear
+	virtual void OnPostRender(float deltaTime) {}; // Just before internal Present
+	virtual void OntResize(int newWidth, int newHeight) {}; // Post internal Resize
+	virtual void LoadContent() {}; // Load content to be used in Render, post Initialize
+	virtual void UnloadContent() {}; // Unload content just before Destroy
+	virtual void OnKeyboard(Keyboard::KeyboardStateTracker kbt) {};
+	virtual void OnMouse(Mouse::ButtonStateTracker mt) {};
 };

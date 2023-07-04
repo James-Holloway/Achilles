@@ -16,13 +16,6 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{c0e34a72-3e1b-4f84-9147-08fc95fec1bf}</UniqueIdentifier>
     </Filter>
-    <Filter Include="content">
-      <UniqueIdentifier>{e9d4d6b9-98fa-4c28-be68-ab458240c2f1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="content\shaders">
-      <UniqueIdentifier>{169a08f7-efb8-4192-a37f-e9b8cf1429e0}</UniqueIdentifier>
-      <Extensions>hlsl</Extensions>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Achilles.cpp">
@@ -49,12 +42,6 @@
     <ClCompile Include="..\imgui\backends\imgui_impl_win32.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -78,10 +65,10 @@
     <ClInclude Include="Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
+    <ClInclude Include="CommandQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CommandQueue.h">
+    <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
