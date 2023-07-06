@@ -10,8 +10,8 @@ Thetis::Thetis(std::wstring name) : Achilles(name)
 
 void Thetis::OnUpdate(float deltaTime)
 {
-	// cube->rotation.x = fmod(cube->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
-	// cube->rotation.y = fmod(cube->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
+	cube->rotation.x = fmod(cube->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
+	cube->rotation.y = fmod(cube->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
 }
 
 void Thetis::OnRender(float deltaTime)

@@ -10,8 +10,8 @@ class Mesh
 	friend class Achilles;
 public:
 	std::wstring name = L"Unnamed Mesh";
-	DirectX::SimpleMath::Vector3 position;
-	DirectX::SimpleMath::Quaternion rotation;
+	DirectX::SimpleMath::Vector3 position {0, 0, 0};
+	DirectX::SimpleMath::Vector3 rotation {0, 0, 0};
 	DirectX::SimpleMath::Vector3 scale {1, 1, 1};
 
 protected:
