@@ -1,6 +1,12 @@
 #pragma once
 #include "Common.h"
 #include "CommandQueue.h"
+#include "Resources.h"
+#include "Camera.h"
+#include "Mesh.h"
+#include "DrawEvent.h"
+
+using Microsoft::WRL::ComPtr;
 
 static LRESULT CALLBACK AchillesWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -60,10 +66,13 @@ protected:
 	// Protected variables for internal use
 	std::wstring name = L"Achilles";
 	// Keyboard tracking
-	std::unique_ptr<Keyboard> keyboard;
-	Keyboard::KeyboardStateTracker keyboardTracker;
-	std::unique_ptr<Mouse> mouse;
-	Mouse::ButtonStateTracker mouseTracker;
+	std::unique_ptr<DirectX::Keyboard> keyboard;
+	DirectX::Keyboard::KeyboardStateTracker keyboardTracker;
+	std::unique_ptr<DirectX::Mouse> mouse;
+	DirectX::Mouse::ButtonStateTracker mouseTracker;
+
+	// Achilles drawing internals
+	std::queue<DrawEvent> drawEventQueue;
 
 public:
 	// Constructor and destructor functions
@@ -123,11 +132,19 @@ public:
 public:
 	// Achilles callbacks
 	virtual void OnUpdate(float deltaTime) {}; // Post internal Update
-	virtual void OnRender(float deltaTime) {}; // Called after RTV + DSV clear
+	virtual void OnRender(float deltaTime) {}; // Called after RTV + DSV clear, before internal DrawQueuedEvents
 	virtual void OnPostRender(float deltaTime) {}; // Just before internal Present
-	virtual void OntResize(int newWidth, int newHeight) {}; // Post internal Resize
+	virtual void OnResize(int newWidth, int newHeight) {}; // Post internal Resize
 	virtual void LoadContent() {}; // Load content to be used in Render, post Initialize
 	virtual void UnloadContent() {}; // Unload content just before Destroy
-	virtual void OnKeyboard(Keyboard::KeyboardStateTracker kbt) {};
-	virtual void OnMouse(Mouse::ButtonStateTracker mt) {};
+	virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, float dt) {};
+	virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, float dt) {};
+
+public:
+	// Achilles drawing functions
+	void QueueMeshDraw(std::shared_ptr<Mesh> mesh);
+protected:
+	void DrawMeshIndexed(ComPtr<ID3D12GraphicsCommandList2> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera);
+	void DrawQueuedEvents(ComPtr<ID3D12GraphicsCommandList2> commandList);
+	void EmptyDrawQueue();
 };

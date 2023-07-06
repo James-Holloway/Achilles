@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+using Microsoft::WRL::ComPtr;
 
 class CommandQueue
 {

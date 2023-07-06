@@ -1,32 +1,33 @@
-struct ModelViewProjection
+struct _PosColCB0
 {
-	matrix MVP;
+    float4x4 mvp;
 };
 
-ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
+ConstantBuffer<_PosColCB0> PosColCB0 : register(b0);
 
-struct VertexPosColor
+struct VS_IN
 {
-	float3 Position : POSITION;
-	float3 Color : COLOR;
+    float3 Position : POSITION;
+    float4 Color : COLOR;
 };
 
-struct VS_OUT
+struct PS_IN
 {
-	float4 Color : COLOR;
-	float4 Position : SV_Position;
+    float4 Position : SV_Position;
+    float4 Color : COLOR;
 };
 
-VS_OUT VS(VertexPosColor v)
+PS_IN VS(VS_IN v)
 {
-	VS_OUT o;
-	o.Position = mul(ModelViewProjectionCB.MVP, float4(v.Position, 1.0f));
-	o.Color = float4(v.Color, 1.0f);
-	
-	return o;
+    PS_IN o;
+    float4x4 mvp = PosColCB0.mvp;
+    o.Position = mul(mvp, float4(v.Position, 1.0f));
+    o.Color = v.Color;
+    
+    return o;
 }
 
-float4 PS(VS_OUT i) : SV_Target
+float4 PS(PS_IN i) : SV_Target
 {
-	return i.Color;
+    return i.Color;
 }

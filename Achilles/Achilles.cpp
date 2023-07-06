@@ -1,5 +1,8 @@
 #include "Achilles.h"
 
+using namespace DirectX;
+using namespace DirectX::SimpleMath;
+
 static LRESULT CALLBACK AchillesWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (Achilles::instanceMapping.contains(hwnd))
@@ -114,12 +117,12 @@ void Achilles::RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClassNa
 	windowClass.cbClsExtra = 0;
 	windowClass.cbWndExtra = 0;
 	windowClass.hInstance = hInst;
-	windowClass.hIcon = ::LoadIcon(hInst, NULL);
-	windowClass.hCursor = ::LoadCursor(NULL, IDC_ARROW);
+	windowClass.hIcon = ::LoadIconW(hInst, NULL);
+	windowClass.hCursor = ::LoadCursorW(NULL, IDC_ARROW);
 	windowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	windowClass.lpszMenuName = NULL;
 	windowClass.lpszClassName = windowClassName;
-	windowClass.hIconSm = ::LoadIcon(hInst, NULL);
+	windowClass.hIconSm = ::LoadIconW(hInst, NULL);
 
 	// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerclassexa
 	static ATOM atom = ::RegisterClassExW(&windowClass);
@@ -314,6 +317,11 @@ void Achilles::UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXG
 
 		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
 
+		wchar_t buff[32];
+		swprintf_s(buff, L"Back Buffer %i/%i", i + 1, numFrames);
+
+		backBuffer->SetName(buff);
+
 		backBuffers[i] = backBuffer;
 
 		rtvHandle.Offset(rtvDescriptorSize);
@@ -385,6 +393,8 @@ void Achilles::ResizeDepthBuffer(int width, int height)
 	dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	dsv.Texture2D.MipSlice = 0;
 	dsv.Flags = D3D12_DSV_FLAG_NONE;
+
+	depthBuffer->SetName(L"Depth Buffer");
 
 	device->CreateDepthStencilView(depthBuffer.Get(), &dsv, DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
@@ -542,10 +552,11 @@ void Achilles::Update()
 	HandleKeyboard();
 	HandleMouse();
 
-	OnUpdate(deltaTime.count() * 1e-9);
+	float dt = deltaTime.count() * 1e-9f;
+	OnUpdate(dt);
 
-	OnKeyboard(keyboardTracker);
-	OnMouse(mouseTracker);
+	OnKeyboard(keyboardTracker, dt);
+	OnMouse(mouseTracker, dt);
 }
 
 void Achilles::Render()
@@ -555,7 +566,6 @@ void Achilles::Render()
 	std::chrono::duration<long long, std::nano> deltaTime = currClock - prevRenderClock;
 	prevRenderClock = currClock;
 
-	std::cout << "Starting to render frame " << totalFrameCount << std::endl;
 	ComPtr<ID3D12CommandAllocator> commandAllocator = commandAllocators[currentBackBufferIndex];
 	ComPtr<ID3D12Resource> backBuffer = backBuffers[currentBackBufferIndex];
 
@@ -566,7 +576,7 @@ void Achilles::Render()
 	directCommandList->Close();
 	ThrowIfFailed(directCommandList->Reset(commandAllocator.Get(), nullptr));
 
-	// Clear the render target
+	// Clear the render target + depth
 	{
 		// Transition the resource (back) into a render target state. We must know the previous state, which means it should be tracked
 		TransitionResource(directCommandList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -577,11 +587,14 @@ void Achilles::Render()
 		ClearRTV(directCommandList, rtv, clearColor);
 		ClearDepth(directCommandList, dsv);
 	}
+	float dt = deltaTime.count() * 1e-9f;
+	OnRender(dt);
 
-	OnRender(deltaTime.count() * 1e-9);
+	DrawQueuedEvents(directCommandList);
+
+	OnPostRender(dt);
 
 	Present(directCommandQueue, directCommandList);
-	std::cout << "Finished renderering frame " << totalFrameCount << std::endl;
 	totalFrameCount++;
 }
 
@@ -612,7 +625,7 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 
 		UpdateRenderTargetViews(device, swapChain, RTVDescriptorHeap);
 
-		OntResize(clientWidth, clientHeight);
+		OnResize(clientWidth, clientHeight);
 	}
 }
 
@@ -752,9 +765,73 @@ void Achilles::Run()
 
 void Achilles::Destroy()
 {
+	EmptyDrawQueue();
 	UnloadContent();
 	// Remove instance from instance mappings
 	instanceMapping.erase(hWnd);
 	DestroyWindow(hWnd);
 	hWnd = nullptr;
+}
+
+// Achilles drawing functions
+void Achilles::QueueMeshDraw(std::shared_ptr<Mesh> mesh)
+{
+	DrawEvent de{};
+	de.camera = Camera::mainCamera;
+	de.mesh = mesh;
+	de.eventType = DrawEventType::DrawIndexed;
+	drawEventQueue.push(de);
+}
+
+void Achilles::DrawMeshIndexed(ComPtr<ID3D12GraphicsCommandList2> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
+{
+	if (mesh.use_count() <= 0)
+		throw std::exception("Rendered mesh was not available");
+	if (camera.use_count() <= 0)
+		throw std::exception("Rendered camera was not available");
+
+	std::shared_ptr<Shader> shader = mesh->shader;
+	if (shader->renderCallback == nullptr)
+		throw std::exception("Shader did not have a rendercallback");
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCurrentRenderTargetView();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	commandList->SetPipelineState(shader->pipelineState.Get());
+	commandList->SetGraphicsRootSignature(shader->rootSignature.Get());
+
+	commandList->IASetPrimitiveTopology(mesh->topology);
+	commandList->IASetVertexBuffers(0, 1, &mesh->vertexBufferView);
+	commandList->IASetIndexBuffer(&mesh->indexBufferView);
+
+	commandList->RSSetViewports(1, &camera->viewport);
+	commandList->RSSetScissorRects(1, &camera->scissorRect);
+
+	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+
+	shader->renderCallback(commandList, mesh, camera);
+
+	commandList->DrawIndexedInstanced(mesh->indexCount, 1, 0, 0, 0);
+}
+
+void Achilles::DrawQueuedEvents(ComPtr<ID3D12GraphicsCommandList2> commandList)
+{
+	while (!drawEventQueue.empty())
+	{
+		DrawEvent de = drawEventQueue.front();
+		drawEventQueue.pop();
+		switch (de.eventType)
+		{
+		case DrawEventType::Ignore:
+			break;
+		case DrawEventType::DrawIndexed:
+			DrawMeshIndexed(commandList, de.mesh, de.camera);
+			break;
+		}
+	}
+}
+
+void Achilles::EmptyDrawQueue()
+{
+	std::queue<DrawEvent>().swap(drawEventQueue);
 }
