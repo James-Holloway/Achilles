@@ -57,6 +57,7 @@ private:
 protected:
 	// Less private update variables
 	uint64_t totalFrameCount = 0;
+	double totalElapsedSeconds = 0;
 
 public:
 	// Public statics for internal use

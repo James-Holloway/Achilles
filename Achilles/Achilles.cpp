@@ -534,13 +534,15 @@ void Achilles::Update()
 	std::chrono::duration<long long, std::nano> deltaTime = currClock - prevUpdateClock;
 	prevUpdateClock = currClock;
 
+	totalElapsedSeconds += deltaTime.count() * 1e-9;
+
 	elapsedSeconds += deltaTime.count() * 1e-9;
 	// Print FPS every second
 	if (elapsedSeconds > 1.0)
 	{
 		wchar_t buffer[500];
 		double fps = frameCounter / elapsedSeconds;
-		swprintf_s(buffer, 500, L"FPS: %f\n", fps);
+		swprintf_s(buffer, 500, L"FPS: %.1f\n", fps);
 		OutputDebugString(buffer);
 
 		frameCounter = 0;
@@ -635,6 +637,7 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
 		UpdateRenderTargetViews(device, swapChain, RTVDescriptorHeap);
+		ResizeDepthBuffer(clientWidth, clientHeight);
 
 		OnResize(clientWidth, clientHeight);
 	}

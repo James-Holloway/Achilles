@@ -13,7 +13,7 @@ void Thetis::OnUpdate(float deltaTime)
 	cube->rotation.x = fmod(cube->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
 	cube->rotation.y = fmod(cube->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
 
-	cube->scale = Vector3(1.0f + (0.5f * sinf(totalFrameCount / 100.0f)));
+	cube->scale = Vector3(1.0f + (0.5f * sinf(totalElapsedSeconds * 2.0f)));
 }
 
 void Thetis::OnRender(float deltaTime)
