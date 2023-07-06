@@ -6,11 +6,12 @@ class Thetis : public Achilles
 {
 protected:
 	std::shared_ptr<Mesh> cube;
+	std::shared_ptr<Mesh> floorQuad;
 	std::shared_ptr<Camera> camera;
 
 	float cubeRotationSpeed = 2.0f;
 	float mouseSensitivity = 1.0f;
-	bool lockMouseToWindow = true;
+	float cameraBaseMoveSpeed = 4.0f;
 
 public:
 	Thetis(std::wstring name);

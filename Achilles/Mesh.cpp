@@ -33,7 +33,7 @@ void Mesh::FreeCreationResources()
 void Mesh::ConstructMatrix()
 {
 	// TRS
-	matrix = (Matrix::CreateTranslation(position) * Matrix::CreateFromYawPitchRoll(rotation)) * Matrix::CreateScale(scale);
+	matrix = Matrix::CreateScale(scale) * (Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position));
 }
 
 DirectX::SimpleMath::Matrix Mesh::GetMatrix()

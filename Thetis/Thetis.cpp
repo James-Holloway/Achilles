@@ -12,11 +12,14 @@ void Thetis::OnUpdate(float deltaTime)
 {
 	cube->rotation.x = fmod(cube->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
 	cube->rotation.y = fmod(cube->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
+
+	cube->scale = Vector3(1.0f + (0.5f * sinf(totalFrameCount / 100.0f)));
 }
 
 void Thetis::OnRender(float deltaTime)
 {
 	QueueMeshDraw(cube);
+	QueueMeshDraw(floorQuad);
 }
 
 void Thetis::OnPostRender(float deltaTime)
@@ -48,12 +51,20 @@ void Thetis::LoadContent()
 	// Create cube
 	cube = std::make_shared<Mesh>(L"cube", device, commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
 
+	// Create floor quad
+	floorQuad = std::make_shared<Mesh>(L"floor quad", device, commandList, (void*)posColQuadVertices, (UINT)_countof(posColQuadVertices), posColQuadIndices, (UINT)_countof(posColQuadIndices), posColShader);
+	floorQuad->position = Vector3(0, -2, 0);
+	floorQuad->rotation = EulerToRadians(Vector3(-90, 0, 0));
+	floorQuad->scale = Vector3(3, 3, 3);
+
+
 	// Execute command list
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
 
 	// Free creation resources
 	cube->FreeCreationResources();
+	floorQuad->FreeCreationResources();
 }
 
 void Thetis::UnloadContent()
@@ -91,7 +102,7 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
 		camera->RotateEuler(Vector3(0, -toRad(cameraRotationAmount), 0));
 	}
 
-	float movementSpeed = 2; // 2 m/s
+	float movementSpeed = cameraBaseMoveSpeed;
 	if (kb.LeftControl)
 		movementSpeed *= 0.5f;
 	if (kb.LeftShift)

@@ -47,12 +47,15 @@ protected:
 
 	bool isInitialized = false; // Stores init state
 
+private:
 	// Update variables
 	uint64_t frameCounter = 0;
 	double elapsedSeconds = 0.0;
 	std::chrono::high_resolution_clock clock;
 	std::chrono::steady_clock::time_point prevUpdateClock;
 	std::chrono::steady_clock::time_point prevRenderClock;
+protected:
+	// Less private update variables
 	uint64_t totalFrameCount = 0;
 
 public:

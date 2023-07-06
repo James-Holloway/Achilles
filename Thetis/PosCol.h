@@ -20,9 +20,9 @@ struct PosColCB0
 
 static const PosCol posColQuadVertices[4] =
 {
-	{Vector3(+0.0f, +0.0f, +0.0f), Color(0.0f, 0.0f, 0.0f, 0.0f)},
-	{Vector3(+1.0f, +0.0f, +0.0f), Color(1.0f, 0.0f, 0.0f, 0.0f)},
-	{Vector3(+0.0f, +1.0f, +0.0f), Color(0.0f, 1.0f, 0.0f, 0.0f)},
+	{Vector3(-1.0f, -1.0f, +0.0f), Color(0.0f, 0.0f, 0.0f, 0.0f)},
+	{Vector3(+1.0f, -1.0f, +0.0f), Color(1.0f, 0.0f, 0.0f, 0.0f)},
+	{Vector3(-1.0f, +1.0f, +0.0f), Color(0.0f, 1.0f, 0.0f, 0.0f)},
 	{Vector3(+1.0f, +1.0f, +0.0f), Color(1.0f, 1.0f, 0.0f, 0.0f)},
 };
 
