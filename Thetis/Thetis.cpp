@@ -61,7 +61,7 @@ void Thetis::UnloadContent()
 	printf("Cube use_count: %i\n", cube.use_count());
 }
 
-void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, float dt)
+void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, float dt)
 {
 	if (kbt.pressed.PageUp)
 	{
@@ -73,51 +73,63 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, float dt)
 		camera->fov += 5;
 		OutputDebugStringWFormatted(L"FOV is now %.1f\n", camera->fov);
 	}
-	float cameraRotationSpeed = 15;
+	float cameraRotationAmount = 15;
 	if (kbt.pressed.Up)
 	{
-		camera->RotateEuler(Vector3(-toRad(cameraRotationSpeed), 0, 0));
+		camera->RotateEuler(Vector3(-toRad(cameraRotationAmount), 0, 0));
 	}
 	if (kbt.pressed.Down)
 	{
-		camera->RotateEuler(Vector3(toRad(cameraRotationSpeed), 0, 0));
+		camera->RotateEuler(Vector3(toRad(cameraRotationAmount), 0, 0));
 	}
 	if (kbt.pressed.Right)
 	{
-		camera->RotateEuler(Vector3(0, toRad(cameraRotationSpeed), 0));
+		camera->RotateEuler(Vector3(0, toRad(cameraRotationAmount), 0));
 	}
 	if (kbt.pressed.Left)
 	{
-		camera->RotateEuler(Vector3(0, -toRad(cameraRotationSpeed), 0));
+		camera->RotateEuler(Vector3(0, -toRad(cameraRotationAmount), 0));
 	}
 
-	if (kbt.pressed.W)
+	float movementSpeed = 2; // 2 m/s
+	if (kb.LeftControl)
+		movementSpeed *= 0.5f;
+	if (kb.LeftShift)
+		movementSpeed *= 2.0f;
+
+	movementSpeed *= dt;
+
+	if (kb.W)
 	{
-		camera->MoveRelative(Vector3(0, 0, 1));
+		camera->MoveRelative(Vector3(0, 0, movementSpeed));
 	}
-	if (kbt.pressed.S)
+	if (kb.S)
 	{
-		camera->MoveRelative(Vector3(0, 0, -1));
+		camera->MoveRelative(Vector3(0, 0, -movementSpeed));
 	}
-	if (kbt.pressed.D)
+	if (kb.D)
 	{
-		camera->MoveRelative(Vector3(1, 0, 0));
+		camera->MoveRelative(Vector3(movementSpeed, 0, 0));
 	}
-	if (kbt.pressed.A)
+	if (kb.A)
 	{
-		camera->MoveRelative(Vector3(-1, 0, 0));
+		camera->MoveRelative(Vector3(-movementSpeed, 0, 0));
 	}
-	if (kbt.pressed.E)
+	if (kb.E)
 	{
-		camera->MoveRelative(Vector3(0, 1, 0));
+		camera->MoveRelative(Vector3(0, movementSpeed, 0));
 	}
-	if (kbt.pressed.Q)
+	if (kb.Q)
 	{
-		camera->MoveRelative(Vector3(0, -1, 0));
+		camera->MoveRelative(Vector3(0, -movementSpeed, 0));
 	}
 }
 
-void Thetis::OnMouse(Mouse::ButtonStateTracker mt, float dt)
+void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State state, float dt)
 {
-
+	if (mt.rightButton)
+	{
+		float cameraRotationSpeed = toRad(45) * dt * mouseSensitivity;
+		camera->RotateEuler(Vector3(cameraRotationSpeed * md.mouseYDelta, cameraRotationSpeed * md.mouseXDelta, 0));
+	}
 }

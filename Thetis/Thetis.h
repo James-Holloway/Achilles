@@ -9,6 +9,9 @@ protected:
 	std::shared_ptr<Camera> camera;
 
 	float cubeRotationSpeed = 2.0f;
+	float mouseSensitivity = 1.0f;
+	bool lockMouseToWindow = true;
+
 public:
 	Thetis(std::wstring name);
 public:
@@ -18,6 +21,6 @@ public:
 	virtual void OnResize(int newWidth, int newHeight) override; // Post resize
 	virtual void LoadContent() override; // Load content to be used in Render
 	virtual void UnloadContent() override; // Unload content on quit
-	virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, float dt) override;
-	virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, float dt) override;
+	virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt) override;
+	virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) override;
 };

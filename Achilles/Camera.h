@@ -14,7 +14,7 @@ public:
 	DirectX::SimpleMath::Vector3 position;
 	DirectX::SimpleMath::Vector3 rotation;
 
-	float fov = 60.0f;
+	float fov = 60.0f; // vertical FOV - 60deg vertical ~= 90deg horizontal
 	float nearZ = 0.1f;
 	float farZ = 100.0f;
 	CD3DX12_RECT scissorRect{ 0, 0, LONG_MAX, LONG_MAX };

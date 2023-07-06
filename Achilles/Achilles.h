@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Mesh.h"
 #include "DrawEvent.h"
+#include "MouseData.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -70,6 +71,7 @@ protected:
 	DirectX::Keyboard::KeyboardStateTracker keyboardTracker;
 	std::unique_ptr<DirectX::Mouse> mouse;
 	DirectX::Mouse::ButtonStateTracker mouseTracker;
+	MouseData prevMouseData{};
 
 	// Achilles drawing internals
 	std::queue<DrawEvent> drawEventQueue;
@@ -116,7 +118,7 @@ public:
 protected:
 	// Protected Achilles functions
 	void HandleKeyboard();
-	void HandleMouse();
+	void HandleMouse(int& mouseX, int& mouseY, int& scroll, DirectX::Mouse::State& state);
 	void Present(std::shared_ptr<CommandQueue> commandQueue, ComPtr<ID3D12GraphicsCommandList2> commandList);
 
 public:
@@ -137,8 +139,8 @@ public:
 	virtual void OnResize(int newWidth, int newHeight) {}; // Post internal Resize
 	virtual void LoadContent() {}; // Load content to be used in Render, post Initialize
 	virtual void UnloadContent() {}; // Unload content just before Destroy
-	virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, float dt) {};
-	virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, float dt) {};
+	virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt) {};
+	virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) {};
 
 public:
 	// Achilles drawing functions

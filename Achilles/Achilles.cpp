@@ -499,15 +499,13 @@ void Achilles::HandleKeyboard()
 	}
 }
 
-void Achilles::HandleMouse()
+void Achilles::HandleMouse(int& mouseX, int& mouseY, int& scroll, Mouse::State& state)
 {
-	auto mouseState = mouse->GetState();
-	mouseTracker.Update(mouseState);
-
-	if (mouseTracker.leftButton == Mouse::ButtonStateTracker::PRESSED)
-	{
-		OutputDebugString(L"Left mouse button pressed\n");
-	}
+	state = mouse->GetState();
+	mouseTracker.Update(state);
+	mouseX = state.x;
+	mouseY = state.y;
+	scroll = state.scrollWheelValue;
 }
 
 
@@ -550,13 +548,26 @@ void Achilles::Update()
 	}
 
 	HandleKeyboard();
-	HandleMouse();
+
+	int mouseX = 0, mouseY = 0, scroll = 0;
+	Mouse::State mouseState;
+	HandleMouse(mouseX, mouseY, scroll, mouseState);
+	MouseData mouseData;
+	mouseData.mouseX = mouseX;
+	mouseData.mouseY = mouseY;
+	mouseData.scroll = scroll;
+	mouseData.mouseXDelta = mouseData.mouseX - prevMouseData.mouseX;
+	mouseData.mouseYDelta = mouseData.mouseY - prevMouseData.mouseY;
+	mouseData.scrollDelta = mouseData.scroll - prevMouseData.scroll;
+	prevMouseData = mouseData;
+
 
 	float dt = deltaTime.count() * 1e-9f;
-	OnUpdate(dt);
 
-	OnKeyboard(keyboardTracker, dt);
-	OnMouse(mouseTracker, dt);
+	OnKeyboard(keyboardTracker, keyboard->GetState(), dt);
+	OnMouse(mouseTracker, mouseData, mouseState, dt);
+
+	OnUpdate(dt);
 }
 
 void Achilles::Render()

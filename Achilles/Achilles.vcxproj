@@ -203,6 +203,7 @@
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="MouseData.h" />
     <ClInclude Include="Resources.h" />
     <ClInclude Include="Shader.h" />
   </ItemGroup>

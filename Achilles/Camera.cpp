@@ -54,9 +54,6 @@ void Camera::ConstructProjection()
 void Camera::RotateEuler(Vector3 euler, bool unlockPitch, bool unlockRoll)
 {
 	Vector3 rot = rotation;
-	Vector3 deg = EulerToDegrees(rot);
-	OutputDebugStringWFormatted(L"Euler: % .2f % .2f % .2f\n", euler.x, euler.y, euler.z);
-	OutputDebugStringWFormatted(L"Camera Rotation Before: % .2f % .2f % .2f\n", deg.x, deg.y, deg.z);
 	rot += euler;
 	rot = EulerVectorModulo(rot);
 	if (!unlockPitch)
@@ -68,8 +65,6 @@ void Camera::RotateEuler(Vector3 euler, bool unlockPitch, bool unlockRoll)
 		rot = Vector3(rot.x, rot.y, 0);
 
 	rotation = rot;
-	deg = EulerToDegrees(rotation);
-	OutputDebugStringWFormatted(L"Camera Rotation: % .2f % .2f % .2f\n", deg.x, deg.y, deg.z);
 }
 
 void Camera::MoveRelative(Vector3 direction)
@@ -78,5 +73,4 @@ void Camera::MoveRelative(Vector3 direction)
 	Matrix rot = Matrix::CreateFromYawPitchRoll(rotation);
 	Vector3 pos = DirectX::XMVector3TransformNormal(direction, world * rot);
 	position += pos;
-	OutputDebugStringWFormatted(L"Camera Position: % .2f % .2f % .2f\n", position.x, position.y, position.z);
 }
