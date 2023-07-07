@@ -1,13 +1,14 @@
 #pragma once
 #include "Common.h"
 #include <directx-dxc/dxcapi.h>
+#include "CommandList.h"
 
 using Microsoft::WRL::ComPtr;
 
 class Mesh;
 class Camera;
 
-typedef void (CALLBACK* ShaderRender)(ComPtr<ID3D12GraphicsCommandList2> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera);
+typedef void (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera);
 
 HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring profile, ComPtr<IDxcResult>& outShader);
 
@@ -17,7 +18,7 @@ struct Shader
 	D3D12_INPUT_ELEMENT_DESC* vertexLayout;
 	size_t vertexSize;
 	// Root signature
-	ComPtr<ID3D12RootSignature> rootSignature;
+	std::shared_ptr<RootSignature> rootSignature;
 	// Pipeline state object.
 	ComPtr<ID3D12PipelineState> pipelineState;
 
@@ -25,7 +26,7 @@ struct Shader
 
 	Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize, ShaderRender _renderCallback);
 	// Presumes shader file is contains two entrypoints - VS + PS for vertex and pixel shaders respectively
-	static std::shared_ptr<Shader> ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription, ShaderRender _renderCallback, std::wstring shaderName);
+	static std::shared_ptr<Shader> ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName);
 };
 
 inline void ThrowBlobIfFailed(HRESULT hr, ComPtr<ID3DBlob> errorBlob)

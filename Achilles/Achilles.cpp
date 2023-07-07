@@ -291,41 +291,62 @@ ComPtr<IDXGISwapChain4> Achilles::CreateSwapChain(HWND hWnd, ComPtr<ID3D12Comman
 	return dxgiSwapChain4;
 }
 
-ComPtr<ID3D12DescriptorHeap> Achilles::CreateDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+void Achilles::UpdateRenderTargetViews()
 {
-	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
-
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = type;
-	desc.NumDescriptors = numDescriptors;
-
-	ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
-
-	return descriptorHeap;
-}
-
-void Achilles::UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap)
-{
-	auto rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(descriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-	for (int i = 0; i < numFrames; ++i)
+	for (int i = 0; i < BufferCount; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
 		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
-		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
+		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
+
+		backBuffers[i] = std::make_shared<Texture>(backBuffer, nullptr, TextureUsage::RenderTarget);
 
 		wchar_t buff[32];
-		swprintf_s(buff, L"Back Buffer %i/%i", i + 1, numFrames);
-
-		backBuffer->SetName(buff);
-
-		backBuffers[i] = backBuffer;
-
-		rtvHandle.Offset(rtvDescriptorSize);
+		swprintf_s(buff, L"Back Buffer %i/%i", i + 1, BufferCount);
+		backBuffers[i]->SetName(buff);
 	}
+}
+
+void Achilles::UpdateDepthStencilView()
+{
+	DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+
+	CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+	D3D12_CLEAR_VALUE depthClearValue;
+	depthClearValue.Format = depthDesc.Format;
+	depthClearValue.DepthStencil = { 1.0f, 0 };
+
+	std::shared_ptr<Texture> depthBuffer = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Depth, L"DepthStencil RT");
+	depthBuffer->CreateViews();
+	ResourceStateTracker::AddGlobalResourceState(depthBuffer->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
+
+	renderTarget->AttachTexture(AttachmentPoint::DepthStencil, depthBuffer);
+}
+
+std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
+{
+	DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+
+	CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+	D3D12_CLEAR_VALUE depthClearValue;
+	depthClearValue.Format = depthDesc.Format;
+	depthClearValue.DepthStencil = { 1.0f, 0 };
+
+	std::shared_ptr<Texture> rtTexture = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Albedo, name);
+	rtTexture->CreateViews();
+	ResourceStateTracker::AddGlobalResourceState(rtTexture->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
+
+	return rtTexture;
+}
+
+void Achilles::UpdateMainRenderTarget()
+{
+	renderTarget->Reset();
+	std::shared_ptr<Texture> rtTexture = Achilles::CreateRenderTargetTexture(L"Main Render Target");
+	renderTarget->AttachTexture(AttachmentPoint::Color0, rtTexture);
+	renderTarget->Resize(clientWidth, clientHeight);
+	UpdateDepthStencilView();
 }
 
 ComPtr<ID3D12CommandAllocator> Achilles::CreateCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
@@ -336,25 +357,16 @@ ComPtr<ID3D12CommandAllocator> Achilles::CreateCommandAllocator(ComPtr<ID3D12Dev
 	return commandAllocator;
 }
 
-// Clear functions
-void Achilles::ClearRTV(ComPtr<ID3D12GraphicsCommandList2> commandList, D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor)
-{
-	commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-}
-void Achilles::ClearDepth(ComPtr<ID3D12GraphicsCommandList2> commandList, D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth)
-{
-	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
-}
-
 // Get functions
 std::shared_ptr<CommandQueue> Achilles::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
 {
-	return std::make_shared<CommandQueue>(device, type);
+	return std::make_shared<CommandQueue>(type);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Achilles::GetCurrentRenderTargetView() const
+std::shared_ptr<RenderTarget> Achilles::GetCurrentRenderTarget() const
 {
-	return CD3DX12_CPU_DESCRIPTOR_HANDLE(RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBufferIndex, RTVDescriptorSize);
+	// renderTarget->AttachTexture(AttachmentPoint::Color0, backBuffers[currentBackBufferIndex]);
+	return renderTarget;
 }
 
 // Stall CPU while we signal and wait
@@ -363,40 +375,6 @@ void Achilles::Flush()
 	directCommandQueue->Flush();
 	computeCommandQueue->Flush();
 	copyCommandQueue->Flush();
-}
-
-void Achilles::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
-{
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), beforeState, afterState);
-	commandList->ResourceBarrier(1, &barrier);
-}
-
-void Achilles::ResizeDepthBuffer(int width, int height)
-{
-	// Commands might be referencing the depth buffer, so flush
-	Flush();
-
-	width = std::max(1, width);
-	height = std::max(1, height);
-
-	// Create a depth buffer
-	D3D12_CLEAR_VALUE optimizedClearValue = {};
-	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-	optimizedClearValue.DepthStencil = { 1.0f, 0 };
-	CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-	CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &optimizedClearValue, IID_PPV_ARGS(&depthBuffer)));
-
-	// Update the depth-stencil view
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-	dsv.Format = DXGI_FORMAT_D32_FLOAT;
-	dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsv.Texture2D.MipSlice = 0;
-	dsv.Flags = D3D12_DSV_FLAG_NONE;
-
-	depthBuffer->SetName(L"Depth Buffer");
-
-	device->CreateDepthStencilView(depthBuffer.Get(), &dsv, DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 LRESULT Achilles::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -508,23 +486,42 @@ void Achilles::HandleMouse(int& mouseX, int& mouseY, int& scroll, Mouse::State& 
 	scroll = state.scrollWheelValue;
 }
 
-
-void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, ComPtr<ID3D12GraphicsCommandList2> commandList)
+void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList)
 {
-	ComPtr<ID3D12Resource> backBuffer = backBuffers[currentBackBufferIndex];
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCurrentRenderTargetView();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	std::shared_ptr<Texture> backBuffer = backBuffers[currentBackBufferIndex];
 
-	TransitionResource(commandList, backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	std::shared_ptr<RenderTarget> currentRT = GetCurrentRenderTarget();
+	std::shared_ptr<Texture> texture = currentRT->GetTexture(AttachmentPoint::Color0);
 
-	frameFenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+	if (texture && texture->IsValid())
+	{
+		if (texture->GetD3D12ResourceDesc().SampleDesc.Count > 1)
+		{
+			commandList->ResolveSubresource(*backBuffer, *texture);
+		}
+		else
+		{
+			commandList->CopyResource(*backBuffer, *texture);
+		}
+	}
+
+	commandList->TransitionBarrier(*backBuffer, D3D12_RESOURCE_STATE_PRESENT);
+
+	fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+
 	UINT syncInterval = vSync ? 1 : 0;
 	UINT presentFlags = tearingSupported && !vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+
 	ThrowIfFailed(swapChain->Present(syncInterval, presentFlags));
 	currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
+	fenceValues[currentBackBufferIndex] = commandQueue->Signal();
+	frameValues[currentBackBufferIndex] = Application::GetGlobalFrameCounter();
+
 	// Stall CPU thread until GPU has executed
-	commandQueue->WaitForFenceValue(frameFenceValues[currentBackBufferIndex]);
+	commandQueue->WaitForFenceValue(fenceValues[currentBackBufferIndex]);
+
+	Application::ReleaseStaleDescriptors(frameValues[currentBackBufferIndex]);
 }
 
 // Achilles functions
@@ -540,10 +537,8 @@ void Achilles::Update()
 	// Print FPS every second
 	if (elapsedSeconds > 1.0)
 	{
-		wchar_t buffer[500];
 		double fps = frameCounter / elapsedSeconds;
-		swprintf_s(buffer, 500, L"FPS: %.1f\n", fps);
-		OutputDebugString(buffer);
+		OutputDebugStringWFormatted(L"FPS: %.1f\n", fps);
 
 		frameCounter = 0;
 		elapsedSeconds = 0.0;
@@ -554,7 +549,7 @@ void Achilles::Update()
 	int mouseX = 0, mouseY = 0, scroll = 0;
 	Mouse::State mouseState;
 	HandleMouse(mouseX, mouseY, scroll, mouseState);
-	MouseData mouseData;
+	MouseData mouseData{};
 	mouseData.mouseX = mouseX;
 	mouseData.mouseY = mouseY;
 	mouseData.scroll = scroll;
@@ -580,26 +575,27 @@ void Achilles::Render()
 	prevRenderClock = currClock;
 
 	ComPtr<ID3D12CommandAllocator> commandAllocator = commandAllocators[currentBackBufferIndex];
-	ComPtr<ID3D12Resource> backBuffer = backBuffers[currentBackBufferIndex];
-
 	commandAllocator->Reset();
+	std::shared_ptr<CommandList> directCommandList = directCommandQueue->GetCommandList();
 
-	ComPtr<ID3D12GraphicsCommandList2> directCommandList = directCommandQueue->GetCommandList();
-
-	directCommandList->Close();
-	ThrowIfFailed(directCommandList->Reset(commandAllocator.Get(), nullptr));
-
-	// Clear the render target + depth
+	// Clear render target
 	{
-		// Transition the resource (back) into a render target state. We must know the previous state, which means it should be tracked
-		TransitionResource(directCommandList, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
+		std::shared_ptr<Texture> rtTexture = rt->GetTexture(AttachmentPoint::Color0);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCurrentRenderTargetView();
-		D3D12_CPU_DESCRIPTOR_HANDLE dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		// Transition into a state from which we can clear the RT
+		directCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		ClearRTV(directCommandList, rtv, clearColor);
-		ClearDepth(directCommandList, dsv);
+		// Clear the render target
+		if (rtTexture)
+			directCommandList->ClearTexture(*rtTexture, clearColor);
+
+		// Clear the render depth
+		std::shared_ptr<Texture> depthTexture = rt->GetTexture(AttachmentPoint::DepthStencil);
+		if (depthTexture)
+			directCommandList->ClearDepthStencilTexture(*depthTexture, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
 	}
+
 	float dt = deltaTime.count() * 1e-9f;
 	OnRender(dt);
 
@@ -608,7 +604,10 @@ void Achilles::Render()
 	OnPostRender(dt);
 
 	Present(directCommandQueue, directCommandList);
+	Flush();
+
 	totalFrameCount++;
+	Application::IncrementGlobalFrameCounter();
 }
 
 void Achilles::Resize(uint32_t width, uint32_t height)
@@ -619,25 +618,29 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 		clientWidth = std::max(1u, width);
 		clientHeight = std::max(1u, height);
 
-		// Flush the GPU queue to make sure the swap chain's back buffers are not being referenced by an in-flight command list.
+		// Flush the GPU queue to make sure the swap chain's back buffers are not being referenced by an in-flight command list
 		Flush();
 
-		for (int i = 0; i < numFrames; ++i)
+		renderTarget->Reset();
+		for (int i = 0; i < BufferCount; ++i)
 		{
-			// Any references to the back buffers must be released
-			// before the swap chain can be resized.
-			backBuffers[i].Reset();
-			frameFenceValues[i] = frameFenceValues[currentBackBufferIndex];
+			ResourceStateTracker::RemoveGlobalResourceState(backBuffers[i]->GetD3D12Resource().Get());
+			// Any references to the back buffers must be released before the swap chain can be resized
+			backBuffers[i]->Reset();
+			backBuffers[i].reset();
+			fenceValues[i] = fenceValues[currentBackBufferIndex];
 		}
 
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 		ThrowIfFailed(swapChain->GetDesc(&swapChainDesc));
-		ThrowIfFailed(swapChain->ResizeBuffers(numFrames, clientWidth, clientHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
+		ThrowIfFailed(swapChain->ResizeBuffers(BufferCount, clientWidth, clientHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
 
 		currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
-		UpdateRenderTargetViews(device, swapChain, RTVDescriptorHeap);
-		ResizeDepthBuffer(clientWidth, clientHeight);
+		UpdateMainRenderTarget();
+		UpdateRenderTargetViews();
+
+		Flush();
 
 		OnResize(clientWidth, clientHeight);
 	}
@@ -716,31 +719,33 @@ void Achilles::Initialize()
 
 	device = CreateDevice(dxgiAdapter4);
 
+	Application::SetD3D12Device(device);
+
 	directCommandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	computeCommandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
 	copyCommandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 
-	swapChain = CreateSwapChain(hWnd, directCommandQueue->GetD3D12CommandQueue(), clientWidth, clientHeight, numFrames);
+	Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT, directCommandQueue);
+	Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE, computeCommandQueue);
+	Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY, copyCommandQueue);
+
+	Application::CreateDescriptorAllocators();
+
+	swapChain = CreateSwapChain(hWnd, directCommandQueue->GetD3D12CommandQueue(), clientWidth, clientHeight, BufferCount);
+
+	renderTarget = std::make_shared<RenderTarget>();
+	UpdateMainRenderTarget();
 
 	currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
-	// Create the descriptor heap for the render target view
-	RTVDescriptorHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, numFrames);
-	RTVDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	UpdateRenderTargetViews();
 
-	UpdateRenderTargetViews(device, swapChain, RTVDescriptorHeap);
-
-	// Create the descriptor heap for the depth-stencil view.
-	DSVDescriptorHeap = CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1);
-
-	for (int i = 0; i < numFrames; ++i)
+	for (int i = 0; i < BufferCount; ++i)
 	{
 		commandAllocators[i] = CreateCommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
 
 	Flush();
-
-	ResizeDepthBuffer(clientWidth, clientHeight);
 
 	// Init Achilles objects
 	keyboard = std::make_unique<Keyboard>();
@@ -781,10 +786,42 @@ void Achilles::Destroy()
 {
 	EmptyDrawQueue();
 	UnloadContent();
+
+	for (int i = 0; i < BufferCount; ++i)
+	{
+		backBuffers[i]->Reset();
+		backBuffers[i].reset();
+	}
+
+	// swapChain.Reset();
+	device.Reset();
+
+	// Reset application so we're not holding onto references that we shouldn't be
+	Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT, nullptr);
+	Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE, nullptr);
+	Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY, nullptr);
+	Application::ResetD3D12Device();
+
+	// Release the command queues so they for-sure happen before the swapchain gets destructed
+	directCommandQueue.reset();
+	computeCommandQueue.reset();
+	copyCommandQueue.reset();
+
 	// Remove instance from instance mappings
 	instanceMapping.erase(hWnd);
 	DestroyWindow(hWnd);
 	hWnd = nullptr;
+}
+
+// Achilles functions for creating things
+std::shared_ptr<Texture> Achilles::CreateTexture(const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue)
+{
+	return std::make_shared<Texture>(resourceDesc, clearValue);
+}
+
+std::shared_ptr<Texture> Achilles::CreateTexture(ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue)
+{
+	return std::make_shared<Texture>(resource, clearValue);
 }
 
 // Achilles drawing functions
@@ -797,7 +834,7 @@ void Achilles::QueueMeshDraw(std::shared_ptr<Mesh> mesh)
 	drawEventQueue.push(de);
 }
 
-void Achilles::DrawMeshIndexed(ComPtr<ID3D12GraphicsCommandList2> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
+void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
 {
 	if (mesh.use_count() <= 0)
 		throw std::exception("Rendered mesh was not available");
@@ -808,27 +845,26 @@ void Achilles::DrawMeshIndexed(ComPtr<ID3D12GraphicsCommandList2> commandList, s
 	if (shader->renderCallback == nullptr)
 		throw std::exception("Shader did not have a rendercallback");
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCurrentRenderTargetView();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
 
-	commandList->SetPipelineState(shader->pipelineState.Get());
-	commandList->SetGraphicsRootSignature(shader->rootSignature.Get());
+	commandList->SetPipelineState(shader->pipelineState);
+	commandList->SetGraphicsRootSignature(*shader->rootSignature);
 
-	commandList->IASetPrimitiveTopology(mesh->topology);
-	commandList->IASetVertexBuffers(0, 1, &mesh->vertexBufferView);
-	commandList->IASetIndexBuffer(&mesh->indexBufferView);
+	commandList->SetPrimitiveTopology(mesh->topology);
+	commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
+	commandList->SetIndexBuffer(*mesh->indexBuffer);
 
-	commandList->RSSetViewports(1, &camera->viewport);
-	commandList->RSSetScissorRects(1, &camera->scissorRect);
+	commandList->SetViewport(camera->viewport);
+	commandList->SetScissorRect(camera->scissorRect);
 
-	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+	commandList->SetRenderTarget(*rt);
 
 	shader->renderCallback(commandList, mesh, camera);
 
-	commandList->DrawIndexedInstanced(mesh->indexCount, 1, 0, 0, 0);
+	commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }
 
-void Achilles::DrawQueuedEvents(ComPtr<ID3D12GraphicsCommandList2> commandList)
+void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
 	while (!drawEventQueue.empty())
 	{

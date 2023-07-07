@@ -8,7 +8,12 @@
 #include <chrono>
 #include <vector>
 #include <map>
+#include <unordered_map>
+#include <set>
 #include <queue>
+#include <deque>
+#include <mutex>
+#include <functional>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -24,8 +29,12 @@
 #include <directx/d3dx12.h>
 #pragma warning( pop )
 
+#include <DirectXTex.h>
+
 #include <directxtk12/SimpleMath.h>
 #include <directxtk12/ResourceUploadBatch.h>
+#include <directxtk12/WICTextureLoader.h>
+#include <directxtk12/DirectXHelpers.h>
 #include <directxtk12/BufferHelpers.h>
 #include <directxtk12/VertexTypes.h>
 #include <directxtk12/Keyboard.h>

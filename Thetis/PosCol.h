@@ -1,5 +1,6 @@
 #pragma once
-#include "Achilles/Common.h"
+#include "Achilles/ShaderInclude.h"
+
 using DirectX::XMMATRIX;
 using DirectX::XMFLOAT3;
 using DirectX::SimpleMath::Matrix;
@@ -64,7 +65,7 @@ static void OutputDebugStringMatrix(Matrix mtx)
 }
 
 
-inline void PosColShaderRender(ComPtr<ID3D12GraphicsCommandList2> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
+inline void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
 {
 	// Update the MVP matrix
 	Matrix mvp = mesh->GetMatrix() * (camera->GetView() * camera->GetProj());
@@ -82,7 +83,7 @@ inline void PosColShaderRender(ComPtr<ID3D12GraphicsCommandList2> commandList, s
 	*/
 
 	PosColCB0 cb0{ mvp };
-	commandList->SetGraphicsRoot32BitConstants(0, sizeof(PosColCB0) / 4, &cb0, 0);
+	commandList->SetGraphics32BitConstants<PosColCB0>(0, cb0);
 }
 
 inline std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device)
@@ -108,7 +109,9 @@ inline std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device)
 
 	polColRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
 
-	posColShader = Shader::ShaderVSPS(device, posColInputLayout, _countof(posColInputLayout), sizeof(PosCol), polColRootSignature, PosColShaderRender, L"PosCol");
+	std::shared_ptr rootSignature = std::make_shared<RootSignature>(device, polColRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
+
+	posColShader = Shader::ShaderVSPS(device, posColInputLayout, _countof(posColInputLayout), sizeof(PosCol), rootSignature, PosColShaderRender, L"PosCol");
 
 	return posColShader;
 }
