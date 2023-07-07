@@ -30,10 +30,12 @@ void Mesh::ConstructMatrix()
 {
 	// TRS
 	matrix = Matrix::CreateScale(scale) * (Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position));
+	dirtyMatrix = false;
 }
 
-DirectX::SimpleMath::Matrix Mesh::GetMatrix()
+Matrix Mesh::GetMatrix()
 {
-	ConstructMatrix();
+	if (dirtyMatrix)
+		ConstructMatrix();
 	return matrix;
 }

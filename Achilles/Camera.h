@@ -19,8 +19,15 @@ public:
 	float farZ = 100.0f;
 	CD3DX12_RECT scissorRect{ 0, 0, LONG_MAX, LONG_MAX };
 	CD3DX12_VIEWPORT viewport;
+
+protected:
 	DirectX::SimpleMath::Matrix view;
 	DirectX::SimpleMath::Matrix proj;
+
+public:
+	bool dirtyViewMatrix = true;
+	bool dirtyProjMatrix = true;
+
 public:
 	Camera(std::wstring _name, int width, int height);
 	void UpdateViewport(int width, int height);

@@ -14,6 +14,8 @@ void Thetis::OnUpdate(float deltaTime)
 	cube->rotation.y = fmod(cube->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
 
 	cube->scale = Vector3(1.0f + (0.5f * sinf((float)totalElapsedSeconds * 2.0f)));
+
+	cube->dirtyMatrix = true;
 }
 
 void Thetis::OnRender(float deltaTime)
@@ -30,6 +32,7 @@ void Thetis::OnPostRender(float deltaTime)
 void Thetis::OnResize(int newWidth, int newHeight)
 {
 	camera->UpdateViewport(newWidth, newHeight);
+	camera->dirtyProjMatrix = true;
 }
 
 void Thetis::LoadContent()
@@ -64,7 +67,7 @@ void Thetis::LoadContent()
 
 void Thetis::UnloadContent()
 {
-	printf("Cube use_count: %i\n", cube.use_count());
+	
 }
 
 void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, float dt)
@@ -73,12 +76,15 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
 	{
 		camera->fov -= 5;
 		OutputDebugStringWFormatted(L"FOV is now %.1f\n", camera->fov);
+		camera->dirtyProjMatrix = true;
 	}
 	if (kbt.pressed.PageDown)
 	{
 		camera->fov += 5;
 		OutputDebugStringWFormatted(L"FOV is now %.1f\n", camera->fov);
+		camera->dirtyProjMatrix = true;
 	}
+
 	float cameraRotationAmount = 15;
 	if (kbt.pressed.Up)
 	{

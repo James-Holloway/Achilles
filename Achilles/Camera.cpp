@@ -15,19 +15,22 @@ void Camera::UpdateViewport(int width, int height)
 
 Matrix Camera::GetViewProj()
 {
-	ConstructMatrices();
+	if (dirtyViewMatrix || dirtyProjMatrix)
+		ConstructMatrices();
 	return view * proj;
 }
 
 Matrix Camera::GetView()
 {
-	ConstructView();
+	if (dirtyViewMatrix)
+		ConstructView();
 	return view;
 }
 
 Matrix Camera::GetProj()
 {
-	ConstructProjection();
+	if (dirtyProjMatrix)
+		ConstructProjection();
 	return proj;
 }
 
@@ -43,11 +46,13 @@ void Camera::ConstructView()
 	view = view.Invert();
 	// view = view.Transpose();
 	// view = ViewFPS(position, 0, 0);
+	dirtyViewMatrix = false;
 }
 
 void Camera::ConstructProjection()
 {
 	proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
+	dirtyProjMatrix = false;
 }
 
 
@@ -65,6 +70,7 @@ void Camera::RotateEuler(Vector3 euler, bool unlockPitch, bool unlockRoll)
 		rot = Vector3(rot.x, rot.y, 0);
 
 	rotation = rot;
+	dirtyViewMatrix = true;
 }
 
 void Camera::MoveRelative(Vector3 direction)
@@ -73,4 +79,5 @@ void Camera::MoveRelative(Vector3 direction)
 	Matrix rot = Matrix::CreateFromYawPitchRoll(rotation);
 	Vector3 pos = DirectX::XMVector3TransformNormal(direction, world * rot);
 	position += pos;
+	dirtyViewMatrix = true;
 }
