@@ -46,6 +46,9 @@ class RenderTarget;
 class GenerateMipsPSO;
 class PanoToCubemapPSO;
 
+class ConstantBufferView;
+class ShaderResourceView;
+
 class CommandList
 {
 public:
@@ -249,6 +252,10 @@ public:
     void SetGraphicsRootSignature(const RootSignature& rootSignature);
     void SetComputeRootSignature(const RootSignature& rootSignature);
 
+    // Set the CBV on the rendering pipeline.
+    void SetConstantBufferView(uint32_t rootParameterIndex, uint32_t descriptorOffset,
+        const std::shared_ptr<ConstantBufferView>& cbv,
+        D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     
     // Set the SRV on the graphics pipeline.
     void SetShaderResourceView(
@@ -262,6 +269,13 @@ public:
         const D3D12_SHADER_RESOURCE_VIEW_DESC* srv = nullptr
     );
 
+    // Set the SRV on the graphics pipeline.
+    void SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset,
+        const std::shared_ptr<ShaderResourceView>& srv,
+        D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+        UINT firstSubresource = 0,
+        UINT numSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
     
     // Set the UAV on the graphics pipeline.
     void SetUnorderedAccessView(

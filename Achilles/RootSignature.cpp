@@ -1,9 +1,9 @@
 #include "RootSignature.h"
+#include "Application.h"
 
 RootSignature::RootSignature() : rootSignatureDesc{}, numDescriptorsPerTable{ 0 }, samplerTableBitMask(0), descriptorTableBitMask(0) {}
 
-RootSignature::RootSignature(ComPtr<ID3D12Device2> _device, const D3D12_ROOT_SIGNATURE_DESC1& _rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION _rootSignatureVersion)
-    : device(_device), rootSignatureDesc{}, numDescriptorsPerTable{ 0 }, samplerTableBitMask(0), descriptorTableBitMask(0)
+RootSignature::RootSignature(const D3D12_ROOT_SIGNATURE_DESC1& _rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION _rootSignatureVersion) : rootSignatureDesc{}, numDescriptorsPerTable{ 0 }, samplerTableBitMask(0), descriptorTableBitMask(0)
 {
     SetRootSignatureDesc(_rootSignatureDesc, _rootSignatureVersion);
 }
@@ -89,12 +89,12 @@ void RootSignature::SetRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC1& _root
     rootSignatureDesc.NumParameters = numParameters;
     rootSignatureDesc.pParameters = pParameters;
 
-    UINT numStaticSamplers = rootSignatureDesc.NumStaticSamplers;
+    UINT numStaticSamplers = _rootSignatureDesc.NumStaticSamplers;
     D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = numStaticSamplers > 0 ? new D3D12_STATIC_SAMPLER_DESC[numStaticSamplers] : nullptr;
 
     if (pStaticSamplers)
     {
-        memcpy(pStaticSamplers, rootSignatureDesc.pStaticSamplers,
+        memcpy(pStaticSamplers, _rootSignatureDesc.pStaticSamplers,
             sizeof(D3D12_STATIC_SAMPLER_DESC) * numStaticSamplers);
     }
 
@@ -113,23 +113,26 @@ void RootSignature::SetRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC1& _root
     ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&versionRootSignatureDesc, _rootSignatureVersion, &rootSignatureBlob, &errorBlob));
 
     // Create the root signature.
+
+    auto device = Application::GetD3D12Device();
+
     ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(), rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)));
 }
 
 uint32_t RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE descriptorHeapType) const
 {
-    uint32_t descriptorTableBitMask = 0;
+    uint32_t DTBM = 0;
     switch (descriptorHeapType)
     {
     case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
-        descriptorTableBitMask = descriptorTableBitMask;
+        DTBM = descriptorTableBitMask;
         break;
     case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
-        descriptorTableBitMask = samplerTableBitMask;
+        DTBM = samplerTableBitMask;
         break;
     }
 
-    return descriptorTableBitMask;
+    return DTBM;
 }
 
 uint32_t RootSignature::GetNumDescriptors(uint32_t rootIndex) const

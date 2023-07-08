@@ -16,7 +16,7 @@
 #include "Texture.h"
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
-
+#include "ShaderResourceView.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -352,9 +352,7 @@ void CommandList::GenerateMips_UAV(Texture& texture)
 
     auto stagingResource = resource;
     Texture stagingTexture(stagingResource);
-    // If the passed-in resource does not allow for UAV access
-    // then create a staging resource that is used to generate
-    // the mipmap chain.
+    // If the passed-in resource does not allow for UAV access then create a staging resource that is used to generate the mipmap chain.
     if ((resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == 0)
     {
         auto stagingDesc = resourceDesc;
@@ -362,14 +360,7 @@ void CommandList::GenerateMips_UAV(Texture& texture)
 
         CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-        ThrowIfFailed(device->CreateCommittedResource(
-            &heapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &stagingDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST,
-            nullptr,
-            IID_PPV_ARGS(&stagingResource)
-        ));
+        ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &stagingDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&stagingResource)));
 
         ResourceStateTracker::AddGlobalResourceState(stagingResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
 
@@ -380,7 +371,7 @@ void CommandList::GenerateMips_UAV(Texture& texture)
         CopyResource(stagingTexture, texture);
     }
 
-    d3d12CommandList->SetPipelineState(generateMipsPSO->GetPipelineState().Get());
+    SetPipelineState(generateMipsPSO->GetPipelineState());
     SetComputeRootSignature(generateMipsPSO->GetRootSignature());
 
     GenerateMipsCB generateMipsCB;
@@ -569,14 +560,7 @@ void CommandList::GenerateMips_sRGB(Texture& texture)
     ThrowIfFailed(device->CreateHeap(&heapDesc, IID_PPV_ARGS(&heap)));
 
     ComPtr<ID3D12Resource> resourceCopy;
-    ThrowIfFailed(device->CreatePlacedResource(
-        heap.Get(),
-        0,
-        &copyDesc,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(&resourceCopy)
-    ));
+    ThrowIfFailed(device->CreatePlacedResource(heap.Get(), 0, &copyDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&resourceCopy)));
 
     ResourceStateTracker::AddGlobalResourceState(resourceCopy.Get(), D3D12_RESOURCE_STATE_COMMON);
 
@@ -586,14 +570,7 @@ void CommandList::GenerateMips_sRGB(Texture& texture)
     auto aliasDesc = resourceDesc;
 
     ComPtr<ID3D12Resource> aliasCopy;
-    ThrowIfFailed(device->CreatePlacedResource(
-        heap.Get(),
-        0,
-        &aliasDesc,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(&aliasCopy)
-    ));
+    ThrowIfFailed(device->CreatePlacedResource(heap.Get(), 0, &aliasDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&aliasCopy)));
 
     ResourceStateTracker::AddGlobalResourceState(aliasCopy.Get(), D3D12_RESOURCE_STATE_COMMON);
 
@@ -914,13 +891,7 @@ void CommandList::SetComputeRootSignature(const RootSignature& _rootSignature)
     }
 }
 
-void CommandList::SetShaderResourceView(uint32_t rootParameterIndex,
-    uint32_t descriptorOffset,
-    const Resource& resource,
-    D3D12_RESOURCE_STATES stateAfter,
-    UINT firstSubresource,
-    UINT numSubresources,
-    const D3D12_SHADER_RESOURCE_VIEW_DESC* srv)
+void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources, const D3D12_SHADER_RESOURCE_VIEW_DESC* srv)
 {
     if (numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
     {
@@ -937,6 +908,31 @@ void CommandList::SetShaderResourceView(uint32_t rootParameterIndex,
     dynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, resource.GetShaderResourceView(srv));
 
     TrackResource(resource);
+}
+
+void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<ShaderResourceView>& srv, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources)
+{
+    assert(srv);
+
+    auto resource = srv->GetResource();
+    if (resource)
+    {
+        if (numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+        {
+            for (uint32_t i = 0; i < numSubresources; ++i)
+            {
+                TransitionBarrier(*resource, stateAfter, firstSubresource + i);
+            }
+        }
+        else
+        {
+            TransitionBarrier(*resource, stateAfter);
+        }
+
+        TrackResource(*resource);
+    }
+
+    dynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, srv->GetDescriptorHandle());
 }
 
 void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex,
@@ -1108,16 +1104,16 @@ void CommandList::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12D
 void CommandList::BindDescriptorHeaps()
 {
     UINT numDescriptorHeaps = 0;
-    ID3D12DescriptorHeap* descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
+    ID3D12DescriptorHeap* _descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
 
     for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
     {
         ID3D12DescriptorHeap* descriptorHeap = descriptorHeaps[i];
         if (descriptorHeap)
         {
-            descriptorHeaps[numDescriptorHeaps++] = descriptorHeap;
+            _descriptorHeaps[numDescriptorHeaps++] = descriptorHeap;
         }
     }
 
-    d3d12CommandList->SetDescriptorHeaps(numDescriptorHeaps, descriptorHeaps);
+    d3d12CommandList->SetDescriptorHeaps(numDescriptorHeaps, _descriptorHeaps);
 }

@@ -48,17 +48,23 @@ void Thetis::LoadContent()
 	camera->position = Vector3(5, 0, 0);
 	camera->rotation = EulerToRadians(Vector3(0, -90, 0));
 
-	// Create shader
+	// Create shaders
 	std::shared_ptr<Shader> posColShader = GetPosColShader(device);
+	std::shared_ptr<Shader> posTexturedShader = PosTextured::GetPosTexturedShader(device);
 
 	// Create cube
-	cube = std::make_shared<Mesh>(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosCol), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
+	cube = std::make_shared<Mesh>(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosColVertex), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
 
 	// Create floor quad
-	floorQuad = std::make_shared<Mesh>(L"floor quad", commandList, (void*)posColQuadVertices, (UINT)_countof(posColQuadVertices), sizeof(PosCol), posColQuadIndices, (UINT)_countof(posColQuadIndices), posColShader);
+	floorQuad = std::make_shared<Mesh>(L"floor quad", commandList, (void*)PosTextured::posTexturedQuadVertices, (UINT)_countof(PosTextured::posTexturedQuadVertices), sizeof(PosTextured::PosTexturedVertex), PosTextured::posTexturedQuadIndices, (UINT)_countof(PosTextured::posTexturedQuadIndices), posTexturedShader);
 	floorQuad->position = Vector3(0, -2, 0);
 	floorQuad->rotation = EulerToRadians(Vector3(-90, 0, 0));
 	floorQuad->scale = Vector3(3, 3, 3);
+
+	std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
+	std::wstring floorTexturePath = GetContentDirectoryW() + L"textures/MyUVSquare.png";
+	commandList->LoadTextureFromFile(*floorTexture, floorTexturePath, TextureUsage::Albedo);
+	floorQuad->material.textures.insert({ L"MainTexture", floorTexture});
 
 	// Execute command list
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);

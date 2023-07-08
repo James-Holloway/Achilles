@@ -8,7 +8,7 @@ using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Vector4;
 using DirectX::SimpleMath::Color;
 
-struct PosCol
+struct PosColVertex
 {
 	Vector3 Position;
 	Color Color;
@@ -19,7 +19,7 @@ struct PosColCB0
 	Matrix mvp;
 };
 
-static const PosCol posColQuadVertices[4] =
+static const PosColVertex posColQuadVertices[4] =
 {
 	{Vector3(-1.0f, -1.0f, +0.0f), Color(0.0f, 0.0f, 0.0f, 0.0f)},
 	{Vector3(+1.0f, -1.0f, +0.0f), Color(1.0f, 0.0f, 0.0f, 0.0f)},
@@ -33,7 +33,7 @@ static const uint16_t posColQuadIndices[6] =
 	2, 1, 3
 };
 
-static const PosCol posColCubeVertices[8] = {
+static const PosColVertex posColCubeVertices[8] = {
 	{ Vector3(-1.0f, -1.0f, -1.0f), Color(0.0f, 0.0f, 0.0f, 1.0f) },
 	{ Vector3(-1.0f, +1.0f, -1.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
 	{ Vector3(+1.0f, +1.0f, -1.0f), Color(1.0f, 1.0f, 0.0f, 1.0f) },
@@ -65,32 +65,20 @@ static void OutputDebugStringMatrix(Matrix mtx)
 }
 
 
-inline void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
+inline void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera)
 {
 	// Update the MVP matrix
 	Matrix mvp = mesh->GetMatrix() * (camera->GetView() * camera->GetProj());
 
-	/*
-	OutputDebugStringW(L"Model Matrix:\n");
-	OutputDebugStringMatrix(mesh->GetMatrix());
-	OutputDebugStringW(L"View Matrix:\n");
-	OutputDebugStringMatrix(camera->GetView());
-	OutputDebugStringW(L"Projection Matrix:\n");
-	OutputDebugStringMatrix(camera->GetProj());
-
-	OutputDebugStringW(L"MVP:\n");
-	OutputDebugStringMatrix(mvp);
-	*/
-
 	PosColCB0 cb0{ mvp };
+
 	commandList->SetGraphics32BitConstants<PosColCB0>(0, cb0);
 }
 
+static std::shared_ptr<Shader> posColShader{};
+static CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC polColRootSignature{};
 inline std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device)
 {
-	static std::shared_ptr<Shader> posColShader{};
-	static CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC polColRootSignature{};
-
 	if (posColShader.use_count() >= 1)
 	{
 		return posColShader;
@@ -109,9 +97,9 @@ inline std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device)
 
 	polColRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
 
-	std::shared_ptr rootSignature = std::make_shared<RootSignature>(device, polColRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
+	std::shared_ptr rootSignature = std::make_shared<RootSignature>(polColRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
 
-	posColShader = Shader::ShaderVSPS(device, posColInputLayout, _countof(posColInputLayout), sizeof(PosCol), rootSignature, PosColShaderRender, L"PosCol");
+	posColShader = Shader::ShaderVSPS(device, posColInputLayout, _countof(posColInputLayout), sizeof(PosColVertex), rootSignature, PosColShaderRender, L"PosCol");
 
 	return posColShader;
 }

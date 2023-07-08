@@ -1,7 +1,7 @@
 #pragma once
 #include "Common.h"
 #include "CommandList.h"
-#include "Shader.h"
+#include "Material.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -14,14 +14,15 @@ public:
 	DirectX::SimpleMath::Vector3 rotation {0, 0, 0};
 	DirectX::SimpleMath::Vector3 scale {1, 1, 1};
 	bool dirtyMatrix = true;
+
+	Material material;
+
 protected:
 	DirectX::SimpleMath::Matrix matrix;
 
 	bool isCreated = false;
 	std::shared_ptr<VertexBuffer> vertexBuffer;
 	std::shared_ptr<IndexBuffer> indexBuffer;
-
-	std::shared_ptr<Shader> shader;
 
 	D3D_PRIMITIVE_TOPOLOGY topology;
 

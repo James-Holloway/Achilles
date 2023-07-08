@@ -702,6 +702,9 @@ void Achilles::Initialize()
 	ParseCommandLineArguments();
 	EnableDebugLayer();
 
+	// Initialize COM, used for Texture loading using CommandList::LoadTextureFromFile
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
 	std::wstring windowClassName = (L"AchillesWindowClass" + name);
 
 	tearingSupported = CheckTearingSupport();
@@ -841,7 +844,8 @@ void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::sh
 	if (camera.use_count() <= 0)
 		throw std::exception("Rendered camera was not available");
 
-	std::shared_ptr<Shader> shader = mesh->shader;
+	Material material = mesh->material;
+	std::shared_ptr<Shader> shader = material.shader;
 	if (shader->renderCallback == nullptr)
 		throw std::exception("Shader did not have a rendercallback");
 
@@ -859,7 +863,7 @@ void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::sh
 
 	commandList->SetRenderTarget(*rt);
 
-	shader->renderCallback(commandList, mesh, camera);
+	shader->renderCallback(commandList, mesh, material, camera);
 
 	commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }

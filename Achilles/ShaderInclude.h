@@ -13,4 +13,5 @@
 #include "DrawEvent.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "Material.h"
 #include "Camera.h"

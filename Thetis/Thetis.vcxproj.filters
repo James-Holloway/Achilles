@@ -20,6 +20,10 @@
       <UniqueIdentifier>{3a68f074-0a0a-4e3f-afd7-3d0a5ae64d88}</UniqueIdentifier>
       <Extensions>hlsl</Extensions>
     </Filter>
+    <Filter Include="content\textures">
+      <UniqueIdentifier>{b4fc382a-8ef7-40a3-bb0f-a749fc95d613}</UniqueIdentifier>
+      <Extensions>png;jpg;jpeg;dds</Extensions>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Thetis.cpp">
@@ -36,11 +40,22 @@
     <ClInclude Include="PosCol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PosTextured.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="content\shaders\PosCol.hlsl">
       <Filter>content\shaders</Filter>
     </None>
+    <None Include="content\shaders\PosTextured.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="content\textures\MyUVSquare.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

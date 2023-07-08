@@ -44,6 +44,8 @@ private:
 	ComPtr<ID3D12Fence> d3d12Fence;
 	std::atomic_uint64_t fenceValue;
 
+	size_t commandListCreatedCount = 0;
+
 	ThreadSafeQueue<CommandListEntry> inFlightCommandLists;
 	ThreadSafeQueue<std::shared_ptr<CommandList>> availableCommandLists;
 

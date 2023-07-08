@@ -1,6 +1,7 @@
 #pragma once
 #include "Achilles/Achilles.h"
 #include "PosCol.h"
+#include "PosTextured.h"
 
 class Thetis : public Achilles
 {

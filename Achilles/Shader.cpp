@@ -1,6 +1,7 @@
 #include "Shader.h"
 #include "Application.h"
 #include "RootSignature.h"
+#include "Texture.h"
 
 HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring profile, ComPtr<IDxcBlob>& outShader)
 {
@@ -86,6 +87,18 @@ Shader::Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size
 	renderCallback = _renderCallback;
 }
 
+void Shader::BindTexture(CommandList& commandList, uint32_t rootParamIndex, uint32_t offset, std::shared_ptr<Texture>& texture)
+{
+	if (texture)
+	{
+		commandList.SetShaderResourceView(rootParamIndex, offset, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+	else
+	{
+		commandList.SetShaderResourceView(rootParamIndex, offset, defaultSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+}
+
 std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName)
 {
 	std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize, _renderCallback);
@@ -102,7 +115,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
 
 	if (vertexShader == nullptr || pixelShader == nullptr)
 		throw std::exception("Shader(s) did not compile");
-
+	
 	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
@@ -153,6 +166,18 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
 	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&shader->pipelineState)));
 
 	shader->pipelineState->SetName(shaderName.c_str());
+
+	// Create an SRV that can be used to pad unused texture slots.
+	D3D12_SHADER_RESOURCE_VIEW_DESC SRV;
+	SRV.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	SRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	SRV.Texture2D.MostDetailedMip = 0;
+	SRV.Texture2D.MipLevels = 1;
+	SRV.Texture2D.PlaneSlice = 0;
+	SRV.Texture2D.ResourceMinLODClamp = 0;
+	SRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	shader->defaultSRV = std::make_shared<ShaderResourceView>(nullptr, &SRV);
 
 	return shader;
 }

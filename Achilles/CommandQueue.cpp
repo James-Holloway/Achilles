@@ -87,6 +87,26 @@ std::shared_ptr<CommandList> CommandQueue::GetCommandList()
     {
         // Otherwise create a new command list.
         commandList = std::make_shared<CommandList>(commandListType);
+
+        // Set the name of the command list
+        std::wstring namedType = L"Unknown";
+        switch (commandListType)
+        {
+        case D3D12_COMMAND_LIST_TYPE_DIRECT:
+            namedType = L"Direct";
+            break;
+        case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+            namedType = L"Compute";
+            break;
+        case D3D12_COMMAND_LIST_TYPE_COPY:
+            namedType = L"Copy";
+            break;
+        case D3D12_COMMAND_LIST_TYPE_BUNDLE:
+            namedType = L"Bundle";
+            break;
+        };
+        // This may break if it's not a ID3D12GraphicsCommandList2
+        commandList->GetGraphicsCommandList()->SetName((namedType + L" Command List #" + std::to_wstring(commandListCreatedCount++)).c_str());
     }
 
     return commandList;
@@ -108,8 +128,8 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
     toBeQueued.reserve(commandLists.size() * 2);        // 2x since each command list will have a pending command list.
 
     // Generate mips command lists.
-    // std::vector<std::shared_ptr<CommandList> > generateMipsCommandLists;
-    // generateMipsCommandLists.reserve(commandLists.size());
+    std::vector<std::shared_ptr<CommandList>> generateMipsCommandLists;
+    generateMipsCommandLists.reserve(commandLists.size());
 
     // Command lists that need to be executed.
     std::vector<ID3D12CommandList*> d3d12CommandLists;
@@ -130,11 +150,11 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
         toBeQueued.push_back(pendingCommandList);
         toBeQueued.push_back(commandList);
 
-        /*auto generateMipsCommandList = commandList->GetGenerateMipsCommandList();
+        auto generateMipsCommandList = commandList->GetGenerateMipsCommandList();
         if (generateMipsCommandList)
         {
             generateMipsCommandLists.push_back(generateMipsCommandList);
-        }*/
+        }
     }
 
     UINT numCommandLists = static_cast<UINT>(d3d12CommandLists.size());
@@ -151,12 +171,12 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 
     // If there are any command lists that generate mips then execute those
     // after the initial resource command lists have finished.
-    /*if (generateMipsCommandLists.size() > 0)
+    if (generateMipsCommandLists.size() > 0)
     {
         auto computeQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
         computeQueue->Wait(*this);
         computeQueue->ExecuteCommandLists(generateMipsCommandLists);
-    }*/
+    }
 
     return fv;
 }

@@ -30,7 +30,7 @@ class RootSignature
 {
 public:
     RootSignature();
-    RootSignature(ComPtr<ID3D12Device2> _device, const D3D12_ROOT_SIGNATURE_DESC1& _rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION _rootSignatureVersion);
+    RootSignature(const D3D12_ROOT_SIGNATURE_DESC1& _rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION _rootSignatureVersion);
 
     virtual ~RootSignature();
 
@@ -65,6 +65,4 @@ private:
     uint32_t samplerTableBitMask;
     // A bit mask that represents the root parameter indices that are CBV, UAV, and SRV descriptor tables
     uint32_t descriptorTableBitMask;
-
-    ComPtr<ID3D12Device2> device;
 };

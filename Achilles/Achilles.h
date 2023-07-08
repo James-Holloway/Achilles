@@ -8,6 +8,8 @@
 #include "ResourceStateTracker.h"
 #include "RenderTarget.h"
 #include "Camera.h"
+#include "Material.h"
+#include "Shader.h"
 #include "Mesh.h"
 #include "DrawEvent.h"
 #include "MouseData.h"
