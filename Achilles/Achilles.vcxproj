@@ -195,8 +195,10 @@
     <ClCompile Include="DescriptorAllocator.cpp" />
     <ClCompile Include="DescriptorAllocatorPage.cpp" />
     <ClCompile Include="DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="GenerateMipsPSO.cpp" />
     <ClCompile Include="IndexBuffer.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="PanoToCubemapPSO.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="ResourceStateTracker.cpp" />
@@ -227,11 +229,15 @@
     <ClInclude Include="DescriptorAllocatorPage.h" />
     <ClInclude Include="DrawEvent.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
+    <ClInclude Include="GenerateMipsPSO.h" />
+    <ClInclude Include="GenerateMips_CS.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MouseData.h" />
+    <ClInclude Include="PanoToCubemapPSO.h" />
+    <ClInclude Include="PanoToCubemap_CS.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceStateTracker.h" />

@@ -140,3 +140,54 @@ inline Vector3 EulerToRadians(Vector3 degrees)
 	};
 	return radians;
 }
+
+template <typename T>
+inline T DivideByMultiple(T value, size_t alignment)
+{
+	return (T)((value + alignment - 1) / alignment);
+}
+
+inline uint32_t NextHighestPow2(uint32_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+
+	return v;
+}
+
+inline uint64_t NextHighestPow2(uint64_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v |= v >> 32;
+	v++;
+
+	return v;
+}
+
+// Normalize a value in the range [min - max]
+template<typename T, typename U>
+inline T NormalizeRange(U x, U min, U max)
+{
+	return T(x - min) / T(max - min);
+}
+
+template<typename T>
+inline T Deadzone(T val, T deadzone)
+{
+	if (std::abs(val) < deadzone)
+	{
+		return T(0);
+	}
+
+	return val;
+}

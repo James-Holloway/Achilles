@@ -1,12 +1,13 @@
 #include "CommandList.h"
+#include "MathHelpers.h"
 #include "Application.h"
 #include "ByteAddressBuffer.h"
 #include "ConstantBuffer.h"
 #include "CommandQueue.h"
 #include "DynamicDescriptorHeap.h"
 #include "IndexBuffer.h"
-// #include "GenerateMipsPSO.h"
-// #include "PanoToCubemapPSO.h"
+#include "GenerateMipsPSO.h"
+#include "PanoToCubemapPSO.h"
 #include "RenderTarget.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"
@@ -219,7 +220,7 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
         if (filePath.extension() == ".dds")
         {
             // Use DDS texture loader.
-            ThrowIfFailed(LoadFromDDSFile(fileName.c_str(), DDS_FLAGS_NONE, &metadata, scratchImage));
+            ThrowIfFailed(LoadFromDDSFile(fileName.c_str(), DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
         }
         else if (filePath.extension() == ".hdr")
         {
@@ -231,7 +232,7 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
         }
         else
         {
-            ThrowIfFailed(LoadFromWICFile(fileName.c_str(), WIC_FLAGS_NONE, &metadata, scratchImage));
+            ThrowIfFailed(LoadFromWICFile(fileName.c_str(), WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
         }
 
         if (textureUsage == TextureUsage::Albedo)
@@ -281,7 +282,7 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
 
         if (subresources.size() < textureResource->GetDesc().MipLevels)
         {
-            // GenerateMips(texture);
+            GenerateMips(texture);
         }
 
         // Add the texture resource to the texture cache.
@@ -290,7 +291,7 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
     }
 }
 
-/*
+
 void CommandList::GenerateMips(Texture& texture)
 {
     if (d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY)
@@ -305,13 +306,14 @@ void CommandList::GenerateMips(Texture& texture)
 
     auto d3d12Resource = texture.GetD3D12Resource();
 
-    // If the texture doesn't have a valid resource, do nothing.
-    if (!d3d12Resource) return;
+    // If the texture doesn't have a valid resource, do nothing
+    if (!d3d12Resource)
+        return;
     auto d3d12ResourceDesc = d3d12Resource->GetDesc();
 
-    // If the texture only has a single mip level (level 0)
-    // do nothing.
-    if (d3d12ResourceDesc.MipLevels == 1) return;
+    // If the texture only has a single mip level (level 0) do nothing
+    if (d3d12ResourceDesc.MipLevels == 1)
+        return;
     // Currently, only 2D textures are supported.
     if (d3d12ResourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D || d3d12ResourceDesc.DepthOrArraySize != 1)
     {
@@ -335,13 +337,12 @@ void CommandList::GenerateMips(Texture& texture)
         throw std::exception("Unsupported texture format for mipmap generation.");
     }
 }
-*/
 
-/*void CommandList::GenerateMips_UAV(Texture& texture)
+void CommandList::GenerateMips_UAV(Texture& texture)
 {
     if (!generateMipsPSO)
     {
-        generateMipsPSO = std::make_unique<generateMipsPSO>();
+        generateMipsPSO = std::make_unique<GenerateMipsPSO>();
     }
 
     auto device = Application::GetD3D12Device();
@@ -359,14 +360,15 @@ void CommandList::GenerateMips(Texture& texture)
         auto stagingDesc = resourceDesc;
         stagingDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
+        CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
         ThrowIfFailed(device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            &heapProperties,
             D3D12_HEAP_FLAG_NONE,
             &stagingDesc,
             D3D12_RESOURCE_STATE_COPY_DEST,
             nullptr,
             IID_PPV_ARGS(&stagingResource)
-
         ));
 
         ResourceStateTracker::AddGlobalResourceState(stagingResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST);
@@ -439,10 +441,10 @@ void CommandList::GenerateMips(Texture& texture)
         // Pad any unused mip levels with a default UAV. Doing this keeps the DX12 runtime happy.
         if (mipCount < 4)
         {
-            dynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, m_GenerateMipsPSO->GetDefaultUAV());
+            dynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, generateMipsPSO->GetDefaultUAV());
         }
 
-        Dispatch(Math::DivideByMultiple(dstWidth, 8), Math::DivideByMultiple(dstHeight, 8));
+        Dispatch(DivideByMultiple(dstWidth, 8), DivideByMultiple(dstHeight, 8));
 
         UAVBarrier(stagingTexture);
 
@@ -539,7 +541,7 @@ void CommandList::GenerateMips_BGR(Texture& texture)
 
 void CommandList::GenerateMips_sRGB(Texture& texture)
 {
-    auto device = Application::Get().GetDevice();
+    auto device = Application::GetD3D12Device();
 
     // Create a UAV compatible texture.
     auto resource = texture.GetD3D12Resource();
@@ -619,40 +621,43 @@ void CommandList::GenerateMips_sRGB(Texture& texture)
 
 void CommandList::PanoToCubemap(Texture& cubemapTexture, const Texture& panoTexture)
 {
-    if (m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY)
+    if (d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY)
     {
-        if (!m_ComputeCommandList)
+        if (!computeCommandList)
         {
-            m_ComputeCommandList = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE)->GetCommandList();
+            computeCommandList = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE)->GetCommandList();
         }
-        m_ComputeCommandList->PanoToCubemap(cubemapTexture, panoTexture);
+        computeCommandList->PanoToCubemap(cubemapTexture, panoTexture);
         return;
     }
 
-    if (!m_PanoToCubemapPSO)
+    if (!panoToCubemapPSO)
     {
-        m_PanoToCubemapPSO = std::make_unique<PanoToCubemapPSO>();
+        panoToCubemapPSO = std::make_unique<PanoToCubemapPSO>();
     }
 
-    auto device = Application::Get().GetDevice();
+    auto device = Application::GetD3D12Device();
 
     auto cubemapResource = cubemapTexture.GetD3D12Resource();
-    if (!cubemapResource) return;
+
+    if (!cubemapResource)
+        return;
 
     CD3DX12_RESOURCE_DESC cubemapDesc(cubemapResource->GetDesc());
 
     auto stagingResource = cubemapResource;
     Texture stagingTexture(stagingResource);
-    // If the passed-in resource does not allow for UAV access
-    // then create a staging resource that is used to generate
-    // the cubemap.
+
+    // If the passed-in resource does not allow for UAV access then create a staging resource that is used to generate the cubemap
     if ((cubemapDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == 0)
     {
         auto stagingDesc = cubemapDesc;
         stagingDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
+        CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
         ThrowIfFailed(device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            &heapProperties,
             D3D12_HEAP_FLAG_NONE,
             &stagingDesc,
             D3D12_RESOURCE_STATE_COPY_DEST,
@@ -672,8 +677,8 @@ void CommandList::PanoToCubemap(Texture& cubemapTexture, const Texture& panoText
 
     TransitionBarrier(stagingTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-    m_d3d12CommandList->SetPipelineState(m_PanoToCubemapPSO->GetPipelineState().Get());
-    SetComputeRootSignature(m_PanoToCubemapPSO->GetRootSignature());
+    d3d12CommandList->SetPipelineState(panoToCubemapPSO->GetPipelineState().Get());
+    SetComputeRootSignature(panoToCubemapPSO->GetRootSignature());
 
     PanoToCubemapCB panoToCubemapCB;
 
@@ -705,10 +710,10 @@ void CommandList::PanoToCubemap(Texture& cubemapTexture, const Texture& panoText
         if (numMips < 5)
         {
             // Pad unused mips. This keeps DX12 runtime happy.
-            m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(PanoToCubemapRS::DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_PanoToCubemapPSO->GetDefaultUAV());
+            dynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(PanoToCubemapRS::DstMips, panoToCubemapCB.NumMips, 5 - numMips, panoToCubemapPSO->GetDefaultUAV());
         }
 
-        Dispatch(Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), 6);
+        Dispatch(DivideByMultiple(panoToCubemapCB.CubemapSize, 16), DivideByMultiple(panoToCubemapCB.CubemapSize, 16), 6);
 
         mipSlice += numMips;
     }
@@ -718,7 +723,6 @@ void CommandList::PanoToCubemap(Texture& cubemapTexture, const Texture& panoText
         CopyResource(cubemapTexture, stagingTexture);
     }
 }
-*/
 
 void CommandList::ClearTexture(const Texture& texture, const float clearColor[4])
 {
