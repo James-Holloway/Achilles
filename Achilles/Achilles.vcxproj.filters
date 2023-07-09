@@ -126,6 +126,18 @@
     <ClCompile Include="ConstantBufferView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AchillesImGui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\implot\implot.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\implot\implot_items.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\implot\implot_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imgui.h">
@@ -236,12 +248,6 @@
     <ClInclude Include="GenerateMipsPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PanoToCubemap_CS.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GenerateMips_CS.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PanoToCubemapPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -253,6 +259,15 @@
     </ClInclude>
     <ClInclude Include="ConstantBufferView.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AchillesImGui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\implot\implot.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\implot\implot_internal.h">
+      <Filter>imgui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

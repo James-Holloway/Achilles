@@ -1,6 +1,6 @@
 #include "UploadBuffer.h"
 #include "Application.h"
-using namespace DirectX;
+#include "MathHelpers.h"
 
 UploadBuffer::UploadBuffer(size_t _pageSize) : pageSize(_pageSize)
 {
@@ -74,8 +74,8 @@ UploadBuffer::Page::~Page()
 
 bool UploadBuffer::Page::HasSpace(size_t _sizeInBytes, size_t _alignment) const
 {
-	size_t alignedSize = DX12::AlignUp(_sizeInBytes, _alignment);
-	size_t alignedOffset = DX12::AlignUp(offset, _alignment);
+	size_t alignedSize = AlignUp(_sizeInBytes, _alignment);
+	size_t alignedOffset = AlignUp(offset, _alignment);
 
 	return alignedOffset + alignedSize <= pageSize;
 }
@@ -89,8 +89,8 @@ UploadBuffer::Allocation UploadBuffer::Page::Allocate(size_t _sizeInBytes, size_
 
 	std::lock_guard<std::mutex> lock(pageMutex); // should stop the page from allocating at the same time on different threads
 
-	size_t alignedSize = DX12::AlignUp(_sizeInBytes, alignment);
-	offset = DX12::AlignUp(offset, alignment);
+	size_t alignedSize = AlignUp(_sizeInBytes, alignment);
+	offset = AlignUp(offset, alignment);
 
 	Allocation allocation{};
 	allocation.CPU = static_cast<uint8_t*>(CPUPtr) + offset;

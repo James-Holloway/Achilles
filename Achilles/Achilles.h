@@ -15,6 +15,7 @@
 #include "MouseData.h"
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
+#include "AchillesImGui.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -43,6 +44,7 @@ protected:
 
 	std::shared_ptr<Texture> backBuffers[BufferCount];
 	std::shared_ptr<RenderTarget> renderTarget;
+	std::shared_ptr<RenderTarget> swapChainRenderTarget;
 
 	std::shared_ptr<CommandQueue> directCommandQueue;
 	std::shared_ptr<CommandQueue> computeCommandQueue;
@@ -76,6 +78,7 @@ public:
 public:
 	// Public variables
 	FLOAT clearColor[4] = { 0.4f, 0.58f, 0.93f, 1.0f }; // Cornflower Blue
+	double lastFPS = 0.0;
 
 protected:
 	// Protected variables for internal use
@@ -87,8 +90,11 @@ protected:
 	DirectX::Mouse::ButtonStateTracker mouseTracker;
 	MouseData prevMouseData{};
 
+	std::deque<double> historicalFrameTimes{};
+
 	// Achilles drawing internals
 	std::queue<DrawEvent> drawEventQueue;
+	std::shared_ptr<AchillesImGui> achillesImGui;
 
 public:
 	// Constructor and destructor functions
@@ -118,6 +124,7 @@ protected:
 	// Get functions
 	std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const;
 	std::shared_ptr<RenderTarget> GetCurrentRenderTarget() const;
+	std::shared_ptr<RenderTarget> GetSwapChainRenderTarget() const;
 
 	// Resource, command queue and command list functions
 	void Flush();

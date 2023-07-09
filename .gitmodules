@@ -1,0 +1,4 @@
+[submodule "imgui"]
+	url = https://github.com/ocornut/imgui
+[submodule "implot"]
+	url = https://github.com/epezent/implot

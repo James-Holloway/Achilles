@@ -1,7 +1,6 @@
 #include "PanoToCubemapPSO.h"
 
-// Compiled shader
-#include "PanoToCubemap_CS.h"
+#include "prebuilt/shaders/PanoToCubemap_CS.h"
 
 #include "Application.h"
 

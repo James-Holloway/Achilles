@@ -26,7 +26,35 @@ void Thetis::OnRender(float deltaTime)
 
 void Thetis::OnPostRender(float deltaTime)
 {
+	if (showPerformance)
+	{
+		if (ImGui::Begin("Performance", &showPerformance))
+		{
+			ImGui::SetWindowPos(ImVec2(0, 0), ImGuiCond_Once);
 
+			ImGui::Text("FPS: %.2f", lastFPS);
+
+			if (ImPlot::BeginPlot("##Performance", ImVec2(-1, 150)))
+			{
+				static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
+				ImPlot::SetupAxes(NULL, "Frame time (ms)", flags, ImPlotAxisFlags_AutoFit);
+				ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, 150.0, ImPlotCond_Always); // 150 points of data, locked
+				ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 35, ImPlotCond_Always); // 35 ms max plot size, initial only
+
+				std::vector<double> frameTimes{};
+				frameTimes.reserve(historicalFrameTimes.size() - 1);
+				for (double ft : historicalFrameTimes)
+				{
+					frameTimes.push_back(ft * 1e3); // seconds to ms
+				}
+
+				ImPlot::PlotLine<double>("", frameTimes.data(), (int)frameTimes.size());
+				ImPlot::EndPlot();
+			}
+		}
+
+		ImGui::End();
+	}
 }
 
 void Thetis::OnResize(int newWidth, int newHeight)
@@ -64,7 +92,7 @@ void Thetis::LoadContent()
 	std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
 	std::wstring floorTexturePath = GetContentDirectoryW() + L"textures/MyUVSquare.png";
 	commandList->LoadTextureFromFile(*floorTexture, floorTexturePath, TextureUsage::Albedo);
-	floorQuad->material.textures.insert({ L"MainTexture", floorTexture});
+	floorQuad->material.textures.insert({ L"MainTexture", floorTexture });
 
 	// Execute command list
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
@@ -73,11 +101,16 @@ void Thetis::LoadContent()
 
 void Thetis::UnloadContent()
 {
-	
+
 }
 
 void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, float dt)
 {
+	if (kbt.pressed.F2)
+	{
+		showPerformance = !showPerformance;
+	}
+
 	if (kbt.pressed.PageUp)
 	{
 		camera->fov -= 5;

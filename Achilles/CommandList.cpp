@@ -995,8 +995,31 @@ void CommandList::SetRenderTarget(const RenderTarget& renderTarget)
 
     D3D12_CPU_DESCRIPTOR_HANDLE* pDSV = depthStencilDescriptor.ptr != 0 ? &depthStencilDescriptor : nullptr;
 
-    d3d12CommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()),
-        renderTargetDescriptors.data(), FALSE, pDSV);
+    d3d12CommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()), renderTargetDescriptors.data(), FALSE, pDSV);
+}
+
+void CommandList::SetRenderTargetNoDepth(const RenderTarget& renderTarget)
+{
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetDescriptors;
+    renderTargetDescriptors.reserve(AttachmentPoint::NumAttachmentPoints);
+
+    const auto& textures = renderTarget.GetTextures();
+
+    // Bind color targets (max of 8 render targets can be bound to the rendering pipeline.
+    for (int i = 0; i < 8; ++i)
+    {
+        std::shared_ptr<Texture> texture = textures[i];
+
+        if (texture && texture->IsValid())
+        {
+            TransitionBarrier(*texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            renderTargetDescriptors.push_back(texture->GetRenderTargetView());
+
+            TrackResource(*texture);
+        }
+    }
+
+    d3d12CommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()), renderTargetDescriptors.data(), FALSE, nullptr);
 }
 
 void CommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)

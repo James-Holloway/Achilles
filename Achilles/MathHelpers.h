@@ -141,10 +141,29 @@ inline Vector3 EulerToRadians(Vector3 degrees)
 	return radians;
 }
 
+
 template <typename T>
 inline T DivideByMultiple(T value, size_t alignment)
 {
 	return (T)((value + alignment - 1) / alignment);
+}
+
+template <typename T>
+inline T AlignUpWithMask(T value, size_t mask)
+{
+	return (T)(((size_t)value + mask) & ~mask);
+}
+
+template <typename T>
+inline T AlignDownWithMask(T value, size_t mask)
+{
+	return (T)((size_t)value & ~mask);
+}
+
+template <typename T>
+inline T AlignUp(T value, size_t alignment)
+{
+	return AlignUpWithMask(value, alignment - 1);
 }
 
 inline uint32_t NextHighestPow2(uint32_t v)

@@ -1,5 +1,10 @@
 #pragma once
 #include "Achilles/Achilles.h"
+#pragma warning (push)
+#pragma warning (disable : 26451)
+#include "imgui.h"
+#include "implot.h"
+#pragma warning (pop)
 #include "PosCol.h"
 #include "PosTextured.h"
 
@@ -13,6 +18,8 @@ protected:
 	float cubeRotationSpeed = 2.0f;
 	float mouseSensitivity = 1.0f;
 	float cameraBaseMoveSpeed = 4.0f;
+
+	bool showPerformance = false;
 
 public:
 	Thetis(std::wstring name);

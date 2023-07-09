@@ -365,8 +365,13 @@ std::shared_ptr<CommandQueue> Achilles::GetCommandQueue(D3D12_COMMAND_LIST_TYPE 
 
 std::shared_ptr<RenderTarget> Achilles::GetCurrentRenderTarget() const
 {
-	// renderTarget->AttachTexture(AttachmentPoint::Color0, backBuffers[currentBackBufferIndex]);
 	return renderTarget;
+}
+
+std::shared_ptr<RenderTarget> Achilles::GetSwapChainRenderTarget() const
+{
+	swapChainRenderTarget->AttachTexture(AttachmentPoint::Color0, backBuffers[currentBackBufferIndex]);
+	return swapChainRenderTarget;
 }
 
 // Stall CPU while we signal and wait
@@ -381,74 +386,82 @@ LRESULT Achilles::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (isInitialized)
 	{
-		switch (message)
+		LRESULT imGuiReturn = achillesImGui->WndProcHandler(hwnd, message, wParam, lParam);
+		if (imGuiReturn != TRUE)
 		{
-		case WM_PAINT:
-			Update();
-			Render();
-			break;
-		case WM_SIZE:
-		{
-			RECT clientRect = {};
-			::GetClientRect(hWnd, &clientRect);
-
-			int width = clientRect.right - clientRect.left;
-			int height = clientRect.bottom - clientRect.top;
-
-			Resize(width, height);
-		}
-		// The default window procedure will play a system notification sound when pressing the Alt+Enter keyboard combination if this message is not handled.
-		case WM_SYSCHAR:
-			break;
-		case WM_DESTROY:
-			::PostQuitMessage(0);
-			break;
-
-			// DirectXTK12 Keyboard.h processing
-		case WM_ACTIVATE:
-		case WM_ACTIVATEAPP:
-			Keyboard::ProcessMessage(message, wParam, lParam);
-			Mouse::ProcessMessage(message, wParam, lParam);
-			break;
-		case WM_SYSKEYDOWN:
-			if (wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000)
+			switch (message)
 			{
-				SetFullscreen(!fullscreen);
-			}
-			Keyboard::ProcessMessage(message, wParam, lParam);
-			break;
-		case WM_KEYDOWN:
-		case WM_KEYUP:
-		case WM_SYSKEYUP:
-			Keyboard::ProcessMessage(message, wParam, lParam);
-			break;
-		case WM_MENUCHAR:
-			// A menu is active and the user presses a key that does not correspond to any mnemonic or accelerator key. Ignore so we don't produce an error beep.
-			return MAKELRESULT(0, MNC_CLOSE);
+			case WM_PAINT:
+				Update();
+				Render();
+				break;
+			case WM_SIZE:
+			{
+				RECT clientRect = {};
+				::GetClientRect(hWnd, &clientRect);
 
-			// DirectXTK12 Mouse.h processing
-		case WM_INPUT:
-		case WM_MOUSEMOVE:
-		case WM_LBUTTONDOWN:
-		case WM_LBUTTONUP:
-		case WM_RBUTTONDOWN:
-		case WM_RBUTTONUP:
-		case WM_MBUTTONDOWN:
-		case WM_MBUTTONUP:
-		case WM_MOUSEWHEEL:
-		case WM_XBUTTONDOWN:
-		case WM_XBUTTONUP:
-		case WM_MOUSEHOVER:
-			Mouse::ProcessMessage(message, wParam, lParam);
-			break;
-		case WM_MOUSEACTIVATE:
-			// When you click to activate the window, we want Mouse to ignore that event.
-			return MA_ACTIVATEANDEAT;
-		default:
+				int width = clientRect.right - clientRect.left;
+				int height = clientRect.bottom - clientRect.top;
+
+				Resize(width, height);
+			}
+			// The default window procedure will play a system notification sound when pressing the Alt+Enter keyboard combination if this message is not handled.
+			case WM_SYSCHAR:
+				break;
+			case WM_DESTROY:
+				::PostQuitMessage(0);
+				break;
+
+				// DirectXTK12 Keyboard.h processing
+			case WM_ACTIVATE:
+			case WM_ACTIVATEAPP:
+				Keyboard::ProcessMessage(message, wParam, lParam);
+				Mouse::ProcessMessage(message, wParam, lParam);
+				break;
+			case WM_SYSKEYDOWN:
+				if (wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000)
+				{
+					SetFullscreen(!fullscreen);
+				}
+				Keyboard::ProcessMessage(message, wParam, lParam);
+				break;
+			case WM_KEYDOWN:
+			case WM_KEYUP:
+			case WM_SYSKEYUP:
+				Keyboard::ProcessMessage(message, wParam, lParam);
+				break;
+			case WM_MENUCHAR:
+				// A menu is active and the user presses a key that does not correspond to any mnemonic or accelerator key. Ignore so we don't produce an error beep.
+				return MAKELRESULT(0, MNC_CLOSE);
+
+				// DirectXTK12 Mouse.h processing
+			case WM_INPUT:
+			case WM_MOUSEMOVE:
+			case WM_LBUTTONDOWN:
+			case WM_LBUTTONUP:
+			case WM_RBUTTONDOWN:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONUP:
+			case WM_MOUSEWHEEL:
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONUP:
+			case WM_MOUSEHOVER:
+				Mouse::ProcessMessage(message, wParam, lParam);
+				break;
+			case WM_MOUSEACTIVATE:
+				// When you click to activate the window, we want Mouse to ignore that event.
+				return MA_ACTIVATEANDEAT;
+			default:
+				return ::DefWindowProcW(hwnd, message, wParam, lParam);
+			}
+		}
+		else // if ImGui returned TRUE
+		{
 			return ::DefWindowProcW(hwnd, message, wParam, lParam);
 		}
 	}
-	else
+	else // not initalized
 	{
 		return ::DefWindowProcW(hwnd, message, wParam, lParam);
 	}
@@ -531,17 +544,25 @@ void Achilles::Update()
 	std::chrono::duration<long long, std::nano> deltaTime = currClock - prevUpdateClock;
 	prevUpdateClock = currClock;
 
-	totalElapsedSeconds += deltaTime.count() * 1e-9;
+	float dt = deltaTime.count() * 1e-9f;
+	totalElapsedSeconds += dt;
+	elapsedSeconds += dt;
 
-	elapsedSeconds += deltaTime.count() * 1e-9;
-	// Print FPS every second
-	if (elapsedSeconds > 1.0)
+	// Print FPS every half second
+	if (elapsedSeconds > 0.1)
 	{
 		double fps = frameCounter / elapsedSeconds;
-		OutputDebugStringWFormatted(L"FPS: %.1f\n", fps);
+		// OutputDebugStringWFormatted(L"FPS: %.1f\n", fps);
 
 		frameCounter = 0;
 		elapsedSeconds = 0.0;
+		lastFPS = fps;
+
+		historicalFrameTimes.push_front(dt);
+		if (historicalFrameTimes.size() > 150 + 1) // past 15 seconds (pushed every 0.1 second)
+		{
+			historicalFrameTimes.pop_back();
+		}
 	}
 
 	HandleKeyboard();
@@ -558,11 +579,10 @@ void Achilles::Update()
 	mouseData.scrollDelta = mouseData.scroll - prevMouseData.scroll;
 	prevMouseData = mouseData;
 
-
-	float dt = deltaTime.count() * 1e-9f;
-
-	OnKeyboard(keyboardTracker, keyboard->GetState(), dt);
-	OnMouse(mouseTracker, mouseData, mouseState, dt);
+	if (!ImGui::GetIO().WantCaptureKeyboard)
+		OnKeyboard(keyboardTracker, keyboard->GetState(), dt);
+	if (!ImGui::GetIO().WantCaptureMouse)
+		OnMouse(mouseTracker, mouseData, mouseState, dt);
 
 	OnUpdate(dt);
 }
@@ -578,11 +598,10 @@ void Achilles::Render()
 	commandAllocator->Reset();
 	std::shared_ptr<CommandList> directCommandList = directCommandQueue->GetCommandList();
 
+	std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
+	std::shared_ptr<Texture> rtTexture = rt->GetTexture(AttachmentPoint::Color0);
 	// Clear render target
 	{
-		std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
-		std::shared_ptr<Texture> rtTexture = rt->GetTexture(AttachmentPoint::Color0);
-
 		// Transition into a state from which we can clear the RT
 		directCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -596,6 +615,10 @@ void Achilles::Render()
 			directCommandList->ClearDepthStencilTexture(*depthTexture, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
 	}
 
+	directCommandList->SetRenderTarget(*rt);
+
+	achillesImGui->NewFrame();
+
 	float dt = deltaTime.count() * 1e-9f;
 	OnRender(dt);
 
@@ -603,7 +626,13 @@ void Achilles::Render()
 
 	OnPostRender(dt);
 
-	Present(directCommandQueue, directCommandList);
+
+	directCommandQueue->ExecuteCommandList(directCommandList);
+	std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();
+
+	achillesImGui->Render(presentCommandList, *GetCurrentRenderTarget());
+
+	Present(directCommandQueue, presentCommandList);
 	Flush();
 
 	totalFrameCount++;
@@ -703,7 +732,7 @@ void Achilles::Initialize()
 	EnableDebugLayer();
 
 	// Initialize COM, used for Texture loading using CommandList::LoadTextureFromFile
-	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	ThrowIfFailed(CoInitializeEx(NULL, COINIT_MULTITHREADED));
 
 	std::wstring windowClassName = (L"AchillesWindowClass" + name);
 
@@ -738,6 +767,7 @@ void Achilles::Initialize()
 
 	renderTarget = std::make_shared<RenderTarget>();
 	UpdateMainRenderTarget();
+	swapChainRenderTarget = std::make_shared<RenderTarget>();
 
 	currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
@@ -749,6 +779,8 @@ void Achilles::Initialize()
 	}
 
 	Flush();
+
+	achillesImGui = std::make_shared<AchillesImGui>(device, hWnd, *GetSwapChainRenderTarget());
 
 	// Init Achilles objects
 	keyboard = std::make_unique<Keyboard>();

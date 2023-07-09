@@ -40,20 +40,22 @@ public:
     void Resize(uint32_t width, uint32_t height);
 
     // Get a list of the textures attached to the render target.
-    // This method is primarily used by the CommandList when binding the
-    // render target to the output merger stage of the rendering pipeline.
+    // This method is primarily used by the CommandList when binding the render target to the output merger stage of the rendering pipeline.
     RenderTargetList GetTextures() const;
 
-    // Get the render target formats of the textures currently 
-    // attached to this render target object.
+    // Get the render target formats of the textures currently attached to this render target object.
     // This is needed to configure the Pipeline state object.
     D3D12_RT_FORMAT_ARRAY GetRenderTargetFormats() const;
 
     // Get the format of the attached depth/stencil buffer.
     DXGI_FORMAT GetDepthStencilFormat() const;
 
+    // Get the sample description of the render target.
+    DXGI_SAMPLE_DESC GetSampleDesc() const;
+
     // Reset all textures
     void Reset();
+
 
 private:
     RenderTargetList textures;

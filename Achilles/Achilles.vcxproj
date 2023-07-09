@@ -115,7 +115,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)imgui\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)imgui\;$(SolutionDir)implot\</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
@@ -139,7 +139,7 @@
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)imgui\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)imgui\;$(SolutionDir)implot\</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
@@ -183,7 +183,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\implot\implot.cpp" />
+    <ClCompile Include="..\implot\implot_demo.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\implot\implot_items.cpp" />
     <ClCompile Include="Achilles.cpp" />
+    <ClCompile Include="AchillesImGui.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="ByteAddressBuffer.cpp" />
@@ -218,7 +225,10 @@
     <ClInclude Include="..\imgui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_internal.h" />
+    <ClInclude Include="..\implot\implot.h" />
+    <ClInclude Include="..\implot\implot_internal.h" />
     <ClInclude Include="Achilles.h" />
+    <ClInclude Include="AchillesImGui.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ByteAddressBuffer.h" />
@@ -234,7 +244,6 @@
     <ClInclude Include="DrawEvent.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
     <ClInclude Include="GenerateMipsPSO.h" />
-    <ClInclude Include="GenerateMips_CS.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="Material.h" />
@@ -242,7 +251,6 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MouseData.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
-    <ClInclude Include="PanoToCubemap_CS.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceStateTracker.h" />

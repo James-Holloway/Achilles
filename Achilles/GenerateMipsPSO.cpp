@@ -3,7 +3,7 @@
 #include "Application.h"
 #include "Helpers.h"
 
-#include "GenerateMips_CS.h"
+#include "prebuilt/shaders/GenerateMips_CS.h"
 
 #include <d3dx12.h>
 
