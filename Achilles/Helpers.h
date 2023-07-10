@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <string>
 
 inline void ThrowIfFailed(HRESULT hr)
 {
@@ -241,3 +242,12 @@ namespace std
 		}
 	};
 }
+
+inline bool Contains(std::wstring str, std::wstring substr)
+{
+	return str.find(substr) != std::wstring::npos;
+}
+
+#define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
+#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p);   (p)=NULL; } }
+#define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }

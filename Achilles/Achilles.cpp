@@ -620,6 +620,9 @@ void Achilles::Render()
 	achillesImGui->NewFrame();
 
 	float dt = deltaTime.count() * 1e-9f;
+
+	DrawActiveScenes();
+
 	OnRender(dt);
 
 	DrawQueuedEvents(directCommandList);
@@ -787,9 +790,14 @@ void Achilles::Initialize()
 	mouse = std::make_unique<Mouse>();
 	mouse->SetWindow(hWnd);
 
+	mainScene = std::make_shared<Scene>(L"Main Scene");
+	AddScene(mainScene);
+
 	isInitialized = true;
 
 	LoadContent();
+
+	mainScene->SetActive(true);
 }
 
 void Achilles::Run()
@@ -859,9 +867,36 @@ std::shared_ptr<Texture> Achilles::CreateTexture(ComPtr<ID3D12Resource> resource
 	return std::make_shared<Texture>(resource, clearValue);
 }
 
-// Achilles drawing functions
-void Achilles::QueueMeshDraw(std::shared_ptr<Mesh> mesh)
+// Scene functions
+std::shared_ptr<Scene> Achilles::GetMainScene()
 {
+	return mainScene;
+}
+
+void Achilles::DrawActiveScenes()
+{
+	for (std::shared_ptr<Scene> scene : scenes)
+	{
+		if (scene->IsActive())
+			QueueSceneDraw(scene);
+	}
+}
+
+void Achilles::AddScene(std::shared_ptr<Scene> scene)
+{
+	scenes.emplace(scene);
+}
+
+void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
+{
+	scenes.erase(scene);
+}
+
+// Achilles drawing functions
+void Achilles::QueueMeshDraw(Mesh* mesh)
+{
+	if (mesh == nullptr)
+		return;
 	DrawEvent de{};
 	de.camera = Camera::mainCamera;
 	de.mesh = mesh;
@@ -869,9 +904,22 @@ void Achilles::QueueMeshDraw(std::shared_ptr<Mesh> mesh)
 	drawEventQueue.push(de);
 }
 
-void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
+void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
 {
-	if (mesh.use_count() <= 0)
+	if (scene == nullptr)
+		return;
+
+	std::vector<ObjectTree*> flattenedScene;
+	scene->GetObjectTree()->FlattenActive(flattenedScene);
+	for (ObjectTree* objectTree : flattenedScene)
+	{
+		QueueMeshDraw(objectTree->GetObject()->GetMesh());
+	}
+}
+
+void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, Mesh* mesh, std::shared_ptr<Camera> camera)
+{
+	if (mesh == nullptr)
 		throw std::exception("Rendered mesh was not available");
 	if (camera.use_count() <= 0)
 		throw std::exception("Rendered camera was not available");

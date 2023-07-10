@@ -10,18 +10,18 @@ Thetis::Thetis(std::wstring name) : Achilles(name)
 
 void Thetis::OnUpdate(float deltaTime)
 {
-	cube->rotation.x = fmod(cube->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
-	cube->rotation.y = fmod(cube->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
+	Mesh* cubeMesh = cube->GetMesh();
+	cubeMesh->rotation.x = fmod(cubeMesh->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
+	cubeMesh->rotation.y = fmod(cubeMesh->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
 
-	cube->scale = Vector3(1.0f + (0.5f * sinf((float)totalElapsedSeconds * 2.0f)));
+	cubeMesh->scale = Vector3(1.0f + (0.5f * sinf((float)totalElapsedSeconds * 2.0f)));
 
-	cube->dirtyMatrix = true;
+	cubeMesh->dirtyMatrix = true;
 }
 
 void Thetis::OnRender(float deltaTime)
 {
-	QueueMeshDraw(cube);
-	QueueMeshDraw(floorQuad);
+	
 }
 
 void Thetis::OnPostRender(float deltaTime)
@@ -81,18 +81,23 @@ void Thetis::LoadContent()
 	std::shared_ptr<Shader> posTexturedShader = PosTextured::GetPosTexturedShader(device);
 
 	// Create cube
-	cube = std::make_shared<Mesh>(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosColVertex), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
+	auto cubeMesh = new Mesh(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosColVertex), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
+	cube = new Object(cubeMesh, L"cube");
+	mainScene->AddObjectToScene(cube);
 
 	// Create floor quad
-	floorQuad = std::make_shared<Mesh>(L"floor quad", commandList, (void*)PosTextured::posTexturedQuadVertices, (UINT)_countof(PosTextured::posTexturedQuadVertices), sizeof(PosTextured::PosTexturedVertex), PosTextured::posTexturedQuadIndices, (UINT)_countof(PosTextured::posTexturedQuadIndices), posTexturedShader);
-	floorQuad->position = Vector3(0, -2, 0);
-	floorQuad->rotation = EulerToRadians(Vector3(-90, 0, 0));
-	floorQuad->scale = Vector3(3, 3, 3);
+	auto floorMesh = new Mesh(L"floor quad", commandList, (void*)PosTextured::posTexturedQuadVertices, (UINT)_countof(PosTextured::posTexturedQuadVertices), sizeof(PosTextured::PosTexturedVertex), PosTextured::posTexturedQuadIndices, (UINT)_countof(PosTextured::posTexturedQuadIndices), posTexturedShader);
+	floorMesh->position = Vector3(0, -2, 0);
+	floorMesh->rotation = EulerToRadians(Vector3(-90, 0, 0));
+	floorMesh->scale = Vector3(3, 3, 3);
 
 	std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
 	std::wstring floorTexturePath = GetContentDirectoryW() + L"textures/MyUVSquare.png";
 	commandList->LoadTextureFromFile(*floorTexture, floorTexturePath, TextureUsage::Albedo);
-	floorQuad->material.textures.insert({ L"MainTexture", floorTexture });
+	floorMesh->material.textures.insert({ L"MainTexture", floorTexture });
+
+	Object* floorQuadObject = new Object(floorMesh, L"floor quad");
+	mainScene->AddObjectToScene(floorQuadObject);
 
 	// Execute command list
 	uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);

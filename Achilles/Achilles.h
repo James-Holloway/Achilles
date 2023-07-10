@@ -16,6 +16,7 @@
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
 #include "AchillesImGui.h"
+#include "Scene.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -66,8 +67,8 @@ private:
 	std::chrono::high_resolution_clock clock;
 	std::chrono::steady_clock::time_point prevUpdateClock;
 	std::chrono::steady_clock::time_point prevRenderClock;
+
 protected:
-	// Less private update variables
 	uint64_t totalFrameCount = 0;
 	double totalElapsedSeconds = 0;
 
@@ -93,8 +94,12 @@ protected:
 	std::deque<double> historicalFrameTimes{};
 
 	// Achilles drawing internals
-	std::queue<DrawEvent> drawEventQueue;
+	std::queue<DrawEvent> drawEventQueue{};
 	std::shared_ptr<AchillesImGui> achillesImGui;
+
+	// Scene objects
+	std::shared_ptr<Scene> mainScene;
+	std::set<std::shared_ptr<Scene>> scenes {};
 
 public:
 	// Constructor and destructor functions
@@ -166,10 +171,18 @@ public:
 	std::shared_ptr<Texture> CreateTexture(ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
 
 public:
+	// Scene functions
+	std::shared_ptr<Scene> GetMainScene();
+	void AddScene(std::shared_ptr<Scene> scene);
+	void RemoveScene(std::shared_ptr<Scene> scene);
+	void DrawActiveScenes();
+
+public:
 	// Achilles drawing functions
-	void QueueMeshDraw(std::shared_ptr<Mesh> mesh);
+	void QueueMeshDraw(Mesh* mesh);
+	void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
 protected:
-	void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera);
+	void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, Mesh* mesh, std::shared_ptr<Camera> camera);
 	void DrawQueuedEvents(std::shared_ptr<CommandList> commandList);
 	void EmptyDrawQueue();
 };
