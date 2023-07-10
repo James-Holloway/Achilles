@@ -4,7 +4,7 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-Mesh::Mesh(std::shared_ptr<CommandList> commandList, void* vertices, UINT vertexCount, size_t vertexStride, const uint16_t* indices, UINT indexCount, std::shared_ptr<Shader> _shader) : material(_shader)
+Mesh::Mesh(std::shared_ptr<CommandList> commandList, void* vertices, UINT vertexCount, size_t vertexStride, const uint16_t* indices, UINT indexCount, std::shared_ptr<Shader> _shader) : shader(_shader)
 {
 	topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
@@ -21,18 +21,4 @@ Mesh::Mesh(std::wstring _name, std::shared_ptr<CommandList> commandList, void* v
 	: Mesh(commandList, vertices, vertexCount, vertexStride, indices, indexCount, _shader)
 {
 	name = _name;
-}
-
-void Mesh::ConstructMatrix()
-{
-	// TRS
-	matrix = Matrix::CreateScale(scale) * (Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position));
-	dirtyMatrix = false;
-}
-
-Matrix Mesh::GetMatrix()
-{
-	if (dirtyMatrix)
-		ConstructMatrix();
-	return matrix;
 }

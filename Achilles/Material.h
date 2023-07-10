@@ -13,6 +13,7 @@ class Shader;
 class Material
 {
 public:
+	Material();
 	Material(std::shared_ptr<Shader> _shader);
 
 	std::shared_ptr<Shader> shader;

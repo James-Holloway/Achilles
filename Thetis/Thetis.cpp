@@ -10,13 +10,12 @@ Thetis::Thetis(std::wstring name) : Achilles(name)
 
 void Thetis::OnUpdate(float deltaTime)
 {
-	std::shared_ptr<Mesh> cubeMesh = cube->GetMesh();
-	cubeMesh->rotation.x = fmod(cubeMesh->rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
-	cubeMesh->rotation.y = fmod(cubeMesh->rotation.y + deltaTime * 0.34f * cubeRotationSpeed, Achilles2Pi);
+	Vector3 rotation = cube->GetLocalRotation();
+	rotation.x = fmod(rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
+	rotation.y = fmod(rotation.y + deltaTime * 0.75f * cubeRotationSpeed, Achilles2Pi);
+	cube->SetLocalRotation(rotation);
 
-	cubeMesh->scale = Vector3(1.0f + (0.5f * sinf((float)totalElapsedSeconds * 2.0f)));
-
-	cubeMesh->dirtyMatrix = true;
+	cube->SetLocalScale(Vector3(1.0f + (0.5f * sinf((float)totalElapsedSeconds * 2.0f))));
 }
 
 void Thetis::OnRender(float deltaTime)
@@ -24,15 +23,22 @@ void Thetis::OnRender(float deltaTime)
 
 }
 
+static int radioIndex = 0;
 static bool DrawImGuiObjectTree(std::shared_ptr<Object> object)
 {
-	ImGui::Indent(4);
-	ImGui::Text( WStringToString(object->GetName()).c_str());
+	ImGui::Indent(8);
+	if (ImGui::RadioButton(WStringToString(object->GetName() + L"##" + std::to_wstring(radioIndex++)).c_str(), Thetis::selectedPropertiesObject == object))
+	{
+		if (Thetis::selectedPropertiesObject != object)
+			Thetis::selectedPropertiesObject = object;
+		else
+			Thetis::selectedPropertiesObject = nullptr;
+	}
 	return true;
 }
 static void DrawImGuiObjectTreeUp(std::shared_ptr<Object> object)
 {
-	ImGui::Unindent(4);
+	ImGui::Unindent(8);
 }
 
 void Thetis::OnPostRender(float deltaTime)
@@ -42,25 +48,54 @@ void Thetis::OnPostRender(float deltaTime)
 		if (ImGui::Begin("Performance", &showPerformance))
 		{
 			ImGui::SetWindowPos(ImVec2(0, 0), ImGuiCond_Once);
+			ImGui::SetWindowSize(ImVec2(300, 235), ImGuiCond_Once);
 
 			ImGui::Text("FPS: %.2f", lastFPS);
 
-			if (ImPlot::BeginPlot("##Performance", ImVec2(-1, 150)))
+			if (ImGui::BeginTabBar("PerformanceTabBar"))
 			{
-				static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
-				ImPlot::SetupAxes(NULL, "Frame time (ms)", flags, ImPlotAxisFlags_AutoFit);
-				ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, 150.0, ImPlotCond_Always); // 150 points of data, locked
-				ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 35, ImPlotCond_Always); // 35 ms max plot size, initial only
-
-				std::vector<double> frameTimes{};
-				frameTimes.reserve(historicalFrameTimes.size() - 1);
-				for (double ft : historicalFrameTimes)
+				if (ImGui::BeginTabItem("Frame Time"))
 				{
-					frameTimes.push_back(ft * 1e3); // seconds to ms
-				}
+					if (ImPlot::BeginPlot("##PerformanceFrameTime", ImVec2(-1, 150)))
+					{
+						ImPlot::SetupAxes(NULL, "Frame time (ms)", ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Invert, ImPlotAxisFlags_AutoFit);
+						ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, 150.0, ImPlotCond_Always); // 150 points of data, locked
+						ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 35, ImPlotCond_Always); // 35 ms max plot size, initial only
 
-				ImPlot::PlotLine<double>("", frameTimes.data(), (int)frameTimes.size());
-				ImPlot::EndPlot();
+						std::vector<double> frameTimes{};
+						frameTimes.reserve(historicalFrameTimes.size() - 1);
+						for (double ft : historicalFrameTimes)
+						{
+							frameTimes.push_back(ft * 1e3); // seconds to ms
+						}
+
+						ImPlot::PlotShaded<double>("", frameTimes.data(), (int)frameTimes.size());
+						ImPlot::EndPlot();
+					}
+					ImGui::EndTabItem();
+				}
+				if (ImGui::BeginTabItem("FPS"))
+				{
+					if (ImPlot::BeginPlot("##PerformanceFramesPerSecond", ImVec2(-1, 150)))
+					{
+						ImPlot::SetupAxes(NULL, "Frames per second", ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Invert, ImPlotAxisFlags_AutoFit);
+						ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, 150.0, ImPlotCond_Always); // 150 points of data, locked
+						ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 1000, ImPlotCond_Always); // 1000 fps max plot size, initial only
+						// ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_SymLog);
+
+						std::vector<double> frames{};
+						frames.reserve(historicalFrameTimes.size() - 1);
+						for (double ft : historicalFrameTimes)
+						{
+							frames.push_back(1.0 / ft); // seconds to fps
+						}
+
+						ImPlot::PlotShaded<double>("", frames.data(), (int)frames.size());
+						ImPlot::EndPlot();
+					}
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
 			}
 		}
 		ImGui::End();
@@ -70,6 +105,9 @@ void Thetis::OnPostRender(float deltaTime)
 	{
 		if (ImGui::Begin("Scenes", &showObjectTree))
 		{
+			ImGui::SetWindowPos(ImVec2(0, 235), ImGuiCond_Once);
+			ImGui::SetWindowSize(ImVec2(300, 350), ImGuiCond_Once);
+
 			if (ImGui::BeginTabBar("SceneTabBar"))
 			{
 				for (std::shared_ptr<Scene> scene : scenes)
@@ -77,13 +115,75 @@ void Thetis::OnPostRender(float deltaTime)
 					std::string sceneName = WStringToString(scene->GetName());
 					if (ImGui::BeginTabItem(sceneName.c_str()))
 					{
-						ImGui::Unindent(4);
+						ImGui::Unindent(8);
+						radioIndex = 0;
 						scene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
-						ImGui::Indent(4);
+						ImGui::Indent(8);
 						ImGui::EndTabItem();
 					}
 				}
 				ImGui::EndTabBar();
+			}
+
+			ImGui::BeginChild("padding", ImVec2(0, -ImGui::GetTextLineHeightWithSpacing() - 6));
+			ImGui::EndChild();
+			if (ImGui::Button("Add Cube"))
+			{
+				CreateCubeInMainScene();
+			}
+		}
+		ImGui::End();
+	}
+	if (showProperties)
+	{
+		if (ImGui::Begin("Properties", &showProperties))
+		{
+			ImGui::SetWindowPos(ImVec2(0, 235 + 350));
+			ImGui::SetWindowSize(ImVec2(300, 150));
+
+			std::shared_ptr<Object> object = selectedPropertiesObject;
+			if (object != nullptr)
+			{
+				std::string strName = WStringToString(object->GetName());
+				char name[64];
+				strcpy_s(name, strName.c_str());
+				ImGui::SetNextItemWidth(-1);
+				ImGui::InputText("##PropertyName", name, 64);
+				object->SetName(StringToWString(std::string(name)));
+
+				ImGui::Separator();
+				float pos[3] =
+				{
+					object->GetLocalPosition().x,
+					object->GetLocalPosition().y,
+					object->GetLocalPosition().z
+				};
+				if (ImGui::DragFloat3("Position: ", pos, 0.125f, 0.0, 0.0, "% .3f"))
+				{
+					object->SetLocalPosition(Vector3(pos[0], pos[1], pos[2]));
+				}
+				
+				Vector3 degRot = EulerToDegrees(object->GetLocalRotation());
+				float rot[3] =
+				{
+					degRot.x,
+					degRot.y,
+					degRot.z
+				};
+				if (ImGui::DragFloat3("Rotation: ", rot, 5.0f, -360, 360, "% .3f"))
+				{
+					object->SetLocalRotation(EulerToRadians(Vector3(rot[0], rot[1], rot[2])));
+				}
+				float scale[3] =
+				{
+					object->GetLocalScale().x,
+					object->GetLocalScale().y,
+					object->GetLocalScale().z
+				};
+				if (ImGui::DragFloat3("Scale: ", scale, 0.125f, 0.0f, 0.0f, "% .3f"))
+				{
+					object->SetLocalScale(Vector3(scale[0], scale[1], scale[2]));
+				}
 			}
 		}
 		ImGui::End();
@@ -116,20 +216,27 @@ void Thetis::LoadContent()
 	// Create cube
 	auto cubeMesh = std::make_shared<Mesh>(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosColVertex), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
 	cube = Object::CreateObject(cubeMesh, L"cube");
+	cube->SetLocalPosition(Vector3(-1, 0, 0));
 	mainScene->AddObjectToScene(cube);
+
+	miniCube = Object::CreateObject(cubeMesh, L"mini cube");
+	cube->AddChild(miniCube);
+	miniCube->SetLocalPosition(Vector3(0, 2, 0));
+	miniCube->SetLocalScale(Vector3(0.25f, 0.25f, 0.25f));
 
 	// Create floor quad
 	auto floorMesh = std::make_shared<Mesh>(L"floor quad", commandList, (void*)PosTextured::posTexturedQuadVertices, (UINT)_countof(PosTextured::posTexturedQuadVertices), sizeof(PosTextured::PosTexturedVertex), PosTextured::posTexturedQuadIndices, (UINT)_countof(PosTextured::posTexturedQuadIndices), posTexturedShader);
-	floorMesh->position = Vector3(0, -2, 0);
-	floorMesh->rotation = EulerToRadians(Vector3(-90, 0, 0));
-	floorMesh->scale = Vector3(3, 3, 3);
+
+	floorQuad = Object::CreateObject(floorMesh, L"floor quad");
+	floorQuad->SetLocalPosition(Vector3(0, -2, 0));
+	floorQuad->SetLocalRotation(EulerToRadians(Vector3(-90, 0, 0)));
+	floorQuad->SetLocalScale(Vector3(3, 3, 3));
 
 	std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
 	std::wstring floorTexturePath = GetContentDirectoryW() + L"textures/MyUVSquare.png";
 	commandList->LoadTextureFromFile(*floorTexture, floorTexturePath, TextureUsage::Albedo);
-	floorMesh->material.textures.insert({ L"MainTexture", floorTexture });
+	floorQuad->GetMaterial().textures.insert({L"MainTexture", floorTexture});
 
-	floorQuad = Object::CreateObject(floorMesh, L"floor quad");
 	mainScene->AddObjectToScene(floorQuad);
 
 	// Execute command list
@@ -151,6 +258,10 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
 	if (kbt.pressed.F3)
 	{
 		showObjectTree = !showObjectTree;
+	}
+	if (kbt.pressed.F4)
+	{
+		showProperties = !showProperties;
 	}
 
 	if (kbt.pressed.PageUp)
@@ -225,4 +336,10 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
 		float cameraRotationSpeed = toRad(45) * dt * mouseSensitivity;
 		camera->RotateEuler(Vector3(cameraRotationSpeed * md.mouseYDelta, cameraRotationSpeed * md.mouseXDelta, 0));
 	}
+}
+
+
+void Thetis::CreateCubeInMainScene()
+{
+	mainScene->AddObjectToScene(Object::CreateObject(cube->GetMesh(), L"New Cube"));
 }

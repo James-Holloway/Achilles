@@ -12,6 +12,7 @@
 #include "RootSignature.h"
 #include "DrawEvent.h"
 #include "Shader.h"
+#include "Object.h"
 #include "Mesh.h"
 #include "Material.h"
 #include "Camera.h"

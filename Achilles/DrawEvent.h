@@ -1,7 +1,9 @@
 #pragma once
-#include "Common.h"
-#include "Mesh.h"
-#include "Camera.h"
+
+#include <memory>
+
+class Object;
+class Camera;
 
 enum class DrawEventType
 {
@@ -11,7 +13,7 @@ enum class DrawEventType
 
 struct DrawEvent
 {
-	std::shared_ptr<Mesh> mesh;
+	std::shared_ptr<Object> object;
 	std::shared_ptr<Camera> camera;
 	DrawEventType eventType;
 };

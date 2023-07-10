@@ -35,8 +35,8 @@ protected:
 	bool tearingSupported = false;
 
 	// Window width and height
-	uint32_t clientWidth = 1280;
-	uint32_t clientHeight = 720;
+	uint32_t clientWidth = 1600;
+	uint32_t clientHeight = 900;
 
 	// DirectX 12 Objects
 	ComPtr<ID3D12Device2> device;
@@ -179,10 +179,10 @@ public:
 
 public:
 	// Achilles drawing functions
-	void QueueMeshDraw(std::shared_ptr<Mesh> mesh);
+	void QueueObjectDraw(std::shared_ptr<Object> object);
 	void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
 protected:
-	void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera);
+	void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);
 	void DrawQueuedEvents(std::shared_ptr<CommandList> commandList);
 	void EmptyDrawQueue();
 };

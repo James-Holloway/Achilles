@@ -893,13 +893,16 @@ void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
 }
 
 // Achilles drawing functions
-void Achilles::QueueMeshDraw(std::shared_ptr<Mesh> mesh)
+void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
 {
-	if (mesh == nullptr)
+	if (object == nullptr)
 		return;
+	if (object->GetMesh() == nullptr)
+		return;
+
 	DrawEvent de{};
+	de.object = object;
 	de.camera = Camera::mainCamera;
-	de.mesh = mesh;
 	de.eventType = DrawEventType::DrawIndexed;
 	drawEventQueue.push(de);
 }
@@ -913,18 +916,21 @@ void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
 	scene->GetObjectTree()->FlattenActive(flattenedScene);
 	for (std::shared_ptr<Object> object : flattenedScene)
 	{
-		QueueMeshDraw(object->GetMesh());
+		QueueObjectDraw(object);
 	}
 }
 
-void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
+void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
 {
-	if (mesh == nullptr)
+	if (object == nullptr)
+		throw std::exception("Object was no available");
+	if (object->GetMesh() == nullptr)
 		throw std::exception("Rendered mesh was not available");
 	if (camera.use_count() <= 0)
 		throw std::exception("Rendered camera was not available");
 
-	Material material = mesh->material;
+	std::shared_ptr<Mesh> mesh = object->GetMesh();
+	Material material = object->GetMaterial();
 	std::shared_ptr<Shader> shader = material.shader;
 	if (shader->renderCallback == nullptr)
 		throw std::exception("Shader did not have a rendercallback");
@@ -943,7 +949,7 @@ void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::sh
 
 	commandList->SetRenderTarget(*rt);
 
-	shader->renderCallback(commandList, mesh, material, camera);
+	shader->renderCallback(commandList, object, mesh, material, camera);
 
 	commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }
@@ -959,7 +965,7 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 		case DrawEventType::Ignore:
 			break;
 		case DrawEventType::DrawIndexed:
-			DrawMeshIndexed(commandList, de.mesh, de.camera);
+			DrawMeshIndexed(commandList, de.object, de.camera);
 			break;
 		}
 	}

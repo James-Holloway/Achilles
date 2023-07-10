@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "Material.h"
 
 class Mesh;
 class Object;
@@ -27,12 +28,13 @@ public:
 	std::wstring GetName();
 	void SetName(std::wstring _name);
 
-
-	//// Mesh functions ////
+	//// Mesh and material functions ////
 
 	std::shared_ptr<Mesh> GetMesh();
 	void SetMesh(std::shared_ptr<Mesh> _mesh);
 
+	Material& GetMaterial();
+	void SetMaterial(Material _material);
 
 	//// Empty / Active functions ////
 
@@ -81,15 +83,55 @@ public:
 	// Returns the first active object that matches the name, searched depth-first, excluding inactive objects
 	std::shared_ptr<Object> FindFirstActiveObjectByName(std::wstring name);
 
+	//// Position, rotation, scale and matrix functions ////
+
+	DirectX::SimpleMath::Matrix GetLocalMatrix();
+	DirectX::SimpleMath::Vector3 GetLocalPosition();
+	DirectX::SimpleMath::Vector3 GetLocalRotation();
+	DirectX::SimpleMath::Vector3 GetLocalScale();
+
+	DirectX::SimpleMath::Matrix GetWorldMatrix();
+	DirectX::SimpleMath::Vector3 GetWorldPosition();
+	DirectX::SimpleMath::Vector3 GetWorldRotation();
+	DirectX::SimpleMath::Vector3 GetWorldScale();
+
+	void SetLocalPosition(DirectX::SimpleMath::Vector3 _position);
+	void SetLocalRotation(DirectX::SimpleMath::Vector3 _rotation);
+	void SetLocalScale(DirectX::SimpleMath::Vector3 _scale);
+	void SetLocalMatrix(DirectX::SimpleMath::Matrix _matrix);
+
+	void SetWorldPosition(DirectX::SimpleMath::Vector3 _position);
+	void SetWorldRotation(DirectX::SimpleMath::Vector3 _rotation);
+	void SetWorldScale(DirectX::SimpleMath::Vector3 _scale);
+	void SetWorldMatrix(DirectX::SimpleMath::Matrix _matrix);
+
 protected:
+	void ConstructMatrix();
+	void ConstructWorldMatrix();
+	// Called by a parent when its world matrix changes. Recursive
+	void SetWorldMatrixDirty();
+
+protected:
+	//// Member variables ////
+
 	std::wstring name;
 	std::shared_ptr<Mesh> mesh = nullptr;
 
 	std::vector<std::shared_ptr<Object>> children{};
 	std::shared_ptr<Object> parent = nullptr;
 
+	Material material;
+
 	bool active = true;
 	bool isScene = false;
+
+	DirectX::SimpleMath::Vector3 position {0, 0, 0};
+	DirectX::SimpleMath::Vector3 rotation {0, 0, 0};
+	DirectX::SimpleMath::Vector3 scale {1, 1, 1};
+	DirectX::SimpleMath::Matrix matrix;
+	DirectX::SimpleMath::Matrix worldMatrix;
+	bool dirtyMatrix = true;
+	bool dirtyWorldMatrix = true;
 
 public:
 	//// Static Object creation functions ////

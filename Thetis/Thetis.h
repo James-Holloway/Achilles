@@ -12,6 +12,7 @@ class Thetis : public Achilles
 {
 protected:
 	std::shared_ptr<Object> cube;
+	std::shared_ptr<Object> miniCube;
 	std::shared_ptr<Object> floorQuad;
 	std::shared_ptr<Camera> camera;
 
@@ -21,6 +22,11 @@ protected:
 
 	bool showPerformance = false;
 	bool showObjectTree = false;
+	bool showProperties = false;
+
+
+public:
+	inline static std::shared_ptr<Object> selectedPropertiesObject = nullptr;
 
 public:
 	Thetis(std::wstring name);
@@ -33,4 +39,7 @@ public:
 	virtual void UnloadContent() override; // Unload content on quit
 	virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt) override;
 	virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) override;
+
+protected:
+	void CreateCubeInMainScene();
 };
