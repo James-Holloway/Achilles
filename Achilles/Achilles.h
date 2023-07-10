@@ -179,10 +179,10 @@ public:
 
 public:
 	// Achilles drawing functions
-	void QueueMeshDraw(Mesh* mesh);
+	void QueueMeshDraw(std::shared_ptr<Mesh> mesh);
 	void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
 protected:
-	void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, Mesh* mesh, std::shared_ptr<Camera> camera);
+	void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera);
 	void DrawQueuedEvents(std::shared_ptr<CommandList> commandList);
 	void EmptyDrawQueue();
 };

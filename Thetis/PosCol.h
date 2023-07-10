@@ -65,7 +65,7 @@ static void OutputDebugStringMatrix(Matrix mtx)
 }
 
 
-inline void PosColShaderRender(std::shared_ptr<CommandList> commandList, Mesh* mesh, Material material, std::shared_ptr<Camera> camera)
+inline void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera)
 {
 	// Update the MVP matrix
 	Matrix mvp = mesh->GetMatrix() * (camera->GetView() * camera->GetProj());

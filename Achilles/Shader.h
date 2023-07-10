@@ -10,7 +10,7 @@ class Mesh;
 class Camera;
 class Material;
 
-typedef void (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, Mesh* mesh, Material material, std::shared_ptr<Camera> camera);
+typedef void (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera);
 
 HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring profile, ComPtr<IDxcResult>& outShader);
 

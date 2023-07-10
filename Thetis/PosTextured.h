@@ -76,7 +76,7 @@ namespace PosTextured
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 	};
 
-	inline void PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, Mesh* mesh, Material material, std::shared_ptr<Camera> camera)
+	inline void PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera)
 	{
 		// Update the MVP matrix
 		Matrix mvp = mesh->GetMatrix() * (camera->GetView() * camera->GetProj());

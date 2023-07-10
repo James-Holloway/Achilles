@@ -893,7 +893,7 @@ void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
 }
 
 // Achilles drawing functions
-void Achilles::QueueMeshDraw(Mesh* mesh)
+void Achilles::QueueMeshDraw(std::shared_ptr<Mesh> mesh)
 {
 	if (mesh == nullptr)
 		return;
@@ -909,15 +909,15 @@ void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
 	if (scene == nullptr)
 		return;
 
-	std::vector<ObjectTree*> flattenedScene;
+	std::vector<std::shared_ptr<Object>> flattenedScene;
 	scene->GetObjectTree()->FlattenActive(flattenedScene);
-	for (ObjectTree* objectTree : flattenedScene)
+	for (std::shared_ptr<Object> object : flattenedScene)
 	{
-		QueueMeshDraw(objectTree->GetObject()->GetMesh());
+		QueueMeshDraw(object->GetMesh());
 	}
 }
 
-void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, Mesh* mesh, std::shared_ptr<Camera> camera)
+void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Mesh> mesh, std::shared_ptr<Camera> camera)
 {
 	if (mesh == nullptr)
 		throw std::exception("Rendered mesh was not available");

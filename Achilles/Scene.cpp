@@ -2,28 +2,22 @@
 
 Scene::Scene(std::wstring _name) : name(_name)
 {
-	objectTree = new ObjectTree();
+	objectTree = std::make_shared<Object>(name);
 	objectTree->isScene = true;
 }
 Scene::~Scene()
 {
-	SAFE_DELETE(objectTree);
+	
 }
 
-void Scene::AddObjectToScene(ObjectTree* object, ObjectTree* parent)
-{
-	if (parent == nullptr)
-		parent = object;
-	parent->AddChild(object);
-}
-void Scene::AddObjectToScene(Object* object, ObjectTree* parent)
+void Scene::AddObjectToScene(std::shared_ptr<Object> object, std::shared_ptr<Object> parent)
 {
 	if (parent == nullptr)
 		parent = objectTree;
 	parent->AddChild(object);
 }
 
-ObjectTree* Scene::GetObjectTree()
+std::shared_ptr<Object> Scene::GetObjectTree()
 {
 	return objectTree;
 }

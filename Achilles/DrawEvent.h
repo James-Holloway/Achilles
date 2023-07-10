@@ -11,7 +11,7 @@ enum class DrawEventType
 
 struct DrawEvent
 {
-	Mesh* mesh;
+	std::shared_ptr<Mesh> mesh;
 	std::shared_ptr<Camera> camera;
 	DrawEventType eventType;
 };

@@ -1,6 +1,6 @@
 #pragma once
 #include "Common.h"
-#include "ObjectTree.h"
+#include "Object.h"
 
 class Scene
 {
@@ -11,12 +11,9 @@ public:
 	// By adding an ObjectTree to a scene, it will then be deleted when its parent is deleted
 	// @param objectTree
 	// @param parent is the scene's ObjectTree when nullptr
-	void AddObjectToScene(ObjectTree* objectTree, ObjectTree* parent = nullptr);
-	// By adding an Object to a scene, it will then be deleted when the its parent is deleted
-	// @param parent is the scene's ObjectTree when nullptr
-	void AddObjectToScene(Object* object, ObjectTree* parent = nullptr);
+	void AddObjectToScene(std::shared_ptr<Object> object, std::shared_ptr<Object> parent = nullptr);
 
-	ObjectTree* GetObjectTree();
+	std::shared_ptr<Object> GetObjectTree();
 
 	bool IsActive();
 	void SetActive(bool active);
@@ -26,6 +23,6 @@ public:
 
 protected:
 	bool isActive = false;
-	ObjectTree* objectTree;
+	std::shared_ptr<Object> objectTree;
 	std::wstring name;
 };

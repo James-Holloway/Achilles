@@ -11,8 +11,8 @@
 class Thetis : public Achilles
 {
 protected:
-	Object* cube;
-	Object* floorQuad;
+	std::shared_ptr<Object> cube;
+	std::shared_ptr<Object> floorQuad;
 	std::shared_ptr<Camera> camera;
 
 	float cubeRotationSpeed = 2.0f;
