@@ -21,7 +21,18 @@ void Thetis::OnUpdate(float deltaTime)
 
 void Thetis::OnRender(float deltaTime)
 {
-	
+
+}
+
+static bool DrawImGuiObjectTree(ObjectTree* objectTree)
+{
+	ImGui::Indent(4);
+	ImGui::Text( WStringToString(objectTree->GetName()).c_str());
+	return true;
+}
+static void DrawImGuiObjectTreeUp(ObjectTree* objectTree)
+{
+	ImGui::Unindent(4);
 }
 
 void Thetis::OnPostRender(float deltaTime)
@@ -52,7 +63,29 @@ void Thetis::OnPostRender(float deltaTime)
 				ImPlot::EndPlot();
 			}
 		}
+		ImGui::End();
+	}
 
+	if (showObjectTree)
+	{
+		if (ImGui::Begin("Scenes", &showObjectTree))
+		{
+			if (ImGui::BeginTabBar("SceneTabBar"))
+			{
+				for (std::shared_ptr<Scene> scene : scenes)
+				{
+					std::string sceneName = WStringToString(scene->GetName());
+					if (ImGui::BeginTabItem(sceneName.c_str()))
+					{
+						ImGui::Unindent(4);
+						scene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
+						ImGui::Indent(4);
+						ImGui::EndTabItem();
+					}
+				}
+				ImGui::EndTabBar();
+			}
+		}
 		ImGui::End();
 	}
 }
@@ -114,6 +147,10 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
 	if (kbt.pressed.F2)
 	{
 		showPerformance = !showPerformance;
+	}
+	if (kbt.pressed.F3)
+	{
+		showObjectTree = !showObjectTree;
 	}
 
 	if (kbt.pressed.PageUp)

@@ -121,30 +121,51 @@ bool ObjectTree::SetParent(ObjectTree* newParent)
 }
 
 // Object Tree Traversal
-void ObjectTree::Traverse(TraverseObjectTree traverseFunc)
+void ObjectTree::Traverse(TraverseObjectTree traverseFunc, TraverseObjectTreeUp traverseUpFunc, int maxDepth, int currentDepth)
 {
-	bool result = traverseFunc(this);
-	if (!result)
+	if (traverseFunc == nullptr)
+		return;
+
+	if (!isScene)
+	{
+		bool result = traverseFunc(this);
+		if (!result)
+			return;
+	}
+
+	if (currentDepth >= maxDepth)
 		return;
 
 	for (ObjectTree* child : children)
 	{
-		child->Traverse(traverseFunc);
+		child->Traverse(traverseFunc, traverseUpFunc, maxDepth, currentDepth + 1);
+	}
+	
+	if (!isScene && traverseUpFunc)
+	{
+		traverseUpFunc(this);
 	}
 }
 
-void ObjectTree::TraverseActive(TraverseObjectTree traverseFunc)
+void ObjectTree::TraverseActive(TraverseObjectTree traverseFunc, TraverseObjectTreeUp traverseUpFunc, int maxDepth, int currentDepth)
 {
-	if (!this->GetObject() || !this->GetObject()->IsActive())
-		return;
+	if (!isScene && this->GetObject() && this->GetObject()->IsActive())
+	{
+		bool result = traverseFunc(this);
+		if (!result)
+			return;
+	}
 
-	bool result = traverseFunc(this);
-	if (!result)
+	if (currentDepth >= maxDepth)
 		return;
 
 	for (ObjectTree* child : children)
 	{
-		child->TraverseActive(traverseFunc);
+		child->TraverseActive(traverseFunc, traverseUpFunc, maxDepth, currentDepth + 1);
+	}
+	if (!isScene && traverseUpFunc)
+	{
+		traverseUpFunc(this);
 	}
 }
 

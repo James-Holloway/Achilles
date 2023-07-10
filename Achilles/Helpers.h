@@ -78,6 +78,16 @@ inline std::vector<char> ReadFile(std::string path)
 	return result;
 }
 
+inline void OutputDebugStringAFormatted(const char* format, ...)
+{
+	va_list arguments;
+	va_start(arguments, format);
+	char buffer[1024] = { 0 };
+	vsprintf_s(buffer, format, arguments);
+	OutputDebugStringA(buffer);
+	va_end(arguments);
+}
+
 inline void OutputDebugStringWFormatted(const wchar_t* format, ...)
 {
 	va_list arguments;
@@ -246,6 +256,22 @@ namespace std
 inline bool Contains(std::wstring str, std::wstring substr)
 {
 	return str.find(substr) != std::wstring::npos;
+}
+
+inline std::wstring StringToWString(const std::string& str)
+{
+	const char* cstr = str.c_str();
+	wchar_t cwstr[512] = { 0 };
+	MultiByteToWideChar(CP_UTF8, MB_COMPOSITE, cstr, -1, cwstr, 512);
+	return std::wstring(cwstr);
+}
+
+inline std::string WStringToString(const std::wstring& wstr)
+{
+	const wchar_t* cwstr = wstr.c_str();
+	char cstr[512] = { 0 };
+	WideCharToMultiByte(CP_UTF8, NULL, cwstr, -1, cstr, 512, NULL, NULL);
+	return std::string(cstr);
 }
 
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }

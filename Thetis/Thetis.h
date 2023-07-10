@@ -20,6 +20,7 @@ protected:
 	float cameraBaseMoveSpeed = 4.0f;
 
 	bool showPerformance = false;
+	bool showObjectTree = false;
 
 public:
 	Thetis(std::wstring name);

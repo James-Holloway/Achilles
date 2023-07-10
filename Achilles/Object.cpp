@@ -1,5 +1,6 @@
 #include "Object.h"
 #include "ObjectTree.h"
+#include "Mesh.h"
 
 Object::Object(std::wstring _name) : name(_name), mesh(nullptr)
 {

@@ -9,6 +9,8 @@ class ObjectTree;
 
 // Return false to end traverse early
 typedef bool (CALLBACK* TraverseObjectTree)(ObjectTree* objectTree);
+// Called just before returning up the depth
+typedef void (CALLBACK* TraverseObjectTreeUp)(ObjectTree* objectTree);
 
 class ObjectTree
 {
@@ -43,9 +45,9 @@ public:
 	// Object Tree Traversal
 	
 	// Depth-first traversal of the whole object tree until traverseFunc returns false
-	void Traverse(TraverseObjectTree traverseFunc);
+	void Traverse(TraverseObjectTree traverseFunc, TraverseObjectTreeUp traverseUpFunc = nullptr, int maxDepth = 10, int currentDepth = 0);
 	// Depth-first traversal of the whole active object tree until traverseFunc returns false
-	void TraverseActive(TraverseObjectTree traverseFunc);
+	void TraverseActive(TraverseObjectTree traverseFunc, TraverseObjectTreeUp traverseUpFunc = nullptr, int maxDepth = 10, int currentDepth = 0);
 
 	// Depth-first search. Recursive.
 	void Flatten(std::vector<ObjectTree*>& flattenedTree);
