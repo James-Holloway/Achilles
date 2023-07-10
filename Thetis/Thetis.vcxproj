@@ -146,6 +146,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PosCol.cpp" />
+    <ClCompile Include="PosTextured.cpp" />
     <ClCompile Include="Thetis.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -159,6 +161,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="content\models\monkey.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\shaders\PosCol.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>

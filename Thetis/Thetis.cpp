@@ -131,6 +131,11 @@ void Thetis::OnPostRender(float deltaTime)
 			{
 				CreateCubeInMainScene();
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("Add Monkey"))
+			{
+				CreateMonkeyInMainScene();
+			}
 		}
 		ImGui::End();
 	}
@@ -342,4 +347,10 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
 void Thetis::CreateCubeInMainScene()
 {
 	mainScene->AddObjectToScene(Object::CreateObject(cube->GetMesh(), L"New Cube"));
+}
+
+void Thetis::CreateMonkeyInMainScene()
+{
+	std::shared_ptr<Object> object =  Object::CreateObjectsFromContentFile(L"monkey.fbx", GetPosColShader());
+	mainScene->AddObjectToScene(object);
 }

@@ -41,10 +41,8 @@ AchillesImGui::AchillesImGui(ComPtr<ID3D12Device2> _device, HWND _hWnd, const Re
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.FontGlobalScale = ::GetDpiForWindow(hWnd) / 96.0f;
-	io.FontAllowUserScaling = true; // Allow CTRL+MWHEEL to UI scale
+	io.ConfigWindowsMoveFromTitleBarOnly = true; // Prevent dragging from empty space
 
-	// Load fonts here
-	
 	// Build texture atlas
 	unsigned char* pixelData = nullptr;
 	int width, height;

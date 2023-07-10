@@ -42,4 +42,5 @@ public:
 
 protected:
 	void CreateCubeInMainScene();
+	void CreateMonkeyInMainScene();
 };

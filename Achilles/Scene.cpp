@@ -12,6 +12,8 @@ Scene::~Scene()
 
 void Scene::AddObjectToScene(std::shared_ptr<Object> object, std::shared_ptr<Object> parent)
 {
+	if (object == nullptr)
+		return;
 	if (parent == nullptr)
 		parent = objectTree;
 	parent->AddChild(object);

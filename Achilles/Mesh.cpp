@@ -1,5 +1,6 @@
 #include "Mesh.h"
 #include "ShaderInclude.h"
+#include "Application.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;

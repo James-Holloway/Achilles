@@ -6,12 +6,16 @@
 
 using Microsoft::WRL::ComPtr;
 
+class Shader;
 class Object;
 class Mesh;
 class Camera;
 class Material;
+struct aiMesh;
 
 typedef void (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object>, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera);
+
+typedef std::shared_ptr<Mesh> (CALLBACK* MeshCreation)(aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
 
 HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring profile, ComPtr<IDxcResult>& outShader);
 
@@ -29,6 +33,7 @@ public:
 	std::shared_ptr<ShaderResourceView> defaultSRV;
 
 	ShaderRender renderCallback;
+	MeshCreation meshCreateCallback;
 
 	Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize, ShaderRender _renderCallback);
 
@@ -51,3 +56,6 @@ inline void ThrowBlobIfFailed(HRESULT hr, ComPtr<ID3DBlob> errorBlob)
 
 	throw std::exception();
 }
+
+#define SHADER_MESH_MAKE_SHARED_VECTORS(name, verts, tris, vertexStruct, shader) \
+	std::make_shared<Mesh>(name, Object::GetCreationCommandList(), verts.data(), (UINT)verts.size(), sizeof(vertexStruct), tris.data(), (UINT)tris.size(), shader)

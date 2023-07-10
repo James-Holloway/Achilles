@@ -24,12 +24,21 @@
       <UniqueIdentifier>{b4fc382a-8ef7-40a3-bb0f-a749fc95d613}</UniqueIdentifier>
       <Extensions>png;jpg;jpeg;dds</Extensions>
     </Filter>
+    <Filter Include="content\models">
+      <UniqueIdentifier>{d1452998-79ad-463c-bf56-5793bd7e60d7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Thetis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PosCol.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PosTextured.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -52,10 +61,13 @@
     <None Include="content\shaders\PosTextured.hlsl">
       <Filter>content\shaders</Filter>
     </None>
+    <None Include="content\models\monkey.fbx">
+      <Filter>content\models</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\MyUVSquare.png">
-      <Filter>Resource Files</Filter>
+      <Filter>content\textures</Filter>
     </Image>
   </ItemGroup>
 </Project>

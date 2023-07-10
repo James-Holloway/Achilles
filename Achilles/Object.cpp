@@ -1,5 +1,12 @@
 #include "Object.h"
 #include "Mesh.h"
+#include "Shader.h"
+#include "Application.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include "CommandQueue.h"
+#include "CommandList.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -430,4 +437,79 @@ std::shared_ptr<Object> Object::CreateObject(std::shared_ptr<Mesh> mesh, std::ws
 	object->SetParent(parent);
 
 	return object;
+}
+
+std::shared_ptr<Object> Object::CreateObjectsFromScene(const aiScene* scene, std::shared_ptr<Shader> shader)
+{
+	if (!scene->HasMeshes())
+		return nullptr;
+
+	GetCreationCommandList(); // Create the command list that we will execute later
+	MeshCreation createFunc = shader->meshCreateCallback;
+
+	// If there is only one mesh, there is no need to create a parent object
+	if (scene->mNumMeshes == 1)
+	{
+		aiMesh* inMesh = scene->mMeshes[0];
+		std::shared_ptr<Object> object = CreateObject(StringToWString(inMesh->mName.C_Str()), nullptr);
+		std::shared_ptr<Mesh> mesh = createFunc(inMesh, shader, object->material);
+		object->SetMesh(mesh);
+
+		ExecuteCreationCommandList();
+
+		return object;
+	}
+	else // If there is more than one mesh then parent them under one object
+	{
+		std::shared_ptr<Object> parentObject = CreateObject(StringToWString(scene->mName.C_Str()));
+		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
+		{
+			aiMesh* inMesh = scene->mMeshes[i];
+			std::shared_ptr<Object> object = CreateObject(StringToWString(inMesh->mName.C_Str()), parentObject);
+			std::shared_ptr<Mesh> mesh = createFunc(inMesh, shader, object->material);
+			object->SetMesh(mesh);
+		}
+
+		ExecuteCreationCommandList();
+		return parentObject;
+	}
+	return nullptr; // We should never reach here anyway
+}
+
+std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std::shared_ptr<Shader> shader)
+{
+	static Assimp::Importer importer;
+
+	std::string filePathA = WStringToString(filePath);
+	const aiScene* scene = importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+	if (scene == nullptr)
+	{
+		OutputDebugStringAFormatted("Model importing (%s) failed: %s\n", filePathA, importer.GetErrorString());
+		return nullptr;
+	}
+
+	return CreateObjectsFromScene(scene, shader);
+}
+
+std::shared_ptr<Object> Object::CreateObjectsFromContentFile(std::wstring file, std::shared_ptr<Shader> shader)
+{
+	return CreateObjectsFromFile(GetContentDirectoryW() + L"models/" + file, shader);
+}
+
+std::shared_ptr<CommandList> Object::GetCreationCommandList()
+{
+	if (currentCreationCommandList == nullptr)
+	{
+		currentCreationCommandQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		currentCreationCommandList = currentCreationCommandQueue->GetCommandList();
+	}
+	return currentCreationCommandList;
+}
+
+void Object::ExecuteCreationCommandList()
+{
+	if (currentCreationCommandQueue == nullptr || currentCreationCommandList == nullptr)
+		return; //throw std::exception("Command queue or list was null, cannot execute");
+
+	currentCreationCommandQueue->ExecuteCommandList(currentCreationCommandList);
 }

@@ -64,42 +64,6 @@ static void OutputDebugStringMatrix(Matrix mtx)
 	OutputDebugStringWFormatted(L"% .02f % .02f % .02f % .02f\n% .02f % .02f % .02f % .02f\n% .02f % .02f % .02f % .02f\n% .02f % .02f % .02f % .02f\n\n", mtx._11, mtx._12, mtx._13, mtx._14, mtx._21, mtx._22, mtx._23, mtx._24, mtx._31, mtx._32, mtx._33, mtx._34, mtx._41, mtx._42, mtx._43, mtx._44);
 }
 
-
-inline void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera)
-{
-	// Update the MVP matrix
-	Matrix mvp = object->GetWorldMatrix() * (camera->GetView() * camera->GetProj());
-
-	PosColCB0 cb0{ mvp };
-
-	commandList->SetGraphics32BitConstants<PosColCB0>(0, cb0);
-}
-
-static std::shared_ptr<Shader> posColShader{};
-static CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC polColRootSignature{};
-inline std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device)
-{
-	if (posColShader.use_count() >= 1)
-	{
-		return posColShader;
-	}
-
-	// Allow input layout and deny unnecessary access to certain pipeline stages.
-	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
-	CD3DX12_ROOT_PARAMETER1 rootParameters[1]{};
-	rootParameters[0].InitAsConstants(sizeof(PosColCB0) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-
-	polColRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
-
-	std::shared_ptr rootSignature = std::make_shared<RootSignature>(polColRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
-
-	posColShader = Shader::ShaderVSPS(device, posColInputLayout, _countof(posColInputLayout), sizeof(PosColVertex), rootSignature, PosColShaderRender, L"PosCol");
-
-	return posColShader;
-}
+void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera);
+std::shared_ptr<Mesh> PosColMeshCreation(aiMesh* inMesh, std::shared_ptr<Shader> shader);
+std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device = nullptr);

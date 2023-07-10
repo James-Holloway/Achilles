@@ -4,6 +4,10 @@
 
 class Mesh;
 class Object;
+struct aiScene;
+struct aiMesh;
+class CommandQueue;
+class CommandList;
 
 // Return false to end traverse early
 typedef bool (CALLBACK* TraverseObject)(std::shared_ptr<Object> object);
@@ -17,7 +21,7 @@ public:
 	//// Public constructors & destructor functions ////
 
 	// Should not be used. Use CreateObject instead!
-	Object(std::wstring _name= L"Unnamed Object");
+	Object(std::wstring _name = L"Unnamed Object");
 	// Should not be used. Used CreateObject instead!
 	Object(std::shared_ptr<Mesh> _mesh, std::wstring _name = L"Unnamed Object");
 	virtual ~Object();
@@ -138,4 +142,17 @@ public:
 
 	static std::shared_ptr<Object> CreateObject(std::wstring name = L"Unnamed Empty Object", std::shared_ptr<Object> parent = nullptr);
 	static std::shared_ptr<Object> CreateObject(std::shared_ptr<Mesh> mesh, std::wstring name = L"Unanmed Object", std::shared_ptr<Object> parent = nullptr);
+
+	// Create objects from an aiScene
+	// Returns one object or nullptr. Child meshes are parented under one object with the scene name
+	static std::shared_ptr<Object> CreateObjectsFromScene(const aiScene* scene, std::shared_ptr<Shader> shader);
+	static std::shared_ptr<Object> CreateObjectsFromFile(std::wstring filePath, std::shared_ptr<Shader> shader);
+	static std::shared_ptr<Object> CreateObjectsFromContentFile(std::wstring file, std::shared_ptr<Shader> shader);
+
+	static std::shared_ptr<CommandList> GetCreationCommandList();
+	static void ExecuteCreationCommandList();
+
+protected:
+	inline static std::shared_ptr<CommandQueue> currentCreationCommandQueue = nullptr;
+	inline static std::shared_ptr<CommandList> currentCreationCommandList = nullptr;
 };
