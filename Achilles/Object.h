@@ -21,10 +21,11 @@ class Object : public std::enable_shared_from_this<Object>
     friend class Scene; // Scene can set isScene and instantiate an empty constructor
     friend class Achilles; // Achilles can access currentCreationCommandQueue
 public:
+    inline static std::wstring DefaultName = L"Unnamed Object";
     //// Public constructors & destructor functions ////
 
     // Should not be used. Use CreateObject instead!
-    Object(std::wstring _name = L"Unnamed Object");
+    Object(std::wstring _name = DefaultName);
     virtual ~Object();
     std::shared_ptr<Object> Clone(std::shared_ptr<Object> newParent = nullptr);
 
@@ -95,6 +96,8 @@ public:
     std::shared_ptr<Object> FindFirstObjectByName(std::wstring name);
     // Returns the first active object that matches the name, searched depth-first, excluding inactive objects
     std::shared_ptr<Object> FindFirstActiveObjectByName(std::wstring name);
+    // Verifies if this object belongs to a scene
+    bool IsOrphaned();
 
     //// Position, rotation, scale and matrix functions ////
 
@@ -147,7 +150,7 @@ protected:
 public:
     //// Static Object creation functions ////
 
-    static std::shared_ptr<Object> CreateObject(std::wstring name = L"Unnamed Object", std::shared_ptr<Object> parent = nullptr);
+    static std::shared_ptr<Object> CreateObject(std::wstring name = DefaultName, std::shared_ptr<Object> parent = nullptr);
 
     // Create objects from an aiScene
     // Returns one object or nullptr. Child meshes are parented under one object with the scene name

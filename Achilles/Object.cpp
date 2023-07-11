@@ -362,6 +362,18 @@ std::shared_ptr<Object> Object::FindFirstActiveObjectByName(std::wstring name)
     return nullptr;
 }
 
+bool Object::IsOrphaned()
+{
+    std::shared_ptr<Object> _parent = GetParent();
+    if (_parent == nullptr)
+        return true;
+
+    if (_parent->isScene)
+        return false;
+
+    return _parent->IsOrphaned();
+}
+
 
 //// Position, rotation, scale and matrix functions ////
 
@@ -581,7 +593,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromScene(aiScene* scene, std::shar
         if (scene->mName.length != 0 && scene->mName.C_Str() != "")
             objectTree->SetName(StringToWString(scene->mName.C_Str()));
         else
-            objectTree->SetName(L"Unnamed Object");
+            objectTree->SetName(DefaultName);
     }
 
     // If there is only one child then remove the RootNode
@@ -612,7 +624,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
     std::wstring fileName = std::filesystem::path(filePath).replace_extension().filename();
     
     std::shared_ptr<Object> object = CreateObjectsFromScene(scene, shader);
-    if (object->GetName() == L"Unnamed Object")
+    if (object->GetName() == DefaultName)
         object->SetName(fileName);
 
     return object;
