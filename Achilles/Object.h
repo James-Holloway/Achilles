@@ -131,7 +131,7 @@ protected:
     std::vector<Knit> knits;
 
     std::vector<std::shared_ptr<Object>> children{};
-    std::shared_ptr<Object> parent = nullptr;
+    std::weak_ptr<Object> parent{};
 
     bool active = true;
     bool isScene = false;

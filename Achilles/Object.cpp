@@ -200,7 +200,7 @@ std::shared_ptr<Object> Object::GetParent()
 {
     if (isScene)
         return shared_from_this();
-    return parent;
+    return parent.lock();
 }
 
 bool Object::SetParent(std::shared_ptr<Object> newParent)
@@ -209,14 +209,14 @@ bool Object::SetParent(std::shared_ptr<Object> newParent)
         return false;
     if (newParent == shared_from_this())
         throw std::exception("An Object cannot be a parent of itself");
-    if (parent != nullptr)
+    if (GetParent() != nullptr)
     {
-        parent->RemoveChild(shared_from_this());
+        GetParent()->RemoveChild(shared_from_this());
     }
     parent = newParent;
-    if (parent != nullptr)
+    if (newParent != nullptr)
     {
-        parent->AddChild(shared_from_this());
+        newParent->AddChild(shared_from_this());
     }
     SetWorldMatrixDirty();
 
@@ -451,6 +451,7 @@ void Object::SetLocalMatrix(Matrix _matrix)
 
 void Object::SetWorldPosition(Vector3 _position)
 {
+    std::shared_ptr<Object> parent = GetParent();
     if (parent == nullptr)
     {
         SetLocalPosition(_position);
@@ -463,36 +464,36 @@ void Object::SetWorldPosition(Vector3 _position)
 }
 void Object::SetWorldRotation(Vector3 _rotation)
 {
-    if (parent == nullptr)
+    if (GetParent() == nullptr)
     {
         SetLocalRotation(_rotation);
         return;
     }
     Vector3 parentPosition, parentScale;
     Quaternion parentQuaternion;
-    parent->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
+    GetParent()->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
     SetLocalRotation(parentQuaternion.ToEuler() - _rotation);
 }
 void Object::SetWorldScale(Vector3 _scale)
 {
-    if (parent == nullptr)
+    if (GetParent() == nullptr)
     {
         SetLocalScale(_scale);
         return;
     }
     Vector3 parentPosition, parentScale;
     Quaternion parentQuaternion;
-    parent->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
+    GetParent()->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
     SetLocalPosition(_scale / parentScale);
 }
 void Object::SetWorldMatrix(Matrix _matrix)
 {
-    if (parent == nullptr)
+    if (GetParent() == nullptr)
     {
         SetLocalMatrix(_matrix);
         return;
     }
-    SetLocalMatrix(parent->GetWorldMatrix() - _matrix);
+    SetLocalMatrix(GetParent()->GetWorldMatrix() - _matrix);
 }
 
 void Object::ConstructMatrix()
@@ -504,8 +505,8 @@ void Object::ConstructWorldMatrix()
 {
     if (isScene)
         worldMatrix = Matrix::Identity;
-    else if (parent != nullptr)
-        worldMatrix = GetLocalMatrix() * parent->GetWorldMatrix();
+    else if (GetParent() != nullptr)
+        worldMatrix = GetLocalMatrix() * GetParent()->GetWorldMatrix();
     else
         worldMatrix = GetLocalMatrix();
 
