@@ -64,6 +64,15 @@
     <None Include="content\models\monkey.fbx">
       <Filter>content\models</Filter>
     </None>
+    <None Include="content\models\cone.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\icosphere.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\torus combo.fbx">
+      <Filter>content\models</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\MyUVSquare.png">

@@ -13,11 +13,13 @@ class Shader;
 class Material
 {
 public:
-	Material();
-	Material(std::shared_ptr<Shader> _shader);
+    Material();
+    Material(std::shared_ptr<Shader> _shader);
+    // Clone the material
+    Material(const Material& other);
 
-	std::shared_ptr<Shader> shader;
-	std::map<std::wstring, std::shared_ptr<Texture>> textures;
-	std::map<std::wstring, float> floats;
-	std::map<std::wstring, DirectX::SimpleMath::Vector4> vectors;
+    std::shared_ptr<Shader> shader;
+    std::map<std::wstring, std::shared_ptr<Texture>> textures;
+    std::map<std::wstring, float> floats;
+    std::map<std::wstring, DirectX::SimpleMath::Vector4> vectors;
 };

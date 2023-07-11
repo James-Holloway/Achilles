@@ -8,14 +8,14 @@ DescriptorAllocation::DescriptorAllocation() : descriptor{ 0 }, numHandles(0), d
 }
 
 DescriptorAllocation::DescriptorAllocation(D3D12_CPU_DESCRIPTOR_HANDLE _descriptor, uint32_t _numHandles, uint32_t _descriptorSize, std::shared_ptr<DescriptorAllocatorPage> _page)
-	: descriptor(_descriptor), numHandles(_numHandles), descriptorSize(_descriptorSize), page(_page)
+    : descriptor(_descriptor), numHandles(_numHandles), descriptorSize(_descriptorSize), page(_page)
 {
 
 }
 
 DescriptorAllocation::~DescriptorAllocation()
 {
-	Free();
+    Free();
 }
 
 DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& allocation) noexcept : descriptor(allocation.descriptor), numHandles(allocation.numHandles), descriptorSize(allocation.descriptorSize), page(std::move(allocation.page))

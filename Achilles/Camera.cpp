@@ -4,80 +4,80 @@ using namespace DirectX::SimpleMath;
 
 Camera::Camera(std::wstring _name, int width, int height)
 {
-	name = _name;
-	UpdateViewport(width, height);
+    name = _name;
+    UpdateViewport(width, height);
 }
 
 void Camera::UpdateViewport(int width, int height)
 {
-	viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
+    viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
 }
 
 Matrix Camera::GetViewProj()
 {
-	if (dirtyViewMatrix || dirtyProjMatrix)
-		ConstructMatrices();
-	return view * proj;
+    if (dirtyViewMatrix || dirtyProjMatrix)
+        ConstructMatrices();
+    return view * proj;
 }
 
 Matrix Camera::GetView()
 {
-	if (dirtyViewMatrix)
-		ConstructView();
-	return view;
+    if (dirtyViewMatrix)
+        ConstructView();
+    return view;
 }
 
 Matrix Camera::GetProj()
 {
-	if (dirtyProjMatrix)
-		ConstructProjection();
-	return proj;
+    if (dirtyProjMatrix)
+        ConstructProjection();
+    return proj;
 }
 
 void Camera::ConstructMatrices()
 {
-	ConstructView();
-	ConstructProjection();
+    ConstructView();
+    ConstructProjection();
 }
 
 void Camera::ConstructView()
 {
-	view = Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position);
-	view = view.Invert();
-	// view = view.Transpose();
-	// view = ViewFPS(position, 0, 0);
-	dirtyViewMatrix = false;
+    view = Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position);
+    view = view.Invert();
+    // view = view.Transpose();
+    // view = ViewFPS(position, 0, 0);
+    dirtyViewMatrix = false;
 }
 
 void Camera::ConstructProjection()
 {
-	proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
-	dirtyProjMatrix = false;
+    proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
+    dirtyProjMatrix = false;
 }
 
 
 void Camera::RotateEuler(Vector3 euler, bool unlockPitch, bool unlockRoll)
 {
-	Vector3 rot = rotation;
-	rot += euler;
-	rot = EulerVectorModulo(rot);
-	if (!unlockPitch)
-	{
-		rot.x = fmin(AchillesPi, rot.x);
-		rot.x = fmax(-AchillesPi, rot.x);
-	}
-	if (!unlockRoll)
-		rot = Vector3(rot.x, rot.y, 0);
+    Vector3 rot = rotation;
+    rot += euler;
+    rot = EulerVectorModulo(rot);
+    if (!unlockPitch)
+    {
+        rot.x = fmin(AchillesPi, rot.x);
+        rot.x = fmax(-AchillesPi, rot.x);
+    }
+    if (!unlockRoll)
+        rot = Vector3(rot.x, rot.y, 0);
 
-	rotation = rot;
-	dirtyViewMatrix = true;
+    rotation = rot;
+    dirtyViewMatrix = true;
 }
 
 void Camera::MoveRelative(Vector3 direction)
 {
-	Matrix world = Matrix(Vector3::Right, Vector3::Up, -Vector3::Forward);
-	Matrix rot = Matrix::CreateFromYawPitchRoll(rotation);
-	Vector3 pos = DirectX::XMVector3TransformNormal(direction, world * rot);
-	position += pos;
-	dirtyViewMatrix = true;
+    Matrix world = Matrix(Vector3::Right, Vector3::Up, -Vector3::Forward);
+    Matrix rot = Matrix::CreateFromYawPitchRoll(rotation);
+    Vector3 pos = DirectX::XMVector3TransformNormal(direction, world * rot);
+    position += pos;
+    dirtyViewMatrix = true;
 }

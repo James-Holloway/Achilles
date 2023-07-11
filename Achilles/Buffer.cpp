@@ -11,3 +11,8 @@ void Buffer::CreateViews(size_t numElements, size_t elementSize)
 {
     throw std::exception("Unimplemented function.");
 }
+
+bool Buffer::HasBeenCopied()
+{
+    return bufferInfo.hasBeenCopied;
+}

@@ -23,7 +23,7 @@ class AchillesImGui
 {
     friend class Achilles;
 public:
-	LRESULT WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    LRESULT WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     // Called at the start of the frame
     void NewFrame();

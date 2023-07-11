@@ -17,6 +17,7 @@
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
 #include "ShaderResourceView.h"
+#include "BufferInfo.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -78,7 +79,7 @@ void CommandList::AliasingBarrier(const Resource& beforeResource, const Resource
     auto d3d12AfterResource = afterResource.GetD3D12Resource();
     auto barrier = CD3DX12_RESOURCE_BARRIER::Aliasing(d3d12BeforeResource.Get(), d3d12AfterResource.Get());
 
-   resourceStateTracker->ResourceBarrier(barrier);
+    resourceStateTracker->ResourceBarrier(barrier);
 
     if (flushBarriers)
     {
@@ -160,6 +161,9 @@ void CommandList::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementS
             // Add references to resources so they stay in scope until the command list is reset.
             TrackObject(uploadResource);
         }
+
+        onExecutedFunctions.push_back([&](void) { buffer.bufferInfo.hasBeenCopied = true; });
+
         TrackObject(d3d12Resource);
     }
 

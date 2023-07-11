@@ -51,6 +51,7 @@ class ShaderResourceView;
 
 class CommandList
 {
+    friend class CommandQueue;
 public:
     CommandList(D3D12_COMMAND_LIST_TYPE type);
     virtual ~CommandList();
@@ -392,6 +393,8 @@ private:
     // is stored. The referenced objects are released when the command list is 
     // reset.
     TrackedObjects trackedObjects;
+
+    std::vector<std::function<void(void)>> onExecutedFunctions{};
 
     // Keep track of loaded textures to avoid loading the same texture multiple times.
     inline static std::map<std::wstring, ID3D12Resource*> textureCache{};

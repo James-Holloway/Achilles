@@ -74,6 +74,11 @@ void Application::SetCommandQueue(D3D12_COMMAND_LIST_TYPE type, std::shared_ptr<
     }
 }
 
+std::shared_ptr<CommandQueue> Application::GetNewCommandQueue(D3D12_COMMAND_LIST_TYPE type)
+{
+    return std::make_shared<CommandQueue>(type);
+}
+
 DXGI_SAMPLE_DESC Application::GetMultisampleQualityLevels(DXGI_FORMAT format, UINT numSamples, D3D12_MULTISAMPLE_QUALITY_LEVEL_FLAGS flags)
 {
     DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };

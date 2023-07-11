@@ -2,44 +2,44 @@
 
 Scene::Scene(std::wstring _name) : name(_name)
 {
-	objectTree = std::make_shared<Object>(name);
-	objectTree->isScene = true;
+    objectTree = std::make_shared<Object>(name);
+    objectTree->isScene = true;
 }
 Scene::~Scene()
 {
-	
+    
 }
 
 void Scene::AddObjectToScene(std::shared_ptr<Object> object, std::shared_ptr<Object> parent)
 {
-	if (object == nullptr)
-		return;
-	if (parent == nullptr)
-		parent = objectTree;
-	parent->AddChild(object);
+    if (object == nullptr)
+        return;
+    if (parent == nullptr)
+        parent = objectTree;
+    parent->AddChild(object);
 }
 
 std::shared_ptr<Object> Scene::GetObjectTree()
 {
-	return objectTree;
+    return objectTree;
 }
 
 bool Scene::IsActive()
 {
-	return isActive;
+    return isActive;
 }
 
 void Scene::SetActive(bool active)
 {
-	isActive = active;
+    isActive = active;
 }
 
 std::wstring Scene::GetName()
 {
-	return name;
+    return name;
 }
 
 void Scene::SetName(std::wstring _name)
 {
-	name = _name;
+    name = _name;
 }

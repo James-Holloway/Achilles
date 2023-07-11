@@ -26,4 +26,6 @@ public:
 	// Only allows D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST at the moment
 	Mesh(std::shared_ptr<CommandList> commandList, void* vertices, UINT vertexCount, size_t vertexStride, const uint16_t* indices, UINT indexCount, std::shared_ptr<Shader> _shader);
 	Mesh(std::wstring _name, std::shared_ptr<CommandList> commandList, void* vertices, UINT vertexCount, size_t vertexStride, const uint16_t* indices, UINT indexCount, std::shared_ptr<Shader> _shader);
+
+	bool HasBeenCopied();
 };

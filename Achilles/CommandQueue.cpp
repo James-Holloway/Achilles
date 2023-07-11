@@ -5,37 +5,37 @@
 
 CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type) : fenceValue(0), commandListType(type), processInFlightCommandLists(true)
 {
-	auto device = Application::GetD3D12Device();
+    auto device = Application::GetD3D12Device();
 
-	D3D12_COMMAND_QUEUE_DESC desc = {};
-	desc.Type = type;
-	desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-	desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	desc.NodeMask = 0;
+    D3D12_COMMAND_QUEUE_DESC desc = {};
+    desc.Type = type;
+    desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+    desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    desc.NodeMask = 0;
 
-	ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
-	ThrowIfFailed(device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&d3d12Fence)));
+    ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
+    ThrowIfFailed(device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&d3d12Fence)));
 
-	switch (type)
-	{
-	case D3D12_COMMAND_LIST_TYPE_COPY:
-		d3d12CommandQueue->SetName(L"Copy Command Queue");
-		break;
-	case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-		d3d12CommandQueue->SetName(L"Compute Command Queue");
-		break;
-	case D3D12_COMMAND_LIST_TYPE_DIRECT:
-		d3d12CommandQueue->SetName(L"Direct Command Queue");
-		break;
-	}
+    switch (type)
+    {
+    case D3D12_COMMAND_LIST_TYPE_COPY:
+        d3d12CommandQueue->SetName(L"Copy Command Queue");
+        break;
+    case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+        d3d12CommandQueue->SetName(L"Compute Command Queue");
+        break;
+    case D3D12_COMMAND_LIST_TYPE_DIRECT:
+        d3d12CommandQueue->SetName(L"Direct Command Queue");
+        break;
+    }
 
-	processInFlightCommandListsThread = std::thread(&CommandQueue::ProccessInFlightCommandLists, this);
+    processInFlightCommandListsThread = std::thread(&CommandQueue::ProccessInFlightCommandLists, this);
 }
 
 CommandQueue::~CommandQueue()
 {
-	processInFlightCommandLists = false;
-	processInFlightCommandListsThread.join();
+    processInFlightCommandLists = false;
+    processInFlightCommandListsThread.join();
 }
 
 uint64_t CommandQueue::Signal()
@@ -160,6 +160,16 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
     UINT numCommandLists = static_cast<UINT>(d3d12CommandLists.size());
     d3d12CommandQueue->ExecuteCommandLists(numCommandLists, d3d12CommandLists.data());
     uint64_t fv = Signal();
+
+    // Execute functions like CommandList::CopyBuffer's setting of BufferInfo once the command list has been executed
+    for (auto commandList : commandLists)
+    {
+        for (auto onExecutedFunction : commandList->onExecutedFunctions)
+        {
+            onExecutedFunction();
+        }
+        commandList->onExecutedFunctions.clear();
+    }
 
     ResourceStateTracker::Unlock();
 

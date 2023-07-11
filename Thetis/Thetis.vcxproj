@@ -161,7 +161,16 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="content\models\cone.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\icosphere.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\monkey.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\torus combo.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\shaders\PosCol.hlsl">

@@ -233,6 +233,7 @@
     <ClInclude Include="AchillesImGui.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="Buffer.h" />
+    <ClInclude Include="BufferInfo.h" />
     <ClInclude Include="ByteAddressBuffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandList.h" />
