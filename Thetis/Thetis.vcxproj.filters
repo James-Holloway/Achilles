@@ -73,6 +73,9 @@
     <None Include="content\models\torus combo.fbx">
       <Filter>content\models</Filter>
     </None>
+    <None Include="content\models\achilles test.fbx">
+      <Filter>content\models</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\MyUVSquare.png">

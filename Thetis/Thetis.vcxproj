@@ -161,6 +161,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="content\models\achilles test.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\cone.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>

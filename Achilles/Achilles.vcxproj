@@ -252,6 +252,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Knit.h" />
     <ClInclude Include="MouseData.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />

@@ -182,7 +182,8 @@ public:
     void QueueObjectDraw(std::shared_ptr<Object> object);
     void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
 protected:
-    void DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);
+    void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);
+    void DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);
     void DrawQueuedEvents(std::shared_ptr<CommandList> commandList);
     void EmptyDrawQueue();
 };

@@ -1,9 +1,11 @@
 #pragma once
 #include "Common.h"
 #include "Material.h"
+#include "Knit.h"
 
 class Mesh;
 class Object;
+struct aiNode;
 struct aiScene;
 struct aiMesh;
 class CommandQueue;
@@ -23,10 +25,7 @@ public:
 
     // Should not be used. Use CreateObject instead!
     Object(std::wstring _name = L"Unnamed Object");
-    // Should not be used. Used CreateObject instead!
-    Object(std::shared_ptr<Mesh> _mesh, std::wstring _name = L"Unnamed Object");
     virtual ~Object();
-
     std::shared_ptr<Object> Clone(std::shared_ptr<Object> newParent = nullptr);
 
 public:
@@ -35,13 +34,20 @@ public:
     std::wstring GetName();
     void SetName(std::wstring _name);
 
-    //// Mesh and material functions ////
+    //// Knit, mesh and material functions ////
 
-    std::shared_ptr<Mesh> GetMesh();
-    void SetMesh(std::shared_ptr<Mesh> _mesh);
+    Knit& GetKnit(uint32_t index = 0);
+    void SetKnit(uint32_t index, Knit knit);
+    uint32_t GetKnitCount();
+    // Resizes the vector of knits. Setting lower than knit count will delete knits
+    void ResizeKnits(uint32_t newSize);
 
-    Material& GetMaterial();
-    void SetMaterial(Material _material);
+    std::shared_ptr<Mesh> GetMesh(uint32_t index = 0);
+    // Also sets the material's shader to the set mesh's shader. Use SetMaterial after SetMesh to allow overriding
+    void SetMesh(uint32_t index, std::shared_ptr<Mesh> _mesh);
+
+    Material& GetMaterial(uint32_t index = 0);
+    void SetMaterial(uint32_t index, Material _material);
 
     //// Empty / Active functions ////
 
@@ -122,12 +128,10 @@ protected:
     //// Member variables ////
 
     std::wstring name;
-    std::shared_ptr<Mesh> mesh = nullptr;
+    std::vector<Knit> knits;
 
     std::vector<std::shared_ptr<Object>> children{};
     std::shared_ptr<Object> parent = nullptr;
-
-    Material material;
 
     bool active = true;
     bool isScene = false;
@@ -143,12 +147,12 @@ protected:
 public:
     //// Static Object creation functions ////
 
-    static std::shared_ptr<Object> CreateObject(std::wstring name = L"Unnamed Empty Object", std::shared_ptr<Object> parent = nullptr);
-    static std::shared_ptr<Object> CreateObject(std::shared_ptr<Mesh> mesh, std::wstring name = L"Unanmed Object", std::shared_ptr<Object> parent = nullptr);
+    static std::shared_ptr<Object> CreateObject(std::wstring name = L"Unnamed Object", std::shared_ptr<Object> parent = nullptr);
 
     // Create objects from an aiScene
     // Returns one object or nullptr. Child meshes are parented under one object with the scene name
-    static std::shared_ptr<Object> CreateObjectsFromScene(const aiScene* scene, std::shared_ptr<Shader> shader);
+    static std::shared_ptr<Object> CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader);
+    static std::shared_ptr<Object> CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader);
     static std::shared_ptr<Object> CreateObjectsFromFile(std::wstring filePath, std::shared_ptr<Shader> shader);
     static std::shared_ptr<Object> CreateObjectsFromContentFile(std::wstring file, std::shared_ptr<Shader> shader);
 

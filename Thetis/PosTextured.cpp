@@ -5,7 +5,7 @@
 
 namespace PosTextured
 {
-    void PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera)
+    void PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera)
     {
         // Update the MVP matrix
         Matrix mvp = object->GetWorldMatrix() * (camera->GetView() * camera->GetProj());

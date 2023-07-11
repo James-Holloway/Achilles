@@ -12,14 +12,8 @@ using namespace DirectX::SimpleMath;
 
 //// Private constructor & destructor functions ////
 
-Object::Object(std::wstring _name) : name(_name), mesh(nullptr)
+Object::Object(std::wstring _name) : name(_name)
 {
-}
-
-Object::Object(std::shared_ptr<Mesh> _mesh, std::wstring _name) : name(_name), mesh(_mesh)
-{
-    if (mesh != nullptr)
-        material.shader = mesh->shader;
 }
 
 Object::~Object()
@@ -32,12 +26,15 @@ std::shared_ptr<Object> Object::Clone(std::shared_ptr<Object> newParent)
     if (newParent == nullptr)
         newParent = GetParent();
 
-    std::shared_ptr<Object> clone = std::make_shared<Object>(GetMesh(), name + L" (Clone)");
+    std::shared_ptr<Object> clone = std::make_shared<Object>(name + L" (Clone)");
     clone->SetParent(newParent);
     clone->SetLocalPosition(GetLocalPosition());
     clone->SetLocalRotation(GetLocalRotation());
     clone->SetLocalScale(GetLocalScale());
-    clone->SetMaterial(Material(GetMaterial()));
+    for (uint32_t i = 0; i < knits.size(); i++)
+    {
+        clone->SetKnit(i, Knit(knits[i]));
+    }
     clone->SetActive(IsActive());
 
     for (auto child : GetChildren())
@@ -66,33 +63,73 @@ void Object::SetName(std::wstring _name)
 }
 
 
-//// Mesh and material functions ////
+//// Knit, mesh and material functions ////
 
-std::shared_ptr<Mesh> Object::GetMesh()
+Knit& Object::GetKnit(uint32_t index)
 {
-    return mesh;
+    if (knits.size() <= index)
+        throw std::exception("Object did not have that many knits");
+
+    return knits[index];
 }
-void Object::SetMesh(std::shared_ptr<Mesh> _mesh)
+void Object::SetKnit(uint32_t index, Knit knit)
 {
-    mesh = _mesh;
-    if (mesh != nullptr)
-        material.shader = mesh->shader;
+    if (knits.size() <= index)
+        knits.resize(index + 1);
+
+    knits[index] = knit;
+}
+uint32_t Object::GetKnitCount()
+{
+    return (uint32_t)knits.size();
+}
+void Object::ResizeKnits(uint32_t newSize)
+{
+    knits.resize(newSize);
 }
 
-Material& Object::GetMaterial()
+std::shared_ptr<Mesh> Object::GetMesh(uint32_t index)
 {
-    return material;
+    if (knits.size() <= index)
+        throw std::exception("Object did not have that many meshes");
+
+    return knits[index].mesh;
 }
-void Object::SetMaterial(Material _material)
+void Object::SetMesh(uint32_t index, std::shared_ptr<Mesh> _mesh)
 {
-    material = _material;
+    if (knits.size() <= index)
+        knits.resize(index + 1);
+
+    knits[index].mesh = _mesh;
+    if (_mesh != nullptr)
+        knits[index].material.shader = _mesh->shader;
+}
+
+Material& Object::GetMaterial(uint32_t index)
+{
+    if (knits.size() <= index)
+        throw std::exception("Object did not have that many materials");
+
+    return knits[index].material;
+}
+void Object::SetMaterial(uint32_t index, Material _material)
+{
+    if (knits.size() <= index)
+        knits.resize(index + 1);
+
+    knits[index].material = _material;
 }
 
 //// Empty / Active functions ////
 
 bool Object::IsEmpty()
 {
-    return mesh == nullptr;
+    for (Knit knit : knits)
+    {
+        if (knit.mesh != nullptr)
+            return false;
+    }
+    return true;
 }
 
 bool Object::IsActive()
@@ -181,6 +218,8 @@ bool Object::SetParent(std::shared_ptr<Object> newParent)
     {
         parent->AddChild(shared_from_this());
     }
+    SetWorldMatrixDirty();
+
     return true;
 }
 
@@ -355,21 +394,21 @@ Vector3 Object::GetWorldPosition()
 {
     Vector3 position, scale;
     Quaternion quaternion;
-    GetWorldMatrix().Decompose(position, quaternion, scale);
+    GetWorldMatrix().Decompose(scale, quaternion, position);
     return position;
 }
 Vector3 Object::GetWorldRotation()
 {
     Vector3 position, scale;
     Quaternion quaternion;
-    GetWorldMatrix().Decompose(position, quaternion, scale);
+    GetWorldMatrix().Decompose(scale, quaternion, position);
     return quaternion.ToEuler();
 }
 Vector3 Object::GetWorldScale()
 {
     Vector3 position, scale;
     Quaternion quaternion;
-    GetWorldMatrix().Decompose(position, quaternion, scale);
+    GetWorldMatrix().Decompose(scale, quaternion, position);
     return scale;
 }
 
@@ -401,36 +440,58 @@ void Object::SetLocalMatrix(Matrix _matrix)
 {
     Vector3 matrixPos, matrixScale;
     Quaternion matrixQuaternion;
-    parent->GetWorldMatrix().Decompose(matrixPos, matrixQuaternion, matrixScale);
+    _matrix.Transpose().Decompose(matrixScale, matrixQuaternion, matrixPos);
     matrix = _matrix;
     position = matrixPos;
     rotation = matrixQuaternion.ToEuler();
     scale = matrixScale;
+    dirtyMatrix = true;
+    SetWorldMatrixDirty();
 }
 
 void Object::SetWorldPosition(Vector3 _position)
 {
+    if (parent == nullptr)
+    {
+        SetLocalPosition(_position);
+        return;
+    }
     Vector3 parentPosition, parentScale;
     Quaternion parentQuaternion;
-    parent->GetWorldMatrix().Decompose(parentPosition, parentQuaternion, parentScale);
-    SetLocalPosition(_position / parentPosition); // maybe -?
+    parent->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
+    SetLocalPosition(parentPosition - _position);
 }
 void Object::SetWorldRotation(Vector3 _rotation)
 {
+    if (parent == nullptr)
+    {
+        SetLocalRotation(_rotation);
+        return;
+    }
     Vector3 parentPosition, parentScale;
     Quaternion parentQuaternion;
-    parent->GetWorldMatrix().Decompose(parentPosition, parentQuaternion, parentScale);
-    SetLocalRotation(_rotation / parentQuaternion.ToEuler()); // maybe -?
+    parent->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
+    SetLocalRotation(parentQuaternion.ToEuler() - _rotation);
 }
 void Object::SetWorldScale(Vector3 _scale)
 {
+    if (parent == nullptr)
+    {
+        SetLocalScale(_scale);
+        return;
+    }
     Vector3 parentPosition, parentScale;
     Quaternion parentQuaternion;
-    parent->GetWorldMatrix().Decompose(parentPosition, parentQuaternion, parentScale);
+    parent->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
     SetLocalPosition(_scale / parentScale);
 }
 void Object::SetWorldMatrix(Matrix _matrix)
 {
+    if (parent == nullptr)
+    {
+        SetLocalMatrix(_matrix);
+        return;
+    }
     SetLocalMatrix(parent->GetWorldMatrix() - _matrix);
 }
 
@@ -443,8 +504,11 @@ void Object::ConstructWorldMatrix()
 {
     if (isScene)
         worldMatrix = Matrix::Identity;
-    else
+    else if (parent != nullptr)
         worldMatrix = GetLocalMatrix() * parent->GetWorldMatrix();
+    else
+        worldMatrix = GetLocalMatrix();
+
     dirtyWorldMatrix = false;
 }
 void Object::SetWorldMatrixDirty()
@@ -453,7 +517,8 @@ void Object::SetWorldMatrixDirty()
 
     for (std::shared_ptr<Object> child : children)
     {
-        child->SetWorldMatrixDirty();
+        if (child != nullptr)
+            child->SetWorldMatrixDirty();
     }
 }
 
@@ -462,52 +527,72 @@ void Object::SetWorldMatrixDirty()
 
 std::shared_ptr<Object> Object::CreateObject(std::wstring name, std::shared_ptr<Object> parent)
 {
-    return CreateObject(nullptr, name, parent);
-}
-
-std::shared_ptr<Object> Object::CreateObject(std::shared_ptr<Mesh> mesh, std::wstring name, std::shared_ptr<Object> parent)
-{
-    std::shared_ptr<Object> object = std::make_shared<Object>(mesh, name);
+    std::shared_ptr<Object> object = std::make_shared<Object>(name);
     object->SetParent(parent);
 
     return object;
 }
 
-std::shared_ptr<Object> Object::CreateObjectsFromScene(const aiScene* scene, std::shared_ptr<Shader> shader)
+std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader)
 {
-    if (!scene->HasMeshes())
-        return nullptr;
+    std::shared_ptr<Object> thisObject = CreateObject(StringToWString(node->mName.C_Str()), parent);
 
-    GetCreationCommandList(); // Create the command list that we will execute later
     MeshCreation createFunc = shader->meshCreateCallback;
-
-    // If there is only one mesh, there is no need to create a parent object
-    if (scene->mNumMeshes == 1)
+    for (uint32_t i = 0; i < node->mNumMeshes; i++)
     {
-        aiMesh* inMesh = scene->mMeshes[0];
-        std::shared_ptr<Object> object = CreateObject(StringToWString(inMesh->mName.C_Str()), nullptr);
-        std::shared_ptr<Mesh> mesh = createFunc(inMesh, shader, object->material);
-        object->SetMesh(mesh);
-
-        ExecuteCreationCommandList();
-
-        return object;
+        aiMesh* inMesh = scene->mMeshes[node->mMeshes[i]];
+        thisObject->SetKnit(i, Knit{}); // resize the knit vector so we can get the material directtly
+        std::shared_ptr<Mesh> mesh = createFunc(scene, inMesh, shader, thisObject->GetMaterial(i));
+        thisObject->SetMesh(i, mesh);
     }
-    else // If there is more than one mesh then parent them under one object
+
+    aiMatrix4x4 transform = node->mTransformation;
+    Matrix transformMatrix = {
+        transform.a1, transform.a2, transform.a3, transform.a4,
+        transform.b1, transform.b2, transform.b3, transform.b4,
+        transform.c1, transform.c2, transform.c3, transform.c4,
+        transform.d1, transform.d2, transform.d3, transform.d4,
+    };
+
+    // If we are a direct child of the root node then scale down into meters
+    if (node->mParent != nullptr && node->mParent == scene->mRootNode)
     {
-        std::shared_ptr<Object> parentObject = CreateObject(StringToWString(scene->mName.C_Str()));
-        for (uint32_t i = 0; i < scene->mNumMeshes; i++)
-        {
-            aiMesh* inMesh = scene->mMeshes[i];
-            std::shared_ptr<Object> object = CreateObject(StringToWString(inMesh->mName.C_Str()), parentObject);
-            std::shared_ptr<Mesh> mesh = createFunc(inMesh, shader, object->material);
-            object->SetMesh(mesh);
-        }
-
-        ExecuteCreationCommandList();
-        return parentObject;
+        transformMatrix *= Matrix::CreateScale(0.01f);
     }
-    return nullptr; // We should never reach here anyway
+    thisObject->SetLocalMatrix(transformMatrix);
+
+    thisObject->SetName(StringToWString(node->mName.C_Str()));
+
+    for (uint32_t i = 0; i < node->mNumChildren; i++)
+    {
+        CreateObjectsFromSceneNode(scene, node->mChildren[i], thisObject, shader);
+    }
+    return thisObject;
+}
+
+std::shared_ptr<Object> Object::CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader)
+{
+    GetCreationCommandList(); // Create the command list that we will execute later
+
+    std::shared_ptr<Object> objectTree = CreateObjectsFromSceneNode(scene, scene->mRootNode, nullptr, shader);
+    if (objectTree->GetName() == L"RootNode")
+    {
+        if (scene->mName.length != 0 && scene->mName.C_Str() != "")
+            objectTree->SetName(StringToWString(scene->mName.C_Str()));
+        else
+            objectTree->SetName(L"Unnamed Object");
+    }
+
+    // If there is only one child then remove the RootNode
+    if (objectTree->GetChildren().size() == 1)
+    {
+        objectTree = objectTree->GetChildren()[0];
+        objectTree->SetParent(nullptr);
+    }
+
+    ExecuteCreationCommandList();
+
+    return objectTree;
 }
 
 std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std::shared_ptr<Shader> shader)
@@ -515,14 +600,21 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
     static Assimp::Importer importer;
 
     std::string filePathA = WStringToString(filePath);
-    const aiScene* scene = importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+
+    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes));
     if (scene == nullptr)
     {
         OutputDebugStringAFormatted("Model importing (%s) failed: %s\n", filePathA, importer.GetErrorString());
         return nullptr;
     }
 
-    return CreateObjectsFromScene(scene, shader);
+    std::wstring fileName = std::filesystem::path(filePath).replace_extension().filename();
+    
+    std::shared_ptr<Object> object = CreateObjectsFromScene(scene, shader);
+    if (object->GetName() == L"Unnamed Object")
+        object->SetName(fileName);
+
+    return object;
 }
 
 std::shared_ptr<Object> Object::CreateObjectsFromContentFile(std::wstring file, std::shared_ptr<Shader> shader)
@@ -546,6 +638,6 @@ void Object::ExecuteCreationCommandList()
     if (currentCreationCommandQueue == nullptr || currentCreationCommandList == nullptr)
         return; //throw std::exception("Command queue or list was null, cannot execute");
 
-     currentCreationCommandQueue->ExecuteCommandList(currentCreationCommandList);
-     currentCreationCommandList = nullptr;
+    currentCreationCommandQueue->ExecuteCommandList(currentCreationCommandList);
+    currentCreationCommandList = nullptr;
 }

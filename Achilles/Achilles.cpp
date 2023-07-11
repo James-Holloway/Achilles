@@ -887,18 +887,14 @@ void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
     scenes.erase(scene);
 }
 
+
 // Achilles drawing functions
 void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
 {
     if (object == nullptr)
         return;
-    if (object->GetMesh() == nullptr)
+    if (object->IsEmpty())
         return;
-    if (!object->GetMesh()->HasBeenCopied())
-    {
-        OutputDebugStringWFormatted(L"Attempted to draw object %s when it's mesh has not been copied\n", object->GetName());
-        return;
-    }
 
     DrawEvent de{};
     de.object = object;
@@ -920,22 +916,15 @@ void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
     }
 }
 
-void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
+void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
 {
-    if (object == nullptr)
-        throw std::exception("Object was no available");
-    if (object->GetMesh() == nullptr)
-        throw std::exception("Rendered mesh was not available");
-    if (camera.use_count() <= 0)
-        throw std::exception("Rendered camera was not available");
-
-    std::shared_ptr<Mesh> mesh = object->GetMesh();
-    Material material = object->GetMaterial();
+    std::shared_ptr<Mesh> mesh = object->GetMesh(knitIndex);
+    Material& material = object->GetMaterial(knitIndex);
     std::shared_ptr<Shader> shader = material.shader;
+    if (mesh == nullptr)
+        return; // Mesh did not exist but maybe the knit vector has missing spaces
     if (shader->renderCallback == nullptr)
         throw std::exception("Shader did not have a rendercallback");
-
-    std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
 
     commandList->SetPipelineState(shader->pipelineState);
     commandList->SetGraphicsRootSignature(*shader->rootSignature);
@@ -944,14 +933,30 @@ void Achilles::DrawMeshIndexed(std::shared_ptr<CommandList> commandList, std::sh
     commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
     commandList->SetIndexBuffer(*mesh->indexBuffer);
 
+    shader->renderCallback(commandList, object, knitIndex, mesh, material, camera);
+
+    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+}
+
+void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
+{
+    if (object == nullptr)
+        throw std::exception("Object was no available");
+
+    if (camera.use_count() <= 0)
+        throw std::exception("Rendered camera was not available");
+
     commandList->SetViewport(camera->viewport);
     commandList->SetScissorRect(camera->scissorRect);
 
+    std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
     commandList->SetRenderTarget(*rt);
 
-    shader->renderCallback(commandList, object, mesh, material, camera);
-
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+    // Draw each knit
+    for (uint32_t i = 0; i < object->GetKnitCount(); i++)
+    {
+        DrawObjectKnitIndexed(commandList, object, i, camera);
+    }
 }
 
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
@@ -965,7 +970,7 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
         case DrawEventType::Ignore:
             break;
         case DrawEventType::DrawIndexed:
-            DrawMeshIndexed(commandList, de.object, de.camera);
+            DrawObjectIndexed(commandList, de.object, de.camera);
             break;
         }
     }

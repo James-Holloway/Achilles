@@ -155,8 +155,8 @@ void Thetis::OnPostRender(float deltaTime)
     {
         if (ImGui::Begin("Properties", &showProperties))
         {
-            ImGui::SetWindowPos(ImVec2(0, 235 + 350));
-            ImGui::SetWindowSize(ImVec2(300, 155));
+            ImGui::SetWindowPos(ImVec2(0, 235 + 350), ImGuiCond_Once);
+            ImGui::SetWindowSize(ImVec2(300, 205), ImGuiCond_Once);
 
             std::shared_ptr<Object> object = selectedPropertiesObject;
             if (object != nullptr)
@@ -169,36 +169,40 @@ void Thetis::OnPostRender(float deltaTime)
                 object->SetName(StringToWString(std::string(name)));
 
                 ImGui::Separator();
-                float pos[3] = {
-                    object->GetLocalPosition().x,
-                    object->GetLocalPosition().y,
-                    object->GetLocalPosition().z
-                };
-                if (ImGui::DragFloat3("Position: ", pos, 0.125f, 0.0, 0.0, "% .3f"))
+                // Position, rotation and scale
                 {
-                    object->SetLocalPosition(Vector3(pos[0], pos[1], pos[2]));
+                    float pos[3] = {
+                        object->GetLocalPosition().x,
+                        object->GetLocalPosition().y,
+                        object->GetLocalPosition().z
+                    };
+                    if (ImGui::DragFloat3("Position: ", pos, 0.125f, 0.0, 0.0, "% .3f"))
+                    {
+                        object->SetLocalPosition(Vector3(pos[0], pos[1], pos[2]));
+                    }
+
+                    Vector3 degRot = EulerToDegrees(object->GetLocalRotation());
+                    float rot[3] = {
+                        degRot.x,
+                        degRot.y,
+                        degRot.z
+                    };
+                    if (ImGui::DragFloat3("Rotation: ", rot, 5.0f, -360, 360, "% .3f"))
+                    {
+                        object->SetLocalRotation(EulerToRadians(Vector3(rot[0], rot[1], rot[2])));
+                    }
+                    float scale[3] = {
+                        object->GetLocalScale().x,
+                        object->GetLocalScale().y,
+                        object->GetLocalScale().z
+                    };
+                    if (ImGui::DragFloat3("Scale: ", scale, 0.125f, 0.0f, 0.0f, "% .3f"))
+                    {
+                        object->SetLocalScale(Vector3(scale[0], scale[1], scale[2]));
+                    }
                 }
 
-                Vector3 degRot = EulerToDegrees(object->GetLocalRotation());
-                float rot[3] = {
-                    degRot.x,
-                    degRot.y,
-                    degRot.z
-                };
-                if (ImGui::DragFloat3("Rotation: ", rot, 5.0f, -360, 360, "% .3f"))
-                {
-                    object->SetLocalRotation(EulerToRadians(Vector3(rot[0], rot[1], rot[2])));
-                }
-                float scale[3] = {
-                    object->GetLocalScale().x,
-                    object->GetLocalScale().y,
-                    object->GetLocalScale().z
-                };
-                if (ImGui::DragFloat3("Scale: ", scale, 0.125f, 0.0f, 0.0f, "% .3f"))
-                {
-                    object->SetLocalScale(Vector3(scale[0], scale[1], scale[2]));
-                }
-
+                // Buttons
                 ImGui::Separator();
                 if (ImGui::Button("Delete"))
                 {
@@ -209,6 +213,36 @@ void Thetis::OnPostRender(float deltaTime)
                 {
                     CopySelectedObject();
                 }
+
+                ImGui::Separator();
+                // Extra Info
+                if (ImGui::CollapsingHeader("Extra Info"))
+                {
+                    uint32_t knitCount = object->GetKnitCount();
+                    ImGui::Text("Knit Count: %i", knitCount);
+                    for (uint32_t i = 0; i < knitCount; i++)
+                    {
+                        std::string header = ("Knit #" + std::to_string(i) + "##Knit" + std::to_string(i));
+                        Knit& knit = object->GetKnit(i);
+                        bool hasBeenCopied = knit.mesh != nullptr && knit.mesh->HasBeenCopied();
+
+                        if (!hasBeenCopied) // Make header red and inside text if not copied
+                            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
+
+                        if (ImGui::TreeNode(header.c_str()))
+                        {
+                            if (hasBeenCopied)
+                                ImGui::Text("Mesh copied");
+                            else
+                                ImGui::Text("Mesh not copied");
+
+                            ImGui::TreePop();
+                        }
+                        if (!hasBeenCopied)
+                            ImGui::PopStyleColor();
+                    }
+                }
+
             }
         }
         ImGui::End();
@@ -240,11 +274,13 @@ void Thetis::LoadContent()
 
     // Create cube
     auto cubeMesh = std::make_shared<Mesh>(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosColVertex), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
-    cube = Object::CreateObject(cubeMesh, L"cube");
+    cube = Object::CreateObject(L"cube");
+    cube->SetMesh(0, cubeMesh);
     cube->SetLocalPosition(Vector3(-1, 0, 0));
     mainScene->AddObjectToScene(cube);
 
-    miniCube = Object::CreateObject(cubeMesh, L"mini cube");
+    miniCube = Object::CreateObject(L"mini cube");
+    miniCube->SetMesh(0, cubeMesh);
     cube->AddChild(miniCube);
     miniCube->SetLocalPosition(Vector3(0, 2, 0));
     miniCube->SetLocalScale(Vector3(0.25f, 0.25f, 0.25f));
@@ -252,7 +288,8 @@ void Thetis::LoadContent()
     // Create floor quad
     auto floorMesh = std::make_shared<Mesh>(L"floor quad", commandList, (void*)PosTextured::posTexturedQuadVertices, (UINT)_countof(PosTextured::posTexturedQuadVertices), sizeof(PosTextured::PosTexturedVertex), PosTextured::posTexturedQuadIndices, (UINT)_countof(PosTextured::posTexturedQuadIndices), posTexturedShader);
 
-    floorQuad = Object::CreateObject(floorMesh, L"floor quad");
+    floorQuad = Object::CreateObject(L"floor quad");
+    floorQuad->SetMesh(0, floorMesh);
     floorQuad->SetLocalPosition(Vector3(0, -2, 0));
     floorQuad->SetLocalRotation(EulerToRadians(Vector3(-90, 0, 0)));
     floorQuad->SetLocalScale(Vector3(3, 3, 3));
@@ -279,6 +316,13 @@ void Thetis::UnloadContent()
 
 void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, float dt)
 {
+    if (kbt.pressed.F1)
+    {
+        if (showPerformance && showObjectTree && showProperties)
+            showPerformance = showObjectTree = showProperties = false;
+        else
+            showPerformance = showObjectTree = showProperties = true;
+    }
     if (kbt.pressed.F2)
     {
         showPerformance = !showPerformance;

@@ -18,6 +18,7 @@ public:
     // Clone the material
     Material(const Material& other);
 
+    std::wstring name = L"Unnamed Material";
     std::shared_ptr<Shader> shader;
     std::map<std::wstring, std::shared_ptr<Texture>> textures;
     std::map<std::wstring, float> floats;
