@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cwctype>
 
 inline void ThrowIfFailed(HRESULT hr)
 {
@@ -280,6 +281,12 @@ inline std::string WStringToString(const std::wstring& wstr)
     char cstr[512] = { 0 };
     WideCharToMultiByte(CP_UTF8, NULL, cwstr, -1, cstr, 512, NULL, NULL);
     return std::string(cstr);
+}
+
+inline std::wstring ToLowerWString(std::wstring wstr)
+{
+    std::transform(wstr.begin(), wstr.end(), wstr.begin(), std::towlower);
+    return wstr;
 }
 
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }

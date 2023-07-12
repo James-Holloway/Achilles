@@ -41,6 +41,12 @@
     <ClCompile Include="PosTextured.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SimpleDiffuse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Thetis.h">
@@ -50,6 +56,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PosTextured.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleDiffuse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -74,6 +86,12 @@
       <Filter>content\models</Filter>
     </None>
     <None Include="content\models\achilles test.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\shaders\SimpleDiffuse.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\models\pink uv sphere.fbx">
       <Filter>content\models</Filter>
     </None>
   </ItemGroup>

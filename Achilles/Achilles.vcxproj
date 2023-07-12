@@ -205,6 +205,8 @@
     <ClCompile Include="DynamicDescriptorHeap.cpp" />
     <ClCompile Include="GenerateMipsPSO.cpp" />
     <ClCompile Include="IndexBuffer.cpp" />
+    <ClCompile Include="LightObject.cpp" />
+    <ClCompile Include="Lights.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Object.cpp" />
@@ -249,12 +251,15 @@
     <ClInclude Include="GenerateMipsPSO.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="IndexBuffer.h" />
+    <ClInclude Include="LightObject.h" />
+    <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Knit.h" />
     <ClInclude Include="MouseData.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="ObjectTag.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="Resource.h" />

@@ -89,7 +89,7 @@ Shader::Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size
 
 void Shader::BindTexture(CommandList& commandList, uint32_t rootParamIndex, uint32_t offset, std::shared_ptr<Texture>& texture)
 {
-    if (texture)
+    if (texture && texture->IsValid())
     {
         commandList.SetShaderResourceView(rootParamIndex, offset, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }

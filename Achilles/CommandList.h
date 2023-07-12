@@ -146,7 +146,15 @@ public:
     // Load a texture by a filename.
     void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage = TextureUsage::Albedo);
 
+    // Load a texture by filename (no extension) from content directory. Automatically deducts the file extension
+    void LoadTextureFromContent(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage = TextureUsage::Albedo);
     
+    // Loads a texture from the texture cache. Ensure it is already created/loaded. Returns whether the texture was in cache or not
+    bool GetTextureFromCache(Texture& texture, std::wstring identifierName, TextureUsage textureUsage = TextureUsage::Albedo);
+
+    // Create a texture from the provided pixels
+    void CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage = TextureUsage::Albedo, bool createMipmaps = false);
+
     // Clear a texture.
     void ClearTexture(const Texture& texture, const float clearColor[4]);
 

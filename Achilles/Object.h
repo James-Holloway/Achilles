@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "ObjectTag.h"
 #include "Material.h"
 #include "Knit.h"
 
@@ -34,6 +35,14 @@ public:
 
     std::wstring GetName();
     void SetName(std::wstring _name);
+
+
+    //// Tag functions ////
+    ObjectTag GetTags();
+    bool HasTag(ObjectTag _tag);
+    void SetTags(ObjectTag _tags);
+    void AddTag(ObjectTag _tags);
+    void RemoveTags(ObjectTag _tags);
 
     //// Knit, mesh and material functions ////
 
@@ -131,6 +140,9 @@ protected:
     //// Member variables ////
 
     std::wstring name;
+
+    ObjectTag tags = ObjectTag::None;
+
     std::vector<Knit> knits;
 
     std::vector<std::shared_ptr<Object>> children{};

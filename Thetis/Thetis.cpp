@@ -427,7 +427,7 @@ void Thetis::PopulateMeshNames()
 
 void Thetis::CreateObjectInMainScene(uint32_t meshNameIndex)
 {
-    std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], GetPosColShader());
+    std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], SimpleDiffuse::GetSimpleDiffuseShader(device));
     mainScene->AddObjectToScene(object);
 }
 

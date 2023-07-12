@@ -1,0 +1,2 @@
+cd /d "C:\Users\James\source\repos\Achilles\Thetis" &msbuild "Thetis.vcxproj" /t:sdvViewer /p:configuration="Release" /p:platform="x64" /p:SolutionDir="C:\Users\James\source\repos\Achilles" 
+exit %errorlevel% 

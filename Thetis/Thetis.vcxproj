@@ -145,14 +145,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CommonShader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PosCol.cpp" />
     <ClCompile Include="PosTextured.cpp" />
+    <ClCompile Include="SimpleDiffuse.cpp" />
     <ClCompile Include="Thetis.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CommonShader.h" />
     <ClInclude Include="PosCol.h" />
     <ClInclude Include="PosTextured.h" />
+    <ClInclude Include="SimpleDiffuse.h" />
     <ClInclude Include="Thetis.h" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +175,9 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\monkey.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\pink uv sphere.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\torus combo.fbx">
@@ -192,6 +199,12 @@
     <Image Include="content\textures\MyUVSquare.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\SimpleDiffuse.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -14,6 +14,7 @@ using namespace DirectX::SimpleMath;
 
 Object::Object(std::wstring _name) : name(_name)
 {
+    AddTag(ObjectTag::Mesh);
 }
 
 Object::~Object()
@@ -60,6 +61,30 @@ void Object::SetName(std::wstring _name)
     if (isScene)
         return;
     name = _name;
+}
+
+
+//// Tag functions ////
+
+ObjectTag Object::GetTags()
+{
+    return tags;
+}
+bool Object::HasTag(ObjectTag _tag)
+{
+    return (size_t)(tags & _tag) > 0;
+}
+void Object::SetTags(ObjectTag _tags)
+{
+    tags = _tags;
+}
+void Object::AddTag(ObjectTag _tags)
+{
+    tags |= _tags;
+}
+void Object::RemoveTags(ObjectTag _tags)
+{
+    tags |= ~_tags;
 }
 
 
@@ -622,7 +647,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
     }
 
     std::wstring fileName = std::filesystem::path(filePath).replace_extension().filename();
-    
+
     std::shared_ptr<Object> object = CreateObjectsFromScene(scene, shader);
     if (object->GetName() == DefaultName)
         object->SetName(fileName);

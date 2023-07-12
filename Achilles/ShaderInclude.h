@@ -15,5 +15,8 @@
 #include "Knit.h"
 #include "Object.h"
 #include "Mesh.h"
+#include "Texture.h"
 #include "Material.h"
 #include "Camera.h"
+#include "Lights.h"
+#include "LightObject.h"

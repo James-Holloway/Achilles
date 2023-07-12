@@ -17,6 +17,8 @@
 #include "VertexBuffer.h"
 #include "AchillesImGui.h"
 #include "Scene.h"
+#include "Lights.h"
+#include "LightObject.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -51,7 +53,6 @@ protected:
     std::shared_ptr<CommandQueue> computeCommandQueue;
     std::shared_ptr<CommandQueue> copyCommandQueue;
 
-    UINT RTVDescriptorSize = 0;
     UINT currentBackBufferIndex = 0;
 
     // Synchronization objects
@@ -101,6 +102,9 @@ protected:
     std::shared_ptr<Scene> mainScene;
     std::set<std::shared_ptr<Scene>> scenes {};
 
+    // Drawing states
+    LightData lightData{};
+
 public:
     // Constructor and destructor functions
     Achilles();
@@ -119,7 +123,6 @@ protected:
     ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp);
     ComPtr<ID3D12Device2> CreateDevice(ComPtr<IDXGIAdapter4> adapter);
     ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd, ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount);
-    ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
     void UpdateRenderTargetViews();
     void UpdateDepthStencilView();
     std::shared_ptr<Texture> CreateRenderTargetTexture(std::wstring name = L"Render Target Texture");
@@ -181,6 +184,8 @@ public:
     // Achilles drawing functions
     void QueueObjectDraw(std::shared_ptr<Object> object);
     void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
+    void ClearLightData(LightData& lightData);
+    void PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, LightData& lightData);
 protected:
     void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);
     void DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);

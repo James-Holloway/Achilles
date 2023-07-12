@@ -11,10 +11,11 @@ class Object;
 class Mesh;
 class Camera;
 class Material;
+class LightData;
 struct aiScene;
 struct aiMesh;
 
-typedef void (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object>, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera);
+typedef void (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object>, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
 
 typedef std::shared_ptr<Mesh> (CALLBACK* MeshCreation)(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
 

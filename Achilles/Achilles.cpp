@@ -625,7 +625,9 @@ void Achilles::Render()
     DrawQueuedEvents(directCommandList);
     OnPostRender(dt);
 
+    OutputDebugStringW(L"Pre direct execute\n");
     directCommandQueue->ExecuteCommandList(directCommandList);
+    OutputDebugStringW(L"Post direct execute\n");
     std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();
 
     achillesImGui->Render(presentCommandList, *GetCurrentRenderTarget());
@@ -870,6 +872,20 @@ std::shared_ptr<Scene> Achilles::GetMainScene()
 
 void Achilles::DrawActiveScenes()
 {
+    ClearLightData(lightData);
+
+    // Pre-scene-render light gathering pass
+    for (std::shared_ptr<Scene> scene : scenes)
+    {
+        if (scene->IsActive())
+        {
+            std::vector<std::shared_ptr<Object>> flattenedScene;
+            scene->GetObjectTree()->FlattenActive(flattenedScene);
+            PopulateLightData(flattenedScene, lightData);
+        }
+    }
+
+    // Scene drawing
     for (std::shared_ptr<Scene> scene : scenes)
     {
         if (scene->IsActive())
@@ -910,9 +926,38 @@ void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
 
     std::vector<std::shared_ptr<Object>> flattenedScene;
     scene->GetObjectTree()->FlattenActive(flattenedScene);
+
     for (std::shared_ptr<Object> object : flattenedScene)
     {
-        QueueObjectDraw(object);
+        if (object->HasTag(ObjectTag::Mesh))
+            QueueObjectDraw(object);
+    }
+}
+
+void Achilles::ClearLightData(LightData& lightData)
+{
+    lightData.PointLights.clear();
+    lightData.SpotLights.clear();
+    lightData.DirectionalLights.clear();
+}
+
+void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, LightData& lightData)
+{
+    for (std::shared_ptr<Object> object : flattenedScene)
+    {
+        if (object->HasTag(ObjectTag::Light))
+        {
+            std::shared_ptr<LightObject> lightObject = std::dynamic_pointer_cast<LightObject>(object);
+
+            if (lightObject->HasLightType(LightType::Point))
+                lightData.PointLights.push_back(lightObject->GetPointLight());
+
+            if (lightObject->HasLightType(LightType::Spot))
+                lightData.SpotLights.push_back(lightObject->GetSpotLight());
+
+            if (lightObject->HasLightType(LightType::Directional))
+                lightData.DirectionalLights.push_back(lightObject->GetDirectionalLight());
+        }
     }
 }
 
@@ -933,7 +978,7 @@ void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, s
     commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
     commandList->SetIndexBuffer(*mesh->indexBuffer);
 
-    shader->renderCallback(commandList, object, knitIndex, mesh, material, camera);
+    shader->renderCallback(commandList, object, knitIndex, mesh, material, camera, lightData);
 
     commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }

@@ -18,6 +18,18 @@ public:
     // Clone the material
     Material(const Material& other);
 
+    std::shared_ptr<Texture> GetTexture(std::wstring key);
+    float GetFloat(std::wstring key);
+    DirectX::SimpleMath::Vector4 GetVector(std::wstring key);
+
+    bool HasTexture(std::wstring key);
+    bool HasFloat(std::wstring key);
+    bool HasVector(std::wstring key);
+
+    void SetTexture(std::wstring key, std::shared_ptr<Texture> texture);
+    void SetFloat(std::wstring key, float _float);
+    void SetVector(std::wstring key, DirectX::SimpleMath::Vector4 vector);
+
     std::wstring name = L"Unnamed Material";
     std::shared_ptr<Shader> shader;
     std::map<std::wstring, std::shared_ptr<Texture>> textures;

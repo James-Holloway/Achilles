@@ -201,12 +201,6 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
 {
     auto device = Application::GetD3D12Device();
 
-    std::filesystem::path filePath(fileName);
-    if (!std::filesystem::exists(filePath))
-    {
-        throw std::exception("File not found.");
-    }
-
     auto iter = textureCache.find(fileName);
     if (iter != textureCache.end())
     {
@@ -217,6 +211,11 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
     }
     else
     {
+        std::filesystem::path filePath(fileName);
+        if (!std::filesystem::exists(filePath))
+        {
+            throw std::exception("File not found.");
+        }
         TexMetadata metadata;
         ScratchImage scratchImage;
         ComPtr<ID3D12Resource> textureResource;
@@ -295,6 +294,90 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
     }
 }
 
+void CommandList::LoadTextureFromContent(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage)
+{
+    std::wstring fileNameLower = ToLowerWString(fileName);
+    for (auto file : std::filesystem::directory_iterator(GetContentDirectoryW() + L"textures/"))
+    {
+        if (file.is_directory())
+            continue;
+
+        std::filesystem::path filePath = file.path();
+        std::wstring nameOnly = ToLowerWString(filePath.filename().replace_extension().wstring());
+
+        if (nameOnly == fileNameLower)
+        {
+            LoadTextureFromFile(texture, filePath.wstring(), _textureUsage);
+            break;
+        }
+    }
+}
+
+bool CommandList::GetTextureFromCache(Texture& texture, std::wstring identifierName, TextureUsage textureUsage)
+{
+    auto iter = textureCache.find(identifierName);
+    if (iter != textureCache.end())
+    {
+        texture.SetTextureUsage(textureUsage);
+        texture.SetD3D12Resource(iter->second);
+        texture.CreateViews();
+        texture.SetName(identifierName);
+        return true;
+    }
+    return false;
+}
+
+void CommandList::CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage, bool createMipmaps)
+{
+    auto device = Application::GetD3D12Device();
+
+    auto iter = textureCache.find(identifierName);
+    if (iter != textureCache.end())
+    {
+        texture.SetTextureUsage(textureUsage);
+        texture.SetD3D12Resource(iter->second);
+        texture.CreateViews();
+        texture.SetName(identifierName);
+    }
+    else
+    {
+        ComPtr<ID3D12Resource> textureResource;
+        D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, static_cast<UINT64>(width), static_cast<UINT>(height), static_cast<UINT16>(1));
+
+        D3D12_SUBRESOURCE_DATA textureData = {};
+        textureData.pData = pixels.data();
+        textureData.RowPitch = textureDesc.Width * 4;
+        textureData.SlicePitch = textureDesc.Height * textureDesc.Width * 4;
+
+        CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&textureResource)));
+
+        // Update the global state tracker.
+        ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
+
+        texture.SetTextureUsage(textureUsage);
+        texture.SetD3D12Resource(textureResource);
+        texture.CreateViews();
+        texture.SetName(identifierName);
+
+        std::vector<D3D12_SUBRESOURCE_DATA> subresources(1);
+        auto& subresource = subresources[0];
+        subresource.pData = textureData.pData;
+        subresource.RowPitch = textureData.RowPitch;
+        subresource.SlicePitch = textureData.SlicePitch;
+
+        CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
+
+        if (subresources.size() < textureResource->GetDesc().MipLevels && createMipmaps)
+        {
+            GenerateMips(texture);
+        }
+
+        // Add the texture resource to the texture cache.
+        std::lock_guard<std::mutex> lock(textureCacheMutex);
+        textureCache[identifierName] = textureResource.Get();
+    }
+}
 
 void CommandList::GenerateMips(Texture& texture)
 {

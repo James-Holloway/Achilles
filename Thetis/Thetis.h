@@ -7,6 +7,7 @@
 #pragma warning (pop)
 #include "PosCol.h"
 #include "PosTextured.h"
+#include "SimpleDiffuse.h"
 
 class Thetis : public Achilles
 {
