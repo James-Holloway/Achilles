@@ -6,9 +6,11 @@
 
 class Mesh;
 class Object;
+class LightObject;
 struct aiNode;
 struct aiScene;
 struct aiMesh;
+struct aiLight;
 class CommandQueue;
 class CommandList;
 
@@ -44,6 +46,7 @@ public:
     void AddTag(ObjectTag _tags);
     void RemoveTags(ObjectTag _tags);
 
+
     //// Knit, mesh and material functions ////
 
     Knit& GetKnit(uint32_t index = 0);
@@ -58,6 +61,7 @@ public:
 
     Material& GetMaterial(uint32_t index = 0);
     void SetMaterial(uint32_t index, Material _material);
+
 
     //// Empty / Active functions ////
 
@@ -108,6 +112,7 @@ public:
     // Verifies if this object belongs to a scene
     bool IsOrphaned();
 
+
     //// Position, rotation, scale and matrix functions ////
 
     DirectX::SimpleMath::Matrix GetLocalMatrix();
@@ -116,6 +121,7 @@ public:
     DirectX::SimpleMath::Vector3 GetLocalScale();
 
     DirectX::SimpleMath::Matrix GetWorldMatrix();
+    DirectX::SimpleMath::Matrix GetInverseWorldMatrix();
     DirectX::SimpleMath::Vector3 GetWorldPosition();
     DirectX::SimpleMath::Vector3 GetWorldRotation();
     DirectX::SimpleMath::Vector3 GetWorldScale();
@@ -156,6 +162,7 @@ protected:
     DirectX::SimpleMath::Vector3 scale {1, 1, 1};
     DirectX::SimpleMath::Matrix matrix;
     DirectX::SimpleMath::Matrix worldMatrix;
+    DirectX::SimpleMath::Matrix inverseWorldMatrix;
     bool dirtyMatrix = true;
     bool dirtyWorldMatrix = true;
 
@@ -163,8 +170,13 @@ public:
     //// Static Object creation functions ////
 
     static std::shared_ptr<Object> CreateObject(std::wstring name = DefaultName, std::shared_ptr<Object> parent = nullptr);
+    static std::shared_ptr<LightObject> CreateLightObject(std::wstring name = DefaultName, std::shared_ptr<Object> parent = nullptr);
+
 
     // Create objects from an aiScene
+
+    // Create a light object from the scene
+    static std::shared_ptr<LightObject> CreateLightObjectFromSceneNode(aiScene* scene, aiNode* node, aiLight* light, std::shared_ptr<Object> parent);
     // Returns one object or nullptr. Child meshes are parented under one object with the scene name
     static std::shared_ptr<Object> CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader);
     static std::shared_ptr<Object> CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader);

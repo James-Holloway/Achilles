@@ -21,9 +21,9 @@ protected:
     float mouseSensitivity = 1.0f;
     float cameraBaseMoveSpeed = 4.0f;
 
-    bool showPerformance = false;
-    bool showObjectTree = false;
-    bool showProperties = false;
+    bool showPerformance = true;
+    bool showObjectTree = true;
+    bool showProperties = true;
 
     std::vector<std::string> meshNames;
     std::vector<std::wstring> meshNamesWide;
@@ -35,7 +35,8 @@ public:
     Thetis(std::wstring name);
 public:
     virtual void OnUpdate(float deltaTime) override; // Post internal Update
-    virtual void OnRender(float deltaTime) override; // Called after render + depth clear
+    virtual void OnRender(float deltaTime) override;
+    // Called after render + depth clear
     virtual void OnPostRender(float deltaTime) override; // Just before internal Present
     virtual void OnResize(int newWidth, int newHeight) override; // Post resize
     virtual void LoadContent() override; // Load content to be used in Render
@@ -44,8 +45,13 @@ public:
     virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) override;
 
 protected:
+    void DrawImGuiPerformance();
+    void DrawImGuiScenes();
+    void DrawImGuiProperties();
+
     void PopulateMeshNames();
     void CreateObjectInMainScene(uint32_t meshNameIndex);
+    void CreateObjectAsSelectedChild(uint32_t meshNameIndex);
     void DeleteSelectedObject();
     std::shared_ptr<Object> CopySelectedObject();
 };

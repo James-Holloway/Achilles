@@ -7,7 +7,12 @@
 using namespace SimpleDiffuse;
 using namespace CommonShader;
 
-SimpleDiffuse::MaterialProperties::MaterialProperties() : Color(1,1,1,1)
+SimpleDiffuse::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1)
+{
+
+}
+
+SimpleDiffuse::PixelInfo::PixelInfo() : CameraPosition(0, 0, 0), ShadingType(1)
 {
 
 }
@@ -16,10 +21,20 @@ SimpleDiffuse::MaterialProperties::MaterialProperties() : Color(1,1,1,1)
 void SimpleDiffuse::SimpleDiffuseShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
 {
     CommonShaderMatrices matrices{};
-    matrices.MV = object->GetWorldMatrix() * camera->GetView();
-    matrices.MVP = matrices.MV * camera->GetProj();
-    matrices.InverseMV = matrices.MV.Invert().Transpose();
-    commandList->SetGraphics32BitConstants<CommonShaderMatrices>(RootParameters::RootParameterMatrices, matrices);
+    matrices.Model = object->GetWorldMatrix();
+    matrices.View = camera->GetView();
+    matrices.Projection = camera->GetProj();
+    matrices.MVP = (matrices.Model * matrices.View) * matrices.Projection;
+    matrices.InverseModel = object->GetInverseWorldMatrix();
+    matrices.InverseView = camera->GetInverseView();
+    commandList->SetGraphicsDynamicConstantBuffer<CommonShaderMatrices>(RootParameters::RootParameterMatrices, matrices);
+
+    PixelInfo pixelInfo{};
+    pixelInfo.CameraPosition = camera->position;
+    if (material.HasFloat(L"ShadingType"))
+        pixelInfo.ShadingType = material.GetFloat(L"ShadingType");
+
+    commandList->SetGraphicsDynamicConstantBuffer<PixelInfo>(RootParameters::RootParameterPixelInfo, pixelInfo);
     
     commandList->SetGraphicsDynamicConstantBuffer<LightProperties>(RootParameters::RootParameterLightProperties, lightData.GetLightProperties());
     commandList->SetGraphicsDynamicConstantBuffer<AmbientLight>(RootParameters::RootParameterAmbientLight, lightData.AmbientLight);
@@ -27,6 +42,13 @@ void SimpleDiffuse::SimpleDiffuseShaderRender(std::shared_ptr<CommandList> comma
     MaterialProperties materialProperties{};
     if (material.HasVector(L"Color"))
         materialProperties.Color = material.GetVector(L"Color");
+    if (material.HasFloat(L"Diffuse"))
+        materialProperties.Diffuse = material.GetFloat(L"Diffuse");
+    if (material.HasFloat(L"Specular"))
+        materialProperties.Specular = material.GetFloat(L"Specular");
+    if (material.HasFloat(L"SpecularPower"))
+        materialProperties.SpecularPower = material.GetFloat(L"SpecularPower");
+
     commandList->SetGraphicsDynamicConstantBuffer<MaterialProperties>(RootParameters::RootParameterMaterialProperties, materialProperties);
 
     commandList->SetGraphicsDynamicStructuredBuffer<PointLight>(RootParameters::RootParameterPointLights, lightData.PointLights);
@@ -79,7 +101,30 @@ std::shared_ptr<Mesh> SimpleDiffuse::SimpleDiffuseMeshCreation(aiScene* scene, a
         mat->Get(AI_MATKEY_OPACITY, a);
         Vector4 color(rgb.r, rgb.g, rgb.b, (float)a);
         material.SetVector(L"Color", color);
+
+        /*OutputDebugStringAFormatted("\n\n%s:\n", mat->GetName().C_Str());
+        for (uint32_t i = 0; i < mat->mNumProperties; i++)
+        {
+            aiMaterialProperty* prop = mat->mProperties[i];
+            OutputDebugStringAFormatted("Material Key: %s\n", prop->mKey.C_Str());
+            if (prop->mType == aiPropertyTypeInfo::aiPTI_Float)
+            {
+                OutputDebugStringAFormatted("%.2f\n", *((float*)prop->mData));
+            }
+        }*/
+
+        // Set material floats
+        ai_real specular;
+        mat->Get(AI_MATKEY_SHININESS_STRENGTH, specular);
+        material.SetFloat(L"Diffuse", 1.0f - (float)specular);
+        material.SetFloat(L"Specular", (float)specular);
+
+        ai_real specularPower = 1.0f;
+        mat->Get(AI_MATKEY_SHININESS, specularPower);
+        material.SetFloat(L"SpecularPower", specularPower);
     }
+
+    material.SetFloat(L"ShadingType", 1);
 
     return mesh;
 }
@@ -106,11 +151,12 @@ std::shared_ptr<Shader> SimpleDiffuse::GetSimpleDiffuseShader(ComPtr<ID3D12Devic
 
     // Root parameters
     CD3DX12_ROOT_PARAMETER1 rootParameters[RootParameters::RootParameterCount]{};
-    rootParameters[RootParameters::RootParameterMatrices].InitAsConstants(sizeof(CommonShaderMatrices) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+    rootParameters[RootParameters::RootParameterMatrices].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 
-    rootParameters[RootParameters::RootParameterLightProperties].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-    rootParameters[RootParameters::RootParameterAmbientLight].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-    rootParameters[RootParameters::RootParameterMaterialProperties].InitAsConstantBufferView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterPixelInfo].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterMaterialProperties].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterLightProperties].InitAsConstantBufferView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterAmbientLight].InitAsConstantBufferView(4, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
     rootParameters[RootParameters::RootParameterPointLights].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[RootParameters::RootParameterSpotLights].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);

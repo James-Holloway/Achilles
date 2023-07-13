@@ -552,7 +552,6 @@ void Achilles::Update()
     if (elapsedSeconds > 0.1)
     {
         double fps = frameCounter / elapsedSeconds;
-        // OutputDebugStringWFormatted(L"FPS: %.1f\n", fps);
 
         frameCounter = 0;
         elapsedSeconds = 0.0;
@@ -625,9 +624,8 @@ void Achilles::Render()
     DrawQueuedEvents(directCommandList);
     OnPostRender(dt);
 
-    OutputDebugStringW(L"Pre direct execute\n");
     directCommandQueue->ExecuteCommandList(directCommandList);
-    OutputDebugStringW(L"Post direct execute\n");
+
     std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();
 
     achillesImGui->Render(presentCommandList, *GetCurrentRenderTarget());
@@ -881,7 +879,7 @@ void Achilles::DrawActiveScenes()
         {
             std::vector<std::shared_ptr<Object>> flattenedScene;
             scene->GetObjectTree()->FlattenActive(flattenedScene);
-            PopulateLightData(flattenedScene, lightData);
+            PopulateLightData(flattenedScene, Camera::mainCamera, lightData); // TODO allow multiple cameras?
         }
     }
 
@@ -941,13 +939,15 @@ void Achilles::ClearLightData(LightData& lightData)
     lightData.DirectionalLights.clear();
 }
 
-void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, LightData& lightData)
+void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera, LightData& lightData)
 {
     for (std::shared_ptr<Object> object : flattenedScene)
     {
         if (object->HasTag(ObjectTag::Light))
         {
             std::shared_ptr<LightObject> lightObject = std::dynamic_pointer_cast<LightObject>(object);
+
+            lightObject->ConstructLightPositions(camera);
 
             if (lightObject->HasLightType(LightType::Point))
                 lightData.PointLights.push_back(lightObject->GetPointLight());

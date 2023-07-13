@@ -58,7 +58,7 @@ HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring 
     if (FAILED(compiledShader->GetStatus(&hrStatus)) || FAILED(hrStatus))
     {
         wchar_t outBuffer[MAX_PATH + 96];
-        swprintf_s(outBuffer, L"Failed to get compile shader (0x%X) : %s\n", hrStatus, shaderPath.c_str());
+        swprintf_s(outBuffer, L"Failed to compile shader (0x%X) : %s\n", hrStatus, shaderPath.c_str());
         OutputDebugStringW(outBuffer);
         return hrStatus;
     }

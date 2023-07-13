@@ -20,10 +20,13 @@ struct PointLight
     Color Color;
     // 48 bytes
     float Strength;
-    float Radius;
-    float Distance;
-    float Exponent;
+    float ConstantAttenuation;
+    float LinearAttenuation;
+    float QuadraticAttenuation;
     // 64 bytes
+    float MaxDistance;
+    float Padding[3];
+    // 80 bytes
 
     PointLight();
 };
@@ -33,14 +36,15 @@ struct SpotLight
 {
     // 0 bytes
     PointLight Light;
-    // 64 bytes
-    Vector4 DirectionWorldSpace;
     // 80 bytes
-    Vector4 DirectionViewSpace;
+    Vector4 DirectionWorldSpace;
     // 96 bytes
-    float SpotAngle;
-    float Padding[3];
+    Vector4 DirectionViewSpace;
     // 112 bytes
+    float InnerSpotAngle;
+    float OuterSpotAngle;
+    float Padding[2];
+    // 128 bytes
 
     SpotLight();
 };

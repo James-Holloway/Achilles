@@ -2,6 +2,7 @@
 
 #include "Object.h"
 #include "Lights.h"
+#include "Camera.h"
 
 class LightObject : public Object
 {
@@ -20,6 +21,8 @@ public:
     PointLight& GetPointLight();
     SpotLight& GetSpotLight();
     DirectionalLight& GetDirectionalLight();
+
+    void ConstructLightPositions(std::shared_ptr<Camera> camera);
 
 protected:
     LightType lightTypes = LightType::None;

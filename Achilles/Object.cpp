@@ -7,6 +7,7 @@
 #include <assimp/postprocess.h>
 #include "CommandQueue.h"
 #include "CommandList.h"
+#include "LightObject.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -84,7 +85,7 @@ void Object::AddTag(ObjectTag _tags)
 }
 void Object::RemoveTags(ObjectTag _tags)
 {
-    tags |= ~_tags;
+    tags &= ~_tags;
 }
 
 
@@ -427,6 +428,12 @@ Matrix Object::GetWorldMatrix()
         ConstructWorldMatrix();
     return worldMatrix;
 }
+DirectX::SimpleMath::Matrix Object::GetInverseWorldMatrix()
+{
+    if (dirtyWorldMatrix)
+        ConstructWorldMatrix();
+    return inverseWorldMatrix;
+}
 Vector3 Object::GetWorldPosition()
 {
     Vector3 position, scale;
@@ -547,6 +554,8 @@ void Object::ConstructWorldMatrix()
     else
         worldMatrix = GetLocalMatrix();
 
+    inverseWorldMatrix = worldMatrix.Invert().Transpose();
+
     dirtyWorldMatrix = false;
 }
 void Object::SetWorldMatrixDirty()
@@ -571,9 +580,120 @@ std::shared_ptr<Object> Object::CreateObject(std::wstring name, std::shared_ptr<
     return object;
 }
 
+std::shared_ptr<LightObject> Object::CreateLightObject(std::wstring name, std::shared_ptr<Object> parent)
+{
+    std::shared_ptr<LightObject> lightObject = std::make_shared<LightObject>(name);
+    lightObject->SetParent(parent);
+    return lightObject;
+}
+
+static Color GetColorFromLight(aiLight* light, float& strength)
+{
+    aiColor3D col = light->mColorDiffuse;
+    strength = std::max<float>({ col.r, col.g, col.b });
+    Vector3 colv3 = Vector3(col.r, col.g, col.b) / strength;
+    strength /= 1000.0f;
+    return Color(colv3.x, colv3.y, colv3.z, 1);
+}
+
+static void GetAttenuationFromLight(aiLight* light, PointLight outLight)
+{
+    // Divide linear and quadratic components by 2 to compensate for using a attenuation constant of 1
+    if (light->mAttenuationConstant == 0.0f)
+    {
+        outLight.ConstantAttenuation = 1.0f;
+        outLight.LinearAttenuation = light->mAttenuationLinear / 2.0f;
+        outLight.QuadraticAttenuation = light->mAttenuationQuadratic / 2.0f;
+    }
+    else // only happens if attenuation is constant (and linear + quadratic are 0)
+    {
+        outLight.ConstantAttenuation = light->mAttenuationConstant;
+        outLight.LinearAttenuation = light->mAttenuationLinear;
+        outLight.QuadraticAttenuation = light->mAttenuationQuadratic;
+    }
+}
+
+std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* scene, aiNode* node, aiLight* light, std::shared_ptr<Object> parent)
+{
+    bool directChildOfRoot = node->mParent != nullptr && node->mParent == scene->mRootNode;
+    std::shared_ptr<LightObject> lightObject = Object::CreateLightObject(StringToWString(node->mName.C_Str()), parent);
+    switch (light->mType)
+    {
+    case aiLightSource_POINT:
+    {
+        PointLight point{};
+        point.Color = GetColorFromLight(light, point.Strength);
+
+        GetAttenuationFromLight(light, point);
+
+        lightObject->AddLight(point);
+        break;
+    }
+    case aiLightSource_SPOT:
+    {
+        SpotLight spot{};
+        spot.Light.Color = GetColorFromLight(light, spot.Light.Strength);
+
+        GetAttenuationFromLight(light, spot.Light);
+
+        spot.OuterSpotAngle = light->mAngleOuterCone;
+        spot.InnerSpotAngle = light->mAngleInnerCone;
+
+        aiVector3D dir = light->mDirection;
+        spot.DirectionWorldSpace = Vector4(dir.x, dir.y, dir.z, 0);
+
+        lightObject->AddLight(spot);
+        break;
+    }
+    case aiLightSource_DIRECTIONAL: // TODO
+    {
+        break;
+    }
+    case aiLightSource_AREA: // can't handle, we don't support area lights
+    case aiLightSource_AMBIENT: // don't handle, we have our own ambient colour
+    default:
+        break;
+    }
+
+    aiMatrix4x4 transform = node->mTransformation;
+    Matrix transformMatrix = {
+        transform.a1, transform.a2, transform.a3, transform.a4,
+        transform.b1, transform.b2, transform.b3, transform.b4,
+        transform.c1, transform.c2, transform.c3, transform.c4,
+        transform.d1, transform.d2, transform.d3, transform.d4,
+    };
+
+    // If we are a direct child of the root node then scale down into meters
+    if (directChildOfRoot)
+    {
+        transformMatrix /= 100.0f;
+    }
+    lightObject->SetLocalMatrix(transformMatrix);
+
+    return lightObject;
+}
+
 std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader)
 {
-    std::shared_ptr<Object> thisObject = CreateObject(StringToWString(node->mName.C_Str()), parent);
+    std::shared_ptr<Object> thisObject;
+
+    // Check if this node is a light
+    for (uint32_t i = 0; i < scene->mNumLights; i++)
+    {
+        if (scene->mLights[i]->mName == node->mName)
+        {
+            // This node is a light
+            thisObject = std::dynamic_pointer_cast<Object>(CreateLightObjectFromSceneNode(scene, node, scene->mLights[i], parent));
+            for (uint32_t i = 0; i < node->mNumChildren; i++)
+            {
+                CreateObjectsFromSceneNode(scene, node->mChildren[i], thisObject, shader);
+            }
+            return thisObject;
+        }
+    }
+
+    // The object wasn't a light, so create a mesh
+    thisObject = CreateObject(StringToWString(node->mName.C_Str()), parent);
 
     MeshCreation createFunc = shader->meshCreateCallback;
     for (uint32_t i = 0; i < node->mNumMeshes; i++)

@@ -185,7 +185,7 @@ public:
     void QueueObjectDraw(std::shared_ptr<Object> object);
     void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
     void ClearLightData(LightData& lightData);
-    void PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, LightData& lightData);
+    void PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera, LightData& lightData);
 protected:
     void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);
     void DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);

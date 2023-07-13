@@ -37,6 +37,9 @@ public:
     // Set the font scaling for ImGui, this should only be called when the window's DPI scaling changes
     void SetScaling(float scale);
 
+    // Setup the style for AchillesImGui
+    virtual void SetupStyle();
+
     AchillesImGui(ComPtr<ID3D12Device2> _device, HWND _hWnd, const RenderTarget& renderTarget);
     virtual ~AchillesImGui();
 

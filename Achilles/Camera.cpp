@@ -40,12 +40,18 @@ void Camera::ConstructMatrices()
     ConstructProjection();
 }
 
+Matrix Camera::GetInverseView()
+{
+    if (dirtyViewMatrix)
+        ConstructView();
+    return inverseView;
+}
+
 void Camera::ConstructView()
 {
     view = Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position);
+    inverseView = view.Transpose();
     view = view.Invert();
-    // view = view.Transpose();
-    // view = ViewFPS(position, 0, 0);
     dirtyViewMatrix = false;
 }
 

@@ -16,17 +16,33 @@ namespace SimpleDiffuse
         // 0 bytes
         Color Color;
         // 16 bytes
+        float Opacity;
+        float Diffuse;
+        float Specular;
+        float SpecularPower;
+        // 32 bytes
 
         MaterialProperties();
+    };
+
+    struct PixelInfo
+    {
+        // 0 bytes
+        Vector3 CameraPosition;
+        float ShadingType; // 0 = disabled, 1 = normal, 2 = only lighting
+        // 16 bytes
+
+        PixelInfo();
     };
 
     enum RootParameters
     {
         //// Vertex shader parameter ////
-        RootParameterMatrices,  // ConstantBuffer<Matricies> MatricesCB : register(b0);
-        RootParameterLightProperties, // ConstantBuffer<LightProperties> : register(b1)
-        RootParameterAmbientLight, // ConstantBuffer<AmbientLight> : register(b2)
-        RootParameterMaterialProperties, // ConstantBuffer<MaterialProperties> : register(b3)
+        RootParameterMatrices,  // ConstantBuffer<Matricies> MatricesCB : register(b0)
+        RootParameterPixelInfo, // ConstantBuffer<PixelInfo> PixelInfoCB : register(b1)
+        RootParameterMaterialProperties, // ConstantBuffer<MaterialProperties> : register(b2)
+        RootParameterLightProperties, // ConstantBuffer<LightProperties> : register(b3)
+        RootParameterAmbientLight, // ConstantBuffer<AmbientLight> : register(b4)
 
         //// Pixel shader parameters ////
         RootParameterPointLights, // StructuredBuffer<PointLight> PointLights : register( t0 );

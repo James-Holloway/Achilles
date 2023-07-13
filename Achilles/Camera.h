@@ -22,6 +22,7 @@ public:
 
 protected:
     DirectX::SimpleMath::Matrix view;
+    DirectX::SimpleMath::Matrix inverseView;
     DirectX::SimpleMath::Matrix proj;
 
 public:
@@ -35,6 +36,7 @@ public:
     DirectX::SimpleMath::Matrix GetView();
     DirectX::SimpleMath::Matrix GetProj();
     DirectX::SimpleMath::Matrix GetViewProj();
+    DirectX::SimpleMath::Matrix GetInverseView();
 
     void ConstructMatrices();
     void ConstructView();

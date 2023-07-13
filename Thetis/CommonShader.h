@@ -24,8 +24,11 @@ namespace CommonShader
     struct CommonShaderMatrices
     {
         Matrix MVP; // Model * View * Projection, used for SV_Position
-        Matrix MV; // Model * View, used for position viewspace
-        Matrix InverseMV; // Inversed then transposed model view matrix
+        Matrix Model;
+        Matrix View;
+        Matrix Projection;
+        Matrix InverseModel;
+        Matrix InverseView;
     };
 
     static D3D12_INPUT_ELEMENT_DESC CommonShaderInputLayout[] = {

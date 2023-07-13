@@ -25,6 +25,13 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 void GetSurfaceInfo(_In_ size_t width, _In_ size_t height, _In_ DXGI_FORMAT fmt, size_t* outNumBytes, _Out_opt_ size_t* outRowBytes, _Out_opt_ size_t* outNumRows);
 
+void AchillesImGui::SetupStyle()
+{
+    ImGuiStyle& style = ImGui::GetStyle();
+    // Set background window alpha
+    style.Colors[ImGuiCol_WindowBg].w = 0.8f;
+}
+
 AchillesImGui::AchillesImGui(ComPtr<ID3D12Device2> _device, HWND _hWnd, const RenderTarget& renderTarget) : device(_device), hWnd(_hWnd), imGuiContext()
 {
     imGuiContext = ImGui::CreateContext();
@@ -42,6 +49,8 @@ AchillesImGui::AchillesImGui(ComPtr<ID3D12Device2> _device, HWND _hWnd, const Re
     ImGuiIO& io = ImGui::GetIO();
     io.FontGlobalScale = ::GetDpiForWindow(hWnd) / 96.0f;
     io.ConfigWindowsMoveFromTitleBarOnly = true; // Prevent dragging from empty space
+
+    SetupStyle();
 
     // Build texture atlas
     unsigned char* pixelData = nullptr;
