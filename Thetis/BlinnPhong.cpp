@@ -114,14 +114,20 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiMesh*
         }*/
 
         // Set material floats
-        ai_real specular;
+        ai_real specular = 0.0f;
         mat->Get(AI_MATKEY_SHININESS_STRENGTH, specular);
         material.SetFloat(L"Diffuse", 1.0f - (float)specular);
         material.SetFloat(L"Specular", (float)specular);
 
-        ai_real specularPower = 1.0f;
+        ai_real specularPower = 32.0f;
         mat->Get(AI_MATKEY_SHININESS, specularPower);
         material.SetFloat(L"SpecularPower", specularPower);
+    }
+    else
+    {
+        material.SetFloat(L"Diffuse", 0.5f);
+        material.SetFloat(L"Specular", 0.5f);
+        material.SetFloat(L"SpecularPower", 32.0f);
     }
 
     material.SetFloat(L"ShadingType", 1);

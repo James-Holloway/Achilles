@@ -160,14 +160,12 @@ float DoAttenuation(float cnst, float linr, float quad, float dist)
     return 1.0f / (cnst + linr * dist + quad * dist * dist);
 }
 
-float DoSpotCone(float3 spotDir, float3 dir, float spotAngle)
+float DoSpotCone(float3 spotDir, float3 lightDir, float innerSpotAngle, float outerSpotAngle)
 {
-    float minCos = cos(spotAngle);
-    float maxCos = (minCos + 1.0f) / 2.0f;
-    float cosAngle = dot(spotDir, -dir);
-    return smoothstep(minCos, maxCos, cosAngle);
+    float theta = dot(lightDir, normalize(-spotDir));
+    float epsilon = innerSpotAngle - outerSpotAngle;
+    return clamp(1.0f - ((theta - outerSpotAngle) / epsilon), 0.0f, 1.0f);
 }
-
 
 LightResult DoPointLighting(PointLight light, float3 worldPos, float3 normal, float3 viewDir, float specularPower)
 {
@@ -179,12 +177,41 @@ LightResult DoPointLighting(PointLight light, float3 worldPos, float3 normal, fl
         return lightResult;
     }
     lightDir = lightDir / distance;
-    // float3 reflectDir = normalize(reflect(-lightDir, normal));
     
     float attenuation = DoAttenuation(light.ConstantAttenuation, light.LinearAttenuation, light.QuadraticAttenuation, distance);
     
     lightResult.Diffuse = DoDiffuse(normal, lightDir) * light.Color.rgb * light.Strength * attenuation;
     lightResult.Specular = DoSpecular(viewDir, normal, lightDir, specularPower) * light.Color.rgb * light.Strength * attenuation;
+    return lightResult;
+}
+
+LightResult DoSpotLighting(SpotLight light, float3 worldPos, float3 normal, float3 viewDir, float specularPower)
+{
+    LightResult lightResult = (LightResult) 0;
+    float3 lightDir = (light.Light.PositionWorldSpace.xyz - worldPos);
+    float distance = length(lightDir);
+    if (distance > light.Light.MaxDistance)
+    {
+        return lightResult;
+    }
+    lightDir = lightDir / distance;
+    
+    float spotIntensity = DoSpotCone(light.DirectionWorldSpace.xyz, lightDir, light.InnerSpotAngle, light.OuterSpotAngle);
+    
+    float attenuation = DoAttenuation(light.Light.ConstantAttenuation, light.Light.LinearAttenuation, light.Light.QuadraticAttenuation, distance);
+    
+    lightResult.Diffuse = DoDiffuse(normal, lightDir) * light.Light.Color.rgb * light.Light.Strength * spotIntensity * attenuation;
+    lightResult.Specular = DoSpecular(viewDir, normal, lightDir, specularPower) * light.Light.Color.rgb * light.Light.Strength * spotIntensity * attenuation;
+    return lightResult;
+}
+
+LightResult DoDirectionalLighting(DirectionalLight light, float3 normal, float3 viewDir, float specularPower)
+{
+    LightResult lightResult = (LightResult) 0;
+    float3 lightDir = normalize(-light.DirectionWorldSpace.xyz);
+    
+    lightResult.Diffuse = DoDiffuse(normal, lightDir) * light.Color.rgb * light.Strength;
+    lightResult.Specular = DoSpecular(viewDir, normal, lightDir, specularPower) * light.Color.rgb * light.Strength;
     return lightResult;
 }
 
@@ -198,6 +225,20 @@ LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 
     for (i = 0; i < LightPropertiesCB.PointLightCount; i++)
     {
         LightResult lightResult = DoPointLighting(PointLights[i], worldPos, normal, viewDir, specularPower);
+        result.Diffuse += lightResult.Diffuse;
+        result.Specular += lightResult.Specular;
+    }
+    
+    for (i = 0; i < LightPropertiesCB.SpotLightCount; i++)
+    {
+        LightResult lightResult = DoSpotLighting(SpotLights[i], worldPos, normal, viewDir, specularPower);
+        result.Diffuse += lightResult.Diffuse;
+        result.Specular += lightResult.Specular;
+    }
+    
+    for (i = 0; i < LightPropertiesCB.DirectionalLightCount; i++)
+    {
+        LightResult lightResult = DoDirectionalLighting(DirectionalLights[i], normal, viewDir, specularPower);
         result.Diffuse += lightResult.Diffuse;
         result.Specular += lightResult.Specular;
     }

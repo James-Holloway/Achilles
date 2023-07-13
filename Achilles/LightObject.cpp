@@ -63,7 +63,7 @@ void LightObject::ConstructLightPositions(std::shared_ptr<Camera> camera)
     Vector3 worldPos = GetWorldPosition();
     Vector4 worldPos4 = Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
 
-    Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(GetWorldRotation());
+    Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(GetWorldRotation().y + AchillesHalfPi, GetWorldRotation().x + AchillesPi + AchillesHalfPi, GetWorldRotation().z);
     Vector3 direction = rotationMatrix.Forward();
     Vector4 direction4 = Vector4(direction.x, direction.y, direction.z, 0.0f);
 

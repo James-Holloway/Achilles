@@ -178,6 +178,9 @@
     <None Include="content\models\cylinder.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="content\models\light directional.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\icosphere.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -190,8 +193,11 @@
     <None Include="content\models\plane.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="content\models\point light.fbx">
+    <None Include="content\models\light point.fbx">
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\light spot.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\torus combo.fbx">

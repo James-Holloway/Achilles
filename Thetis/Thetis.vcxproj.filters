@@ -107,7 +107,13 @@
     <None Include="content\models\torus.fbx">
       <Filter>content\models</Filter>
     </None>
-    <None Include="content\models\point light.fbx">
+    <None Include="content\models\light point.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\light directional.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\light spot.fbx">
       <Filter>content\models</Filter>
     </None>
   </ItemGroup>

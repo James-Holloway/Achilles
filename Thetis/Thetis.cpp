@@ -367,6 +367,29 @@ void Thetis::DrawImGuiProperties()
                             {
                                 spotLight.OuterSpotAngle = toRad(outerAngle);
                             }
+
+                            ImGui::TreePop();
+                        }
+                    }
+                    if (lightObject->HasLightType(LightType::Directional))
+                    {
+                        if (ImGui::TreeNodeEx("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            DirectionalLight& directionalLight = lightObject->GetDirectionalLight();
+                            float color[3] =
+                            {
+                                directionalLight.Color.x,
+                                directionalLight.Color.y,
+                                directionalLight.Color.z,
+                            };
+                            if (ImGui::ColorEdit3("Color", color))
+                            {
+                                directionalLight.Color.x = color[0];
+                                directionalLight.Color.y = color[1];
+                                directionalLight.Color.z = color[2];
+                            }
+
+                            ImGui::DragFloat("Strength", &directionalLight.Strength, 0.025f, 0.0f, 100.0f, "%.3f");
                             ImGui::TreePop();
                         }
                     }
@@ -535,6 +558,26 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
     {
         float cameraRotationSpeed = toRad(45) * dt * mouseSensitivity;
         camera->RotateEuler(Vector3(cameraRotationSpeed * md.mouseYDelta, cameraRotationSpeed * md.mouseXDelta, 0));
+    }
+    if (md.scrollDelta < 0)
+    {
+        if (cameraBaseMoveSpeed < 1)
+            cameraBaseMoveSpeed -= 0.125;
+        else
+            cameraBaseMoveSpeed -= 0.5;
+
+        if (cameraBaseMoveSpeed < 0.125)
+            cameraBaseMoveSpeed = 0.125;
+    }
+    else if (md.scrollDelta > 0)
+    {
+        if (cameraBaseMoveSpeed < 1)
+            cameraBaseMoveSpeed += 0.125;
+        else
+            cameraBaseMoveSpeed += 0.5;
+
+        if (cameraBaseMoveSpeed > 10)
+            cameraBaseMoveSpeed = 10;
     }
 }
 

@@ -636,17 +636,18 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
 
         GetAttenuationFromLight(light, spot.Light);
 
-        spot.OuterSpotAngle = light->mAngleOuterCone;
         spot.InnerSpotAngle = light->mAngleInnerCone;
-
-        aiVector3D dir = light->mDirection;
-        spot.DirectionWorldSpace = Vector4(dir.x, dir.y, dir.z, 0);
+        spot.OuterSpotAngle = light->mAngleOuterCone;
 
         lightObject->AddLight(spot);
         break;
     }
-    case aiLightSource_DIRECTIONAL: // TODO
+    case aiLightSource_DIRECTIONAL:
     {
+        DirectionalLight directional{};
+        directional.Color = GetColorFromLight(light, directional.Strength);
+        directional.Strength *= 1000; // undo division by 1000 as Blender doesn't use Watts for sun lights
+        lightObject->AddLight(directional);
         break;
     }
     case aiLightSource_AREA: // can't handle, we don't support area lights
