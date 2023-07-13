@@ -26,6 +26,7 @@
     </Filter>
     <Filter Include="content\models">
       <UniqueIdentifier>{d1452998-79ad-463c-bf56-5793bd7e60d7}</UniqueIdentifier>
+      <Extensions>fbx</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -41,7 +42,7 @@
     <ClCompile Include="PosTextured.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimpleDiffuse.cpp">
+    <ClCompile Include="BlinnPhong.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CommonShader.cpp">
@@ -58,7 +59,7 @@
     <ClInclude Include="PosTextured.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleDiffuse.h">
+    <ClInclude Include="BlinnPhong.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommonShader.h">
@@ -88,10 +89,25 @@
     <None Include="content\models\achilles test.fbx">
       <Filter>content\models</Filter>
     </None>
-    <None Include="content\shaders\SimpleDiffuse.hlsl">
+    <None Include="content\shaders\BlinnPhong.hlsl">
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\models\pink uv sphere.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\cube.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\cylinder.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\plane.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\torus.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\point light.fbx">
       <Filter>content\models</Filter>
     </None>
   </ItemGroup>

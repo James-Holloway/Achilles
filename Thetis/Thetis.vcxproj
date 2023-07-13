@@ -149,14 +149,14 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PosCol.cpp" />
     <ClCompile Include="PosTextured.cpp" />
-    <ClCompile Include="SimpleDiffuse.cpp" />
+    <ClCompile Include="BlinnPhong.cpp" />
     <ClCompile Include="Thetis.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommonShader.h" />
     <ClInclude Include="PosCol.h" />
     <ClInclude Include="PosTextured.h" />
-    <ClInclude Include="SimpleDiffuse.h" />
+    <ClInclude Include="BlinnPhong.h" />
     <ClInclude Include="Thetis.h" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +171,13 @@
     <None Include="content\models\cone.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="content\models\cube.fbx">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\cylinder.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\icosphere.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -180,7 +187,17 @@
     <None Include="content\models\pink uv sphere.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="content\models\plane.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\point light.fbx">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\torus combo.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\torus.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\shaders\PosCol.hlsl">
@@ -201,7 +218,7 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="content\shaders\SimpleDiffuse.hlsl">
+    <None Include="content\shaders\BlinnPhong.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>

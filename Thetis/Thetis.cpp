@@ -10,12 +10,7 @@ Thetis::Thetis(std::wstring name) : Achilles(name)
 
 void Thetis::OnUpdate(float deltaTime)
 {
-    Vector3 rotation = cube->GetLocalRotation();
-    rotation.x = fmod(rotation.x + deltaTime * 2 * cubeRotationSpeed, Achilles2Pi);
-    rotation.y = fmod(rotation.y + deltaTime * 0.75f * cubeRotationSpeed, Achilles2Pi);
-    cube->SetLocalRotation(rotation);
 
-    cube->SetLocalScale(Vector3(1.0f + (0.5f * sinf((float)totalElapsedSeconds * 2.0f))));
 }
 
 void Thetis::OnRender(float deltaTime)
@@ -422,38 +417,19 @@ void Thetis::LoadContent()
     // Create shaders
     std::shared_ptr<Shader> posColShader = GetPosColShader(device);
     std::shared_ptr<Shader> posTexturedShader = PosTextured::GetPosTexturedShader(device);
-
-    // Create cube
-    auto cubeMesh = std::make_shared<Mesh>(L"cube", commandList, (void*)posColCubeVertices, (UINT)_countof(posColCubeVertices), sizeof(PosColVertex), posColCubeIndices, (UINT)_countof(posColCubeIndices), posColShader);
-    cube = Object::CreateObject(L"cube");
-    cube->SetMesh(0, cubeMesh);
-    cube->SetLocalPosition(Vector3(-1, 0, 0));
-    // mainScene->AddObjectToScene(cube);
-    cube->SetActive(false);
-
-    miniCube = Object::CreateObject(L"mini cube");
-    miniCube->SetMesh(0, cubeMesh);
-    cube->AddChild(miniCube);
-    miniCube->SetLocalPosition(Vector3(0, 2, 0));
-    miniCube->SetLocalScale(Vector3(0.25f, 0.25f, 0.25f));
+    std::shared_ptr<Shader> blinnPhongShader = BlinnPhong::GetBlinnPhongShader(device);
 
     // Create floor quad
-    auto floorMesh = std::make_shared<Mesh>(L"floor quad", commandList, (void*)PosTextured::posTexturedQuadVertices, (UINT)_countof(PosTextured::posTexturedQuadVertices), sizeof(PosTextured::PosTexturedVertex), PosTextured::posTexturedQuadIndices, (UINT)_countof(PosTextured::posTexturedQuadIndices), posTexturedShader);
-
-    floorQuad = Object::CreateObject(L"floor quad");
-    floorQuad->SetMesh(0, floorMesh);
+    floorQuad = Object::CreateObjectsFromContentFile(L"plane.fbx", blinnPhongShader);
     floorQuad->SetLocalPosition(Vector3(0, -2, 0));
-    floorQuad->SetLocalRotation(EulerToRadians(Vector3(-90, 0, 0)));
     floorQuad->SetLocalScale(Vector3(3, 3, 3));
 
     std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
-    std::wstring floorTexturePath = GetContentDirectoryW() + L"textures/MyUVSquare.png";
-    commandList->LoadTextureFromFile(*floorTexture, floorTexturePath, TextureUsage::Albedo);
-    floorQuad->GetMaterial().textures.insert({ L"MainTexture", floorTexture });
-
+    commandList->LoadTextureFromContent(*floorTexture, L"MyUVSquare", TextureUsage::Albedo);
+    floorQuad->GetMaterial().SetTexture(L"MainTexture", floorTexture);
     mainScene->AddObjectToScene(floorQuad);
 
-    // Load content/models files into meshNames
+    // Load content/models files into meshNames, used in Thetis' ImGui
     PopulateMeshNames();
 
     // Execute command list
@@ -579,7 +555,7 @@ void Thetis::PopulateMeshNames()
 
 void Thetis::CreateObjectInMainScene(uint32_t meshNameIndex)
 {
-    std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], SimpleDiffuse::GetSimpleDiffuseShader(device));
+    std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], BlinnPhong::GetBlinnPhongShader(device));
     mainScene->AddObjectToScene(object);
 }
 
@@ -590,7 +566,7 @@ void Thetis::CreateObjectAsSelectedChild(uint32_t meshNameIndex)
         CreateObjectInMainScene(meshNameIndex);
         return;
     }
-    std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], SimpleDiffuse::GetSimpleDiffuseShader(device));
+    std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], BlinnPhong::GetBlinnPhongShader(device));
     selectedPropertiesObject->AddChild(object);
 }
 

@@ -1,24 +1,24 @@
-#include "SimpleDiffuse.h"
+#include "BlinnPhong.h"
 #include "Achilles/Application.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-using namespace SimpleDiffuse;
+using namespace BlinnPhong;
 using namespace CommonShader;
 
-SimpleDiffuse::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1)
+BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1)
 {
 
 }
 
-SimpleDiffuse::PixelInfo::PixelInfo() : CameraPosition(0, 0, 0), ShadingType(1)
+BlinnPhong::PixelInfo::PixelInfo() : CameraPosition(0, 0, 0), ShadingType(1)
 {
 
 }
 
 
-void SimpleDiffuse::SimpleDiffuseShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
+void BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
 {
     CommonShaderMatrices matrices{};
     matrices.Model = object->GetWorldMatrix();
@@ -62,7 +62,7 @@ void SimpleDiffuse::SimpleDiffuseShaderRender(std::shared_ptr<CommandList> comma
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, whitePixelTexture);
 }
 
-std::shared_ptr<Mesh> SimpleDiffuse::SimpleDiffuseMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
+std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
 {
     // Create the vertices using the common shader vertex format
     std::shared_ptr<Mesh> mesh = CommonShaderMeshCreation(scene, inMesh, shader, material);
@@ -129,12 +129,12 @@ std::shared_ptr<Mesh> SimpleDiffuse::SimpleDiffuseMeshCreation(aiScene* scene, a
     return mesh;
 }
 
-static std::shared_ptr<Shader> SimpleDiffuseShader{};
-static CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC SimpleDiffuseRootSignature{};
-std::shared_ptr<Shader> SimpleDiffuse::GetSimpleDiffuseShader(ComPtr<ID3D12Device2> device)
+static std::shared_ptr<Shader> BlinnPhongShader{};
+static CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC BlinnPhongRootSignature{};
+std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> device)
 {
-    if (SimpleDiffuseShader.use_count() >= 1)
-        return SimpleDiffuseShader;
+    if (BlinnPhongShader.use_count() >= 1)
+        return BlinnPhongShader;
 
     if (device == nullptr)
         throw std::exception("Cannot create a shader without a device");
@@ -168,11 +168,11 @@ std::shared_ptr<Shader> SimpleDiffuse::GetSimpleDiffuseShader(ComPtr<ID3D12Devic
     CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0, 8U); // anisotropic sampler set to 8
 
     // Root signature creation
-    SimpleDiffuseRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 1, &anisotropicSampler, rootSignatureFlags); // 1 is number of static samplers
-    std::shared_ptr rootSignature = std::make_shared<RootSignature>(SimpleDiffuseRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
+    BlinnPhongRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 1, &anisotropicSampler, rootSignatureFlags); // 1 is number of static samplers
+    std::shared_ptr rootSignature = std::make_shared<RootSignature>(BlinnPhongRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
 
-    SimpleDiffuseShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, SimpleDiffuseShaderRender, L"SimpleDiffuse");
-    SimpleDiffuseShader->meshCreateCallback = SimpleDiffuseMeshCreation;
+    BlinnPhongShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, BlinnPhongShaderRender, L"BlinnPhong");
+    BlinnPhongShader->meshCreateCallback = BlinnPhongMeshCreation;
 
     if (whitePixelTexture == nullptr || !whitePixelTexture->IsValid())
     {
@@ -184,5 +184,5 @@ std::shared_ptr<Shader> SimpleDiffuse::GetSimpleDiffuseShader(ComPtr<ID3D12Devic
         commandQueue->ExecuteCommandList(commandList);
     }
 
-    return SimpleDiffuseShader;
+    return BlinnPhongShader;
 }

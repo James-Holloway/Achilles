@@ -7,17 +7,14 @@
 #pragma warning (pop)
 #include "PosCol.h"
 #include "PosTextured.h"
-#include "SimpleDiffuse.h"
+#include "BlinnPhong.h"
 
 class Thetis : public Achilles
 {
 protected:
-    std::shared_ptr<Object> cube;
-    std::shared_ptr<Object> miniCube;
     std::shared_ptr<Object> floorQuad;
     std::shared_ptr<Camera> camera;
 
-    float cubeRotationSpeed = 2.0f;
     float mouseSensitivity = 1.0f;
     float cameraBaseMoveSpeed = 4.0f;
 
