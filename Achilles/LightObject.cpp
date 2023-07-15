@@ -5,9 +5,10 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-LightObject::LightObject(std::wstring _name) : Object(_name)
+LightObject::LightObject(std::wstring _name) : SpriteObject(_name)
 {
-    SetTags(ObjectTag::Light);
+    AddTag(ObjectTag::Light);
+    SetSpriteTexture(Texture::GetCachedTexture(L"lightbulb"));
 }
 
 LightObject::~LightObject()
@@ -85,4 +86,38 @@ void LightObject::ConstructLightPositions(std::shared_ptr<Camera> camera)
         directionalLight.DirectionWorldSpace = direction4;
         directionalLight.DirectionViewSpace = XMVector3TransformCoord(direction, camera->GetView());
     }
+}
+
+Color LightObject::GetSpriteColor()
+{
+    uint32_t numLights = 0;
+    if (HasLightType(LightType::Point))
+        numLights++;
+    if (HasLightType(LightType::Spot))
+        numLights++;
+    if (HasLightType(LightType::Directional))
+        numLights++;
+
+    if (numLights == 0)
+        return Color(1, 1, 1, 1); // default sprite color
+
+    Color color{ 0,0,0,0 };
+    if (HasLightType(LightType::Point))
+        color += pointLight.Color;
+    if (HasLightType(LightType::Spot))
+        color += spotLight.Light.Color;
+    if (HasLightType(LightType::Point))
+        color += pointLight.Color;
+
+    color.x /= numLights;
+    color.y /= numLights;
+    color.z /= numLights;
+    color.w = 1; // set transparency to 1
+
+    return color;
+}
+
+void LightObject::SetSpriteColor(Color color)
+{
+    // Do nothing
 }

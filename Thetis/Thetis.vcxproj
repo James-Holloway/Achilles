@@ -145,18 +145,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CommonShader.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="PosCol.cpp" />
-    <ClCompile Include="PosTextured.cpp" />
-    <ClCompile Include="BlinnPhong.cpp" />
     <ClCompile Include="Thetis.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CommonShader.h" />
-    <ClInclude Include="PosCol.h" />
-    <ClInclude Include="PosTextured.h" />
-    <ClInclude Include="BlinnPhong.h" />
     <ClInclude Include="Thetis.h" />
   </ItemGroup>
   <ItemGroup>
@@ -206,28 +198,12 @@
     <None Include="content\models\torus.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="content\shaders\PosCol.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="content\shaders\PosTextured.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\MyUVSquare.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="content\shaders\BlinnPhong.hlsl">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -5,7 +5,7 @@
 
 namespace PosTextured
 {
-    void PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
+    bool PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
     {
         // Update the MVP matrix
         Matrix mvp = object->GetWorldMatrix() * (camera->GetView() * camera->GetProj());
@@ -21,6 +21,8 @@ namespace PosTextured
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, mainTexture);
 
         commandList->SetGraphics32BitConstants<PosTexturedCB0>(0, cb0);
+
+        return true;
     }
 
     static std::shared_ptr<Shader> posTexturedShader{};

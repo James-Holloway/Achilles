@@ -16,6 +16,19 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{c0e34a72-3e1b-4f84-9147-08fc95fec1bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="content">
+      <UniqueIdentifier>{93733648-ee0b-4ace-834c-fb3cf0c0e052}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="content\shaders">
+      <UniqueIdentifier>{8c07c858-f7e0-4d48-bfaa-c67e03241a33}</UniqueIdentifier>
+      <Extensions>hlsl</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{2a4e7fec-5b5f-4e2c-957f-7cddb7f12d41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="content\textures">
+      <UniqueIdentifier>{9b206ff0-2318-4fa1-ba41-e42dd358ea54}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Achilles.cpp">
@@ -149,6 +162,24 @@
     </ClCompile>
     <ClCompile Include="LightObject.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SpriteObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\BlinnPhong.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\CommonShader.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\PosTextured.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\PosCol.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\SpriteUnlit.cpp">
+      <Filter>Shaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -302,8 +333,49 @@
     <ClInclude Include="LightObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SpriteObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\BlinnPhong.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\CommonShader.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\PosTextured.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\PosCol.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="AchillesShaders.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\SpriteUnlit.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SpriteCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="content\shaders\BlinnPhong.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PosCol.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PosTextured.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\SpriteUnlit.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="content\textures\lightbulb.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

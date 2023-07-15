@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Achilles/ShaderInclude.h"
+#include "../ShaderInclude.h"
 #include "CommonShader.h"
 
 using DirectX::SimpleMath::Vector2;
@@ -55,7 +55,7 @@ namespace BlinnPhong
 
     inline static std::shared_ptr<Texture> whitePixelTexture = nullptr;
 
-    void BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
+    bool BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
     std::shared_ptr<Mesh> BlinnPhongMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
     std::shared_ptr<Shader> GetBlinnPhongShader(ComPtr<ID3D12Device2> device = nullptr);
 }

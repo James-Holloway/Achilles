@@ -1,10 +1,12 @@
 #pragma once
 
-#include "Object.h"
+#include "SpriteObject.h"
 #include "Lights.h"
 #include "Camera.h"
 
-class LightObject : public Object
+using DirectX::SimpleMath::Color;
+
+class LightObject : public SpriteObject
 {
 public:
     LightObject(std::wstring _name = Object::DefaultName);
@@ -23,6 +25,9 @@ public:
     DirectionalLight& GetDirectionalLight();
 
     void ConstructLightPositions(std::shared_ptr<Camera> camera);
+
+    Color GetSpriteColor() override;
+    void SetSpriteColor(Color color) override;
 
 protected:
     LightType lightTypes = LightType::None;

@@ -1,5 +1,5 @@
 #pragma once
-#include "Achilles/ShaderInclude.h"
+#include "../ShaderInclude.h"
 
 using DirectX::XMMATRIX;
 using DirectX::XMFLOAT3;
@@ -64,6 +64,6 @@ static void OutputDebugStringMatrix(Matrix mtx)
     OutputDebugStringWFormatted(L"% .02f % .02f % .02f % .02f\n% .02f % .02f % .02f % .02f\n% .02f % .02f % .02f % .02f\n% .02f % .02f % .02f % .02f\n\n", mtx._11, mtx._12, mtx._13, mtx._14, mtx._21, mtx._22, mtx._23, mtx._24, mtx._31, mtx._32, mtx._33, mtx._34, mtx._41, mtx._42, mtx._43, mtx._44);
 }
 
-void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
+bool PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
 std::shared_ptr<Mesh> PosColMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
 std::shared_ptr<Shader> GetPosColShader(ComPtr<ID3D12Device2> device = nullptr);

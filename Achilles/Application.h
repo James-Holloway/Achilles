@@ -21,6 +21,8 @@ private:
     inline static std::shared_ptr<CommandQueue> copyCommandQueue = nullptr;
 
     inline static std::unique_ptr<DescriptorAllocator> descriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = { nullptr };
+
+    inline static bool isEditor = false;
 public:
     // Global Frame Counter
     inline static uint64_t GetGlobalFrameCounter()
@@ -72,4 +74,7 @@ public:
 
     // Multisampling
     static DXGI_SAMPLE_DESC GetMultisampleQualityLevels(DXGI_FORMAT format, UINT numSamples = D3D12_MAX_MULTISAMPLE_SAMPLE_COUNT, D3D12_MULTISAMPLE_QUALITY_LEVEL_FLAGS flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE);
+
+    static bool IsEditor();
+    static void SetIsEditor(bool _isEditor);
 };

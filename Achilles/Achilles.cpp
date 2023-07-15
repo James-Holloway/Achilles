@@ -537,6 +537,16 @@ void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_p
     Application::ReleaseStaleDescriptors(frameValues[currentBackBufferIndex]);
 }
 
+void Achilles::LoadInternalContent()
+{
+    std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+    std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+
+    Texture::AddCachedTextureFromContent(commandList, L"lightbulb");
+
+    commandQueue->ExecuteCommandList(commandList);
+}
+
 // Achilles functions
 void Achilles::Update()
 {
@@ -790,6 +800,8 @@ void Achilles::Initialize()
 
     isInitialized = true;
 
+    LoadInternalContent();
+
     LoadContent();
 
     mainScene->SetActive(true);
@@ -917,6 +929,18 @@ void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
     drawEventQueue.push(de);
 }
 
+void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
+{
+    if (object == nullptr)
+        return;
+    
+    DrawEvent de{};
+    de.object = object;
+    de.camera = Camera::mainCamera;
+    de.eventType = DrawEventType::DrawSprite;
+    drawEventQueue.push(de);
+}
+
 void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
 {
     if (scene == nullptr)
@@ -929,6 +953,8 @@ void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
     {
         if (object->HasTag(ObjectTag::Mesh))
             QueueObjectDraw(object);
+        if (object->HasTag(ObjectTag::Sprite))
+            QueueSpriteObjectDraw(object);
     }
 }
 
@@ -974,11 +1000,14 @@ void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, s
     commandList->SetPipelineState(shader->pipelineState);
     commandList->SetGraphicsRootSignature(*shader->rootSignature);
 
+    bool shouldRender = shader->renderCallback(commandList, object, knitIndex, mesh, material, camera, lightData);
+
+    if (!shouldRender) // It's a shame we've done all this work for this object and we're discarding it but the shader is telling us that we should stop
+        return;
+
     commandList->SetPrimitiveTopology(mesh->topology);
     commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
     commandList->SetIndexBuffer(*mesh->indexBuffer);
-
-    shader->renderCallback(commandList, object, knitIndex, mesh, material, camera, lightData);
 
     commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }
@@ -986,7 +1015,7 @@ void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, s
 void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
 {
     if (object == nullptr)
-        throw std::exception("Object was no available");
+        throw std::exception("Object was not available");
 
     if (camera.use_count() <= 0)
         throw std::exception("Rendered camera was not available");
@@ -1004,6 +1033,44 @@ void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::
     }
 }
 
+void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
+{
+    if (object == nullptr)
+        throw std::exception("Object was not available");
+
+    if (camera.use_count() <= 0)
+        throw std::exception("Rendered camera was not available");
+
+    std::shared_ptr<SpriteObject> spriteObject = std::dynamic_pointer_cast<SpriteObject>(object);
+    std::shared_ptr<Mesh> mesh = spriteObject->GetSpriteMesh(commandList);
+    if (mesh == nullptr)
+        return;
+
+    commandList->SetViewport(camera->viewport);
+    commandList->SetScissorRect(camera->scissorRect);
+
+    std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
+    commandList->SetRenderTarget(*rt);
+    
+    std::shared_ptr<Shader> shader = SpriteUnlit::GetSpriteUnlitShader(device);
+
+    commandList->SetPipelineState(shader->pipelineState);
+    commandList->SetGraphicsRootSignature(*shader->rootSignature);
+
+    Material mat = Material();
+    mat.shader = shader;
+    mat.name = shader->name;
+    bool shouldRender = shader->renderCallback(commandList, object, 0, mesh, mat, camera, lightData);
+    if (!shouldRender)
+        return;
+
+    commandList->SetPrimitiveTopology(mesh->topology);
+    commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
+    commandList->SetIndexBuffer(*mesh->indexBuffer);
+
+    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+}
+
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
     while (!drawEventQueue.empty())
@@ -1017,6 +1084,8 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
         case DrawEventType::DrawIndexed:
             DrawObjectIndexed(commandList, de.object, de.camera);
             break;
+        case DrawEventType::DrawSprite:
+            DrawSpriteIndexed(commandList, de.object, de.camera);
         }
     }
 }

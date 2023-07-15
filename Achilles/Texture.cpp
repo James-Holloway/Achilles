@@ -1,6 +1,7 @@
 #include "Texture.h"
 #include "Application.h"
 #include "ResourceStateTracker.h"
+#include "CommandList.h"
 
 Texture::Texture(TextureUsage _textureUsage, const std::wstring& name) : Resource(name) , textureUsage(_textureUsage) {}
 
@@ -406,4 +407,27 @@ DXGI_FORMAT Texture::GetTypelessFormat(DXGI_FORMAT format)
     }
 
     return typelessFormat;
+}
+
+void Texture::AddCachedTexture(std::wstring contentName, std::shared_ptr<Texture> texture)
+{
+    textureCache[contentName] = texture;
+}
+
+std::shared_ptr<Texture> Texture::AddCachedTextureFromContent(std::shared_ptr<CommandList> commandList, std::wstring contentName)
+{
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>();
+    commandList->LoadTextureFromContent(*texture, contentName, TextureUsage::Albedo);
+    AddCachedTexture(contentName, texture);
+    return texture;
+}
+
+std::shared_ptr<Texture> Texture::GetCachedTexture(std::wstring contentName)
+{
+    auto iter = textureCache.find(contentName);
+    if (iter != textureCache.end())
+    {
+        return iter->second;
+    }
+    return nullptr;
 }

@@ -16,10 +16,6 @@
     <Filter Include="content">
       <UniqueIdentifier>{b6b4b08b-4b65-499a-a960-8829bd93e7da}</UniqueIdentifier>
     </Filter>
-    <Filter Include="content\shaders">
-      <UniqueIdentifier>{3a68f074-0a0a-4e3f-afd7-3d0a5ae64d88}</UniqueIdentifier>
-      <Extensions>hlsl</Extensions>
-    </Filter>
     <Filter Include="content\textures">
       <UniqueIdentifier>{b4fc382a-8ef7-40a3-bb0f-a749fc95d613}</UniqueIdentifier>
       <Extensions>png;jpg;jpeg;dds</Extensions>
@@ -36,44 +32,14 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PosCol.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PosTextured.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="BlinnPhong.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommonShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Thetis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PosCol.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PosTextured.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BlinnPhong.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CommonShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="content\shaders\PosCol.hlsl">
-      <Filter>content\shaders</Filter>
-    </None>
-    <None Include="content\shaders\PosTextured.hlsl">
-      <Filter>content\shaders</Filter>
-    </None>
     <None Include="content\models\monkey.fbx">
       <Filter>content\models</Filter>
     </None>
@@ -88,9 +54,6 @@
     </None>
     <None Include="content\models\achilles test.fbx">
       <Filter>content\models</Filter>
-    </None>
-    <None Include="content\shaders\BlinnPhong.hlsl">
-      <Filter>content\shaders</Filter>
     </None>
     <None Include="content\models\pink uv sphere.fbx">
       <Filter>content\models</Filter>

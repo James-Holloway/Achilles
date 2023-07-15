@@ -99,11 +99,11 @@ void Shader::BindTexture(CommandList& commandList, uint32_t rootParamIndex, uint
     }
 }
 
-std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName)
+std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName, D3D12_CULL_MODE cullMode, bool enableTransparency)
 {
     std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize, _renderCallback);
     shader->rootSignature = rootSignature;
-    
+
     std::wstring shaderPath = GetContentDirectoryW() + L"shaders/" + shaderName + L".hlsl";
 
     // Compile shaders at runtime
@@ -115,7 +115,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
 
     if (vertexShader == nullptr || pixelShader == nullptr)
         throw std::exception("Shader(s) did not compile");
-    
+
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
     if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
@@ -143,11 +143,29 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
         CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
         CD3DX12_PIPELINE_STATE_STREAM_FLAGS Flags;
         CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
+        CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
+        CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC Blend;
     } pipelineStateStream;
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 1;
     rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
+    rasterizerDesc.CullMode = cullMode;
+
+    CD3DX12_BLEND_DESC blendDesc{ CD3DX12_DEFAULT() };
+    if (enableTransparency)
+    {
+        blendDesc.RenderTarget[0].BlendEnable = TRUE;
+        blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+        blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+        blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+        blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+        blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    }
 
     pipelineStateStream.pRootSignature = shader->rootSignature->GetRootSignature().Get();
     pipelineStateStream.InputLayout = { _vertexLayout, vertexLayoutCount };
@@ -158,6 +176,8 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
     pipelineStateStream.RTVFormats = rtvFormats;
     pipelineStateStream.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
     pipelineStateStream.SampleDesc = sampleDesc;
+    pipelineStateStream.Rasterizer = rasterizerDesc;
+    pipelineStateStream.Blend = blendDesc;
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream), &pipelineStateStream

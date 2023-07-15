@@ -5,9 +5,7 @@
 #include "imgui.h"
 #include "implot.h"
 #pragma warning (pop)
-#include "PosCol.h"
-#include "PosTextured.h"
-#include "BlinnPhong.h"
+#include "Achilles/AchillesShaders.h"
 
 class Thetis : public Achilles
 {

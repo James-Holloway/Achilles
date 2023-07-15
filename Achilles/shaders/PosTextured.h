@@ -1,6 +1,6 @@
 #pragma once
 #pragma once
-#include "Achilles/ShaderInclude.h"
+#include "../ShaderInclude.h"
 
 using DirectX::XMMATRIX;
 using DirectX::XMFLOAT3;
@@ -76,6 +76,6 @@ namespace PosTextured
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
 
-    void PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
+    bool PosTexturedShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
     std::shared_ptr<Shader> GetPosTexturedShader(ComPtr<ID3D12Device2> device);
 }

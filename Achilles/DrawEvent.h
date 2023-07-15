@@ -8,7 +8,8 @@ class Camera;
 enum class DrawEventType
 {
     Ignore = 0,
-    DrawIndexed
+    DrawIndexed,
+    DrawSprite,
 };
 
 struct DrawEvent

@@ -5,6 +5,8 @@
 #include "DescriptorAllocation.h"
 #include "TextureUsage.h"
 
+class CommandList;
+
 using Microsoft::WRL::ComPtr;
 
 class Texture : public Resource
@@ -95,4 +97,12 @@ private:
     DescriptorAllocation depthStencilView;
 
     TextureUsage textureUsage;
+
+protected:
+    inline static std::map<std::wstring, std::shared_ptr<Texture>> textureCache{};
+
+public:
+    static void AddCachedTexture(std::wstring contentName, std::shared_ptr<Texture> texture);
+    static std::shared_ptr<Texture> AddCachedTextureFromContent(std::shared_ptr<CommandList> commandList, std::wstring contentName);
+    static std::shared_ptr<Texture> GetCachedTexture(std::wstring contentName);
 };

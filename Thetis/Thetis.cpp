@@ -100,26 +100,24 @@ void Thetis::DrawImGuiScenes()
         ImGui::SetWindowPos(ImVec2(0, 235), ImGuiCond_Always);
         ImGui::SetWindowSize(ImVec2(300, (float)(clientHeight - 235)), ImGuiCond_Always);
 
+        ImGui::BeginChild("padding", ImVec2(0, -(ImGui::GetTextLineHeightWithSpacing() * 3)));
         if (ImGui::BeginTabBar("SceneTabBar"))
         {
-            ImGui::BeginChild("padding", ImVec2(0, -(ImGui::GetTextLineHeightWithSpacing() * 3)));
+            for (std::shared_ptr<Scene> scene : scenes)
             {
-                for (std::shared_ptr<Scene> scene : scenes)
+                std::string sceneName = WStringToString(scene->GetName());
+                if (ImGui::BeginTabItem(sceneName.c_str()))
                 {
-                    std::string sceneName = WStringToString(scene->GetName());
-                    if (ImGui::BeginTabItem(sceneName.c_str()))
-                    {
-                        ImGui::Unindent(8);
-                        radioIndex = 0;
-                        scene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
-                        ImGui::Indent(8);
-                        ImGui::EndTabItem();
-                    }
+                    ImGui::Unindent(8);
+                    radioIndex = 0;
+                    scene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
+                    ImGui::Indent(8);
+                    ImGui::EndTabItem();
                 }
             }
-            ImGui::EndChild();
             ImGui::EndTabBar();
         }
+        ImGui::EndChild();
 
 
         const char* meshNamePreview = meshNames[selectedMeshName].c_str();
@@ -426,6 +424,9 @@ void Thetis::OnResize(int newWidth, int newHeight)
 
 void Thetis::LoadContent()
 {
+    // Set editor to true so we draw editor sprites
+    Application::SetIsEditor(true);
+
     // Get command queue + list
     std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
     std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
@@ -550,6 +551,11 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     {
         camera->MoveRelative(Vector3(0, -movementSpeed, 0));
     }
+
+    if (kbt.pressed.Delete)
+    {
+        DeleteSelectedObject();
+    }
 }
 
 void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State state, float dt)
@@ -600,6 +606,7 @@ void Thetis::CreateObjectInMainScene(uint32_t meshNameIndex)
 {
     std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], BlinnPhong::GetBlinnPhongShader(device));
     mainScene->AddObjectToScene(object);
+    selectedPropertiesObject = object;
 }
 
 void Thetis::CreateObjectAsSelectedChild(uint32_t meshNameIndex)
@@ -611,6 +618,7 @@ void Thetis::CreateObjectAsSelectedChild(uint32_t meshNameIndex)
     }
     std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], BlinnPhong::GetBlinnPhongShader(device));
     selectedPropertiesObject->AddChild(object);
+    selectedPropertiesObject = object;
 }
 
 void Thetis::DeleteSelectedObject()

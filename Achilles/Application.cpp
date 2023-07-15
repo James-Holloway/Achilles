@@ -101,3 +101,13 @@ DXGI_SAMPLE_DESC Application::GetMultisampleQualityLevels(DXGI_FORMAT format, UI
 
     return sampleDesc;
 }
+
+bool Application::IsEditor()
+{
+    return isEditor;
+}
+
+void Application::SetIsEditor(bool _isEditor)
+{
+    isEditor = _isEditor;
+}

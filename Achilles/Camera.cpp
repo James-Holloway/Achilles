@@ -34,17 +34,53 @@ Matrix Camera::GetProj()
     return proj;
 }
 
-void Camera::ConstructMatrices()
-{
-    ConstructView();
-    ConstructProjection();
-}
-
 Matrix Camera::GetInverseView()
 {
     if (dirtyViewMatrix)
         ConstructView();
     return inverseView;
+}
+
+Vector3 Camera::GetPosition()
+{
+    return position;
+}
+
+Vector3 Camera::GetRotation()
+{
+    return rotation;
+}
+
+Vector3 Camera::WorldToScreen(Vector3 worldPosition, bool& visible)
+{
+    Vector3 screenPos = Viewport(viewport).Project(worldPosition, GetProj(), GetView(), Matrix::Identity);
+    if (GetPosition().Dot(screenPos) > 0)
+        visible = true;
+    else
+        visible = false;
+
+    screenPos.x /= viewport.Width;
+    screenPos.y /= viewport.Height;
+
+    screenPos.x -= 0.5;
+    screenPos.y -= 0.5;
+    screenPos.x *= 2;
+    screenPos.y *= 2;
+
+    return screenPos;
+}
+
+Matrix Camera::GetBillboardMatrix(Vector3 worldPosition)
+{
+    Matrix billboard = Matrix::CreateBillboard(worldPosition, GetPosition(), Vector3::Down);
+
+    return billboard;
+}
+
+void Camera::ConstructMatrices()
+{
+    ConstructView();
+    ConstructProjection();
 }
 
 void Camera::ConstructView()

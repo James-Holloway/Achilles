@@ -19,4 +19,3 @@
 #include "Material.h"
 #include "Camera.h"
 #include "Lights.h"
-#include "LightObject.h"

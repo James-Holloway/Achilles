@@ -3,7 +3,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
+bool PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
 {
     // Update the MVP matrix
     Matrix mvp = object->GetWorldMatrix() * (camera->GetView() * camera->GetProj());
@@ -11,6 +11,8 @@ void PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_pt
     PosColCB0 cb0{ mvp };
 
     commandList->SetGraphics32BitConstants<PosColCB0>(0, cb0);
+
+    return true;
 }
 
 std::shared_ptr<Mesh> PosColMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)

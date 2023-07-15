@@ -1,5 +1,5 @@
 #include "BlinnPhong.h"
-#include "Achilles/Application.h"
+#include "../Application.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -18,7 +18,7 @@ BlinnPhong::PixelInfo::PixelInfo() : CameraPosition(0, 0, 0), ShadingType(1)
 }
 
 
-void BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
+bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
 {
     CommonShaderMatrices matrices{};
     matrices.Model = object->GetWorldMatrix();
@@ -60,6 +60,8 @@ void BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, mainTexture);
     else
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, whitePixelTexture);
+
+    return true;
 }
 
 std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
