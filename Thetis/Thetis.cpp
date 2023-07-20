@@ -167,36 +167,129 @@ void Thetis::DrawImGuiProperties()
 
             ImGui::Separator();
             // Position, rotation and scale
+            if (ImGui::BeginTabBar("localOrWorld"))
             {
-                float pos[3] = {
-                    object->GetLocalPosition().x,
-                    object->GetLocalPosition().y,
-                    object->GetLocalPosition().z
-                };
-                if (ImGui::DragFloat3("Position: ", pos, 0.125f, 0.0, 0.0, "% .3f"))
+                if (ImGui::BeginTabItem("Local"))
                 {
-                    object->SetLocalPosition(Vector3(pos[0], pos[1], pos[2]));
-                }
+                    float pos[3] = {
+                        object->GetLocalPosition().x,
+                        object->GetLocalPosition().y,
+                        object->GetLocalPosition().z
+                    };
+                    if (ImGui::DragFloat3("Position", pos, 0.125f, 0.0, 0.0, "% .3f"))
+                    {
+                        object->SetLocalPosition(Vector3(pos[0], pos[1], pos[2]));
+                    }
 
-                Vector3 degRot = EulerToDegrees(object->GetLocalRotation());
-                float rot[3] = {
-                    degRot.x,
-                    degRot.y,
-                    degRot.z
-                };
-                if (ImGui::DragFloat3("Rotation: ", rot, 5.0f, -360, 360, "% .3f"))
-                {
-                    object->SetLocalRotation(EulerToRadians(Vector3(rot[0], rot[1], rot[2])));
+                    Quaternion quatRot = object->GetLocalRotation();
+                    float quat[4]
+                    {
+                        quatRot.x,
+                        quatRot.y,
+                        quatRot.z,
+                        quatRot.w,
+                    };
+                    if (ImGui::DragFloat4("Quaternion", quat, 0.05f, -1.0f, 1.0f, "%.3f"))
+                    {
+                        object->SetLocalRotation(Quaternion(quat[0], quat[1], quat[2], quat[3]));
+                    }
+
+                    Vector3 degRot = EulerToDegrees(object->GetLocalRotation().ToEuler());
+                    float rot[3] = {
+                        degRot.x,
+                        degRot.y,
+                        degRot.z
+                    };
+                    if (ImGui::DragFloat3("Euler Angles", rot, 5.0f, -360, 360, "% .3f"))
+                    {
+                        object->SetLocalRotation(Quaternion::CreateFromYawPitchRoll(EulerToRadians(Vector3(rot[0], rot[1], rot[2]))));
+                    }
+
+                    float scale[3] = {
+                        object->GetLocalScale().x,
+                        object->GetLocalScale().y,
+                        object->GetLocalScale().z
+                    };
+                    if (ImGui::DragFloat3("Scale", scale, 0.125f, 0.0f, 0.0f, "% .3f"))
+                    {
+                        object->SetLocalScale(Vector3(scale[0], scale[1], scale[2]));
+                    }
+                    ImGui::EndTabItem();
                 }
-                float scale[3] = {
-                    object->GetLocalScale().x,
-                    object->GetLocalScale().y,
-                    object->GetLocalScale().z
-                };
-                if (ImGui::DragFloat3("Scale: ", scale, 0.125f, 0.0f, 0.0f, "% .3f"))
+                if (ImGui::BeginTabItem("World"))
                 {
-                    object->SetLocalScale(Vector3(scale[0], scale[1], scale[2]));
+                    float pos[3] = {
+                        object->GetWorldPosition().x,
+                        object->GetWorldPosition().y,
+                        object->GetWorldPosition().z
+                    };
+                    if (ImGui::DragFloat3("Position", pos, 0.125f, 0.0, 0.0, "% .3f"))
+                    {
+                        object->SetWorldPosition(Vector3(pos[0], pos[1], pos[2]));
+                    }
+
+                    Quaternion quatRot = object->GetWorldRotation();
+                    float quat[4]
+                    {
+                        quatRot.x,
+                        quatRot.y,
+                        quatRot.z,
+                        quatRot.w,
+                    };
+                    if (ImGui::DragFloat4("Quaternion", quat, 0.05f, -1.0f, 1.0f, "%.3f"))
+                    {
+                        object->SetWorldRotation(Quaternion(quat[0], quat[1], quat[2], quat[3]));
+                    }
+
+                    Vector3 degRot = EulerToDegrees(object->GetWorldRotation().ToEuler());
+                    float rot[4] = {
+                        degRot.x,
+                        degRot.y,
+                        degRot.z
+                    };
+                    if (ImGui::DragFloat3("Euler Angles", rot, 5.0f, -360, 360, "% .3f"))
+                    {
+                        object->SetWorldRotation(Quaternion::CreateFromYawPitchRoll(EulerToRadians(Vector3(rot[0], rot[1], rot[2]))));
+                    }
+
+                    float scale[3] = {
+                        object->GetWorldScale().x,
+                        object->GetWorldScale().y,
+                        object->GetWorldScale().z
+                    };
+                    if (ImGui::DragFloat3("Scale", scale, 0.125f, 0.0f, 0.0f, "% .3f"))
+                    {
+                        object->SetWorldScale(Vector3(scale[0], scale[1], scale[2]));
+                    }
+                    ImGui::EndTabItem();
                 }
+                if (ImGui::BeginTabItem("Local Matrix"))
+                {
+                    Matrix matrix = object->GetLocalMatrix();
+                    bool matrixChanged = ImGui::InputFloat4("##Matrix1", matrix.m[0], "%.3f");
+                    matrixChanged |= ImGui::InputFloat4("##Matrix2", matrix.m[1], "%.3f");
+                    matrixChanged |= ImGui::InputFloat4("##Matrix3", matrix.m[2], "%.3f");
+                    matrixChanged |= ImGui::InputFloat4("##Matrix4", matrix.m[3], "%.3f");
+                    if (matrixChanged)
+                    {
+                        object->SetLocalMatrix(matrix);
+                    }
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("World Matrix"))
+                {
+                    Matrix matrix = object->GetWorldMatrix();
+                    bool matrixChanged = ImGui::InputFloat4("##Matrix1", matrix.m[0], "%.3f");
+                    matrixChanged |= ImGui::InputFloat4("##Matrix2", matrix.m[1], "%.3f");
+                    matrixChanged |= ImGui::InputFloat4("##Matrix3", matrix.m[2], "%.3f");
+                    matrixChanged |= ImGui::InputFloat4("##Matrix4", matrix.m[3], "%.3f");
+                    if (matrixChanged)
+                    {
+                        object->SetWorldMatrix(matrix);
+                    }
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
             }
 
             // Buttons
@@ -282,10 +375,33 @@ void Thetis::DrawImGuiProperties()
                         ImGui::PopStyleColor();
                 }
 
+                ImGui::Separator();
+
+                if (object->HasTag(ObjectTag::Mesh))
+                {
+                    bool castsShadows = object->CastsShadows();
+                    if (ImGui::Checkbox("Casts Shadows", &castsShadows))
+                    {
+                        object->SetCastsShadows(castsShadows);
+                    }
+
+                    bool receivesShadows = object->ReceivesShadows();
+                    if (ImGui::Checkbox("Receives Shadows", &receivesShadows))
+                    {
+                        object->SetReceiveShadows(receivesShadows);
+                    }
+                }
+
                 // Light properties
                 if (object->HasTag(ObjectTag::Light))
                 {
                     std::shared_ptr<LightObject> lightObject = std::dynamic_pointer_cast<LightObject>(object);
+
+                    bool shadowCaster = lightObject->IsShadowCaster();
+                    if (ImGui::Checkbox("Is Shadow Caster", &shadowCaster))
+                    {
+                        lightObject->SetIsShadowCaster(shadowCaster);
+                    }
 
                     if (ImGui::TreeNodeEx("Global Ambient Light", ImGuiTreeNodeFlags_DefaultOpen))
                     {
@@ -326,9 +442,12 @@ void Thetis::DrawImGuiProperties()
 
                             ImGui::DragFloat("Strength", &pointLight.Strength, 0.025f, 0.0f, 100.0f, "%.1f");
                             ImGui::DragFloat("Max Distance", &pointLight.MaxDistance, 1.0f, 0.0f, 10000.0f, "%.2f");
+                            ImGui::Separator();
                             ImGui::DragFloat("Constant Attenuation", &pointLight.ConstantAttenuation, 0.10f, 0.0f, 2.0f, "%.2f");
                             ImGui::DragFloat("Linear Attenuation", &pointLight.LinearAttenuation, 0.0025f, 0.0f, 2.0f, "%.4f");
                             ImGui::DragFloat("Quadratic Attenuation", &pointLight.QuadraticAttenuation, 0.00025f, 0.0f, 2.0f, "%.7f");
+                            ImGui::Separator();
+                            ImGui::DragFloat("Rank", &pointLight.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
                             ImGui::TreePop();
                         }
                     }
@@ -352,6 +471,7 @@ void Thetis::DrawImGuiProperties()
 
                             ImGui::DragFloat("Strength", &spotLight.Light.Strength, 0.025f, 0.0f, 100.0f, "%.3f");
                             ImGui::DragFloat("Max Distance", &spotLight.Light.MaxDistance, 1.0f, 0.0f, 10000.0f, "%.2f");
+                            ImGui::Separator();
                             ImGui::DragFloat("Constant Attenuation", &spotLight.Light.ConstantAttenuation, 0.10f, 0.0f, 2.0f, "%.2f");
                             ImGui::DragFloat("Linear Attenuation", &spotLight.Light.LinearAttenuation, 0.025f, 0.0f, 2.0f, "%.4f");
                             ImGui::DragFloat("Quadratic Attenuation", &spotLight.Light.QuadraticAttenuation, 0.0025f, 0.0f, 2.0f, "%.7f");
@@ -364,6 +484,21 @@ void Thetis::DrawImGuiProperties()
                             if (ImGui::DragFloat("Outer Angle", &outerAngle, 0.25F, 0.0f, 89.9f, "%.2f"))
                             {
                                 spotLight.OuterSpotAngle = toRad(outerAngle);
+                            }
+
+                            ImGui::Separator();
+                            ImGui::DragFloat("Rank", &spotLight.Light.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
+
+                            // Debug
+                            ImGui::Separator();
+                            if (ImGui::Button("Set Debug ShadowCamera"))
+                            {
+                                Camera::debugShadowCamera = lightObject->GetShadowCamera(LightType::Spot);
+                            }
+                            ImGui::SameLine();
+                            if (ImGui::Button("Clear DSC"))
+                            {
+                                Camera::debugShadowCamera = nullptr;
                             }
 
                             ImGui::TreePop();
@@ -388,12 +523,148 @@ void Thetis::DrawImGuiProperties()
                             }
 
                             ImGui::DragFloat("Strength", &directionalLight.Strength, 0.025f, 0.0f, 100.0f, "%.3f");
+                            ImGui::Separator();
+                            ImGui::DragFloat("Rank", &directionalLight.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
+
+                            ImGui::Separator();
+
+                            Matrix shadowMatrix = lightObject->GetShadowCamera(LightType::Directional)->GetShadowMatrix();
+                            ImGui::Text("Shadow Matrix");
+                            ImGui::BeginDisabled(true);
+                            ImGui::InputFloat4("##ShadowMatrix1", shadowMatrix.m[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
+                            ImGui::InputFloat4("##ShadowMatrix2", shadowMatrix.m[1], "%.3f", ImGuiInputTextFlags_ReadOnly);
+                            ImGui::InputFloat4("##ShadowMatrix3", shadowMatrix.m[2], "%.3f", ImGuiInputTextFlags_ReadOnly);
+                            ImGui::InputFloat4("##ShadowMatrix4", shadowMatrix.m[3], "%.3f", ImGuiInputTextFlags_ReadOnly);
+                            ImGui::EndDisabled();
+
+                            // Debug
+                            ImGui::Separator();
+                            if (ImGui::Button("Set Debug ShadowCamera"))
+                            {
+                                Camera::debugShadowCamera = lightObject->GetShadowCamera(LightType::Directional);
+                            }
+                            ImGui::SameLine();
+                            if (ImGui::Button("Clear DSC"))
+                            {
+                                Camera::debugShadowCamera = nullptr;
+                            }
+
                             ImGui::TreePop();
                         }
                     }
                 }
             }
 
+        }
+    }
+    ImGui::End();
+}
+
+// Temporary until we have object-bound cameras
+void Thetis::DrawImGuiCameraProperties()
+{
+    if (ImGui::Begin("Camera Properties", &showCameraProperties))
+    {
+        ImGui::SetWindowSize(ImVec2(400, 600), ImGuiCond_Once);
+        ImGui::SetWindowPos(ImVec2(clientWidth / 2.0f - 200.0f, clientHeight / 2.0f - 300.0f), ImGuiCond_Once);
+
+        std::shared_ptr<Camera> camera = Camera::debugShadowCamera == nullptr ? Camera::mainCamera : Camera::debugShadowCamera;
+        if (camera == nullptr)
+        {
+            ImGui::Text("Main Camera was null");
+        }
+        else
+        {
+            ImGui::Text("Main Camera: %s", WStringToString(camera->name).c_str());
+            float pos[3] = {
+                    camera->GetPosition().x,
+                    camera->GetPosition().y,
+                    camera->GetPosition().z
+            };
+            if (ImGui::DragFloat3("Position", pos, 0.125f, 0.0, 0.0, "% .3f"))
+            {
+                camera->SetPosition(Vector3(pos[0], pos[1], pos[2]));
+            }
+
+            Vector3 degRot = EulerToDegrees(camera->GetRotation());
+            float rot[3] = {
+                degRot.x,
+                degRot.y,
+                degRot.z
+            };
+            if (ImGui::DragFloat3("Rotation", rot, 5.0f, -360, 360, "% .3f"))
+            {
+                camera->SetRotation(EulerToRadians(Vector3(rot[0], rot[1], rot[2])));
+            }
+
+            if (ImGui::DragFloat("NearZ", &camera->nearZ, 0.001f, 0.0001f, 10.0f, "%.4f"))
+            {
+                camera->ConstructProjection();
+            }
+            if (ImGui::DragFloat("FarZ", &camera->farZ, 0.1f, 0.01f, 10000.0f, "%.2f"))
+            {
+                camera->ConstructProjection();
+            }
+
+            ImGui::Separator();
+            if (camera->IsOrthographic())
+            {
+                ImGui::Text("Orthographic");
+                if (ImGui::Button("Set Perspective"))
+                {
+                    camera->SetPerspective(true);
+                }
+
+                if (ImGui::DragFloat("Orthographic Size", &camera->orthographicSize, 0.001f, 0.001f, 100.0f, "%.3f"))
+                {
+                    camera->ConstructProjection();
+                }
+            }
+            else
+            {
+                ImGui::Text("Perspective");
+                if (ImGui::Button("Set Orthographic"))
+                {
+                    camera->SetOrthographic(true);
+                }
+
+                float fov = camera->GetFOV();
+                if (ImGui::DragFloat("Vertical FOV", &fov, 0.5f, 1.0f, 90.0f, "%.1f"))
+                {
+                    camera->SetFOV(fov);
+                }
+            }
+
+            ImGui::Separator();
+
+            Matrix view = camera->GetView();
+            ImGui::Text("View Matrix");
+            ImGui::BeginDisabled(true);
+            ImGui::InputFloat4("##View1", view.m[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat4("##View2", view.m[1], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat4("##View3", view.m[2], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat4("##View4", view.m[3], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::EndDisabled();
+
+            Matrix proj = camera->GetProj();
+            ImGui::Text("Projection Matrix");
+            bool projChanged = ImGui::InputFloat4("##Proj1", proj.m[0], "%.3f");
+            projChanged |= ImGui::InputFloat4("##Proj2", proj.m[1], "%.3f");
+            projChanged |= ImGui::InputFloat4("##Proj3", proj.m[2], "%.3f");
+            projChanged |= ImGui::InputFloat4("##Proj4", proj.m[3], "%.3f");
+            if (projChanged)
+            {
+                camera->SetProj(proj);
+            }
+
+            Matrix projView = camera->GetView() * camera->GetProj();
+            ImGui::Text("ProjView Matrix");
+            ImGui::BeginDisabled(true);
+            ImGui::InputFloat4("##ProjView1", projView.m[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat4("##ProjView2", projView.m[1], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat4("##ProjView3", projView.m[2], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat4("##ProjView4", projView.m[3], "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::EndDisabled();
         }
     }
     ImGui::End();
@@ -414,12 +685,15 @@ void Thetis::OnPostRender(float deltaTime)
     {
         DrawImGuiProperties();
     }
+    if (showCameraProperties)
+    {
+        DrawImGuiCameraProperties();
+    }
 }
 
 void Thetis::OnResize(int newWidth, int newHeight)
 {
     camera->UpdateViewport(newWidth, newHeight);
-    camera->dirtyProjMatrix = true;
 }
 
 void Thetis::LoadContent()
@@ -432,11 +706,11 @@ void Thetis::LoadContent()
     std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
 
     // Create camera
-    camera = std::make_shared<Camera>(L"camera", clientWidth, clientHeight);
+    camera = std::make_shared<Camera>(L"Thetis Camera", clientWidth, clientHeight);
     Camera::mainCamera = camera;
-    camera->fov = 60;
-    camera->position = Vector3(5, 0, 0);
-    camera->rotation = EulerToRadians(Vector3(0, -90, 0));
+    camera->SetFOV(60);
+    camera->SetPosition(Vector3(0, 0, 5));
+    camera->SetRotation(EulerToRadians(Vector3(0, -180, 0)));
 
     // Create shaders
     std::shared_ptr<Shader> posColShader = GetPosColShader(device);
@@ -487,18 +761,20 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     {
         showProperties = !showProperties;
     }
+    if (kb.LeftShift && kbt.pressed.F5)
+    {
+        showCameraProperties = !showCameraProperties;
+    }
 
     if (kbt.pressed.PageUp)
     {
-        camera->fov -= 5;
+        camera->SetFOV(camera->GetFOV() - 5);
         OutputDebugStringWFormatted(L"FOV is now %.1f\n", camera->fov);
-        camera->dirtyProjMatrix = true;
     }
     if (kbt.pressed.PageDown)
     {
-        camera->fov += 5;
+        camera->SetFOV(camera->GetFOV() + 5);
         OutputDebugStringWFormatted(L"FOV is now %.1f\n", camera->fov);
-        camera->dirtyProjMatrix = true;
     }
 
     float cameraRotationAmount = 15;
@@ -555,6 +831,21 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     if (kbt.pressed.Delete)
     {
         DeleteSelectedObject();
+    }
+
+    // Previously Achilles HandleKeyboard
+    if (kbt.pressed.Escape)
+    {
+        // Close camera popup before closing when ESC hit
+        if (showCameraProperties)
+            showCameraProperties = false;
+        else
+            PostQuitMessage(0);
+    }
+
+    if (kbt.pressed.V)
+    {
+        vSync = !vSync;
     }
 }
 

@@ -36,5 +36,7 @@ PS_IN VS(VS_IN v)
 
 float4 PS(PS_IN i) : SV_TARGET
 {
-    return SpriteTexture.Sample(MainSampler, i.UV) * SpritePropertiesCB.Color;
+    float4 col = SpriteTexture.Sample(MainSampler, i.UV) * SpritePropertiesCB.Color;
+    clip(col.a - 0.1); // clip out any alpha < 0.1
+    return col;
 }

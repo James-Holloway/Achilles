@@ -40,6 +40,7 @@ public:
 
 
     //// Tag functions ////
+
     ObjectTag GetTags();
     bool HasTag(ObjectTag _tag);
     void SetTags(ObjectTag _tags);
@@ -68,6 +69,14 @@ public:
     bool IsEmpty();
     bool IsActive();
     void SetActive(bool _active);
+
+
+    //// Shadow States ////
+
+    bool CastsShadows();
+    bool ReceivesShadows();
+    void SetCastsShadows(bool _castShadows);
+    void SetReceiveShadows(bool _receiveShadows);
 
 
     ////  Get/set this object's children ////
@@ -117,22 +126,22 @@ public:
 
     DirectX::SimpleMath::Matrix GetLocalMatrix();
     DirectX::SimpleMath::Vector3 GetLocalPosition();
-    DirectX::SimpleMath::Vector3 GetLocalRotation();
+    DirectX::SimpleMath::Quaternion GetLocalRotation();
     DirectX::SimpleMath::Vector3 GetLocalScale();
 
     DirectX::SimpleMath::Matrix GetWorldMatrix();
     DirectX::SimpleMath::Matrix GetInverseWorldMatrix();
     DirectX::SimpleMath::Vector3 GetWorldPosition();
-    DirectX::SimpleMath::Vector3 GetWorldRotation();
+    DirectX::SimpleMath::Quaternion GetWorldRotation();
     DirectX::SimpleMath::Vector3 GetWorldScale();
 
     void SetLocalPosition(DirectX::SimpleMath::Vector3 _position);
-    void SetLocalRotation(DirectX::SimpleMath::Vector3 _rotation);
+    void SetLocalRotation(DirectX::SimpleMath::Quaternion _rotation);
     void SetLocalScale(DirectX::SimpleMath::Vector3 _scale);
     void SetLocalMatrix(DirectX::SimpleMath::Matrix _matrix);
 
     void SetWorldPosition(DirectX::SimpleMath::Vector3 _position);
-    void SetWorldRotation(DirectX::SimpleMath::Vector3 _rotation);
+    void SetWorldRotation(DirectX::SimpleMath::Quaternion _rotation);
     void SetWorldScale(DirectX::SimpleMath::Vector3 _scale);
     void SetWorldMatrix(DirectX::SimpleMath::Matrix _matrix);
 
@@ -157,8 +166,11 @@ protected:
     bool active = true;
     bool isScene = false;
 
+    bool castShadows = true;
+    bool receiveShadows = true;
+
     DirectX::SimpleMath::Vector3 position {0, 0, 0};
-    DirectX::SimpleMath::Vector3 rotation {0, 0, 0};
+    DirectX::SimpleMath::Quaternion rotation {0, 0, 0, 1};
     DirectX::SimpleMath::Vector3 scale {1, 1, 1};
     DirectX::SimpleMath::Matrix matrix;
     DirectX::SimpleMath::Matrix worldMatrix;

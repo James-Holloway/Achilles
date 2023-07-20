@@ -1,4 +1,5 @@
 #include "Achilles.h"
+#include "shaders/ShadowMapping.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -238,6 +239,7 @@ ComPtr<ID3D12Device2> Achilles::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
             D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,   // I'm really not sure how to avoid this message.
             D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,                         // This warning occurs when using capture frame while graphics debugging.
             D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,                       // This warning occurs when using capture frame while graphics debugging.
+            // D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE    // This warning occurs when clearing depth stencil
         };
 
         D3D12_INFO_QUEUE_FILTER NewFilter = {};
@@ -339,6 +341,7 @@ std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
 
     return rtTexture;
 }
+
 
 void Achilles::UpdateMainRenderTarget()
 {
@@ -473,16 +476,6 @@ void Achilles::HandleKeyboard()
 {
     auto keyboardState = keyboard->GetState();
     keyboardTracker.Update(keyboardState);
-
-    if (keyboardTracker.pressed.Escape)
-    {
-        PostQuitMessage(0);
-    }
-
-    if (keyboardTracker.pressed.V)
-    {
-        vSync = !vSync;
-    }
 
     if (keyboardTracker.pressed.F11)
     {
@@ -629,9 +622,10 @@ void Achilles::Render()
     achillesImGui->NewFrame();
 
     float dt = deltaTime.count() * 1e-9f;
-    DrawActiveScenes();
     OnRender(dt);
-    DrawQueuedEvents(directCommandList);
+    DrawActiveScenes(); // Deferred
+    DrawShadowScenes(directCommandList); // Immediate
+    DrawQueuedEvents(directCommandList); // Rendering deferred
     OnPostRender(dt);
 
     directCommandQueue->ExecuteCommandList(directCommandList);
@@ -903,6 +897,133 @@ void Achilles::DrawActiveScenes()
     }
 }
 
+void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
+{
+    // Get all objects from each active scene
+    std::vector<std::shared_ptr<Object>> flattenedScenes;
+    for (std::shared_ptr<Scene> scene : scenes)
+    {
+        if (scene->IsActive())
+        {
+            scene->GetObjectTree()->FlattenActive(flattenedScenes);
+        }
+    }
+
+    // Populate light objects
+    std::vector<std::shared_ptr<LightObject>> lightObjects;
+    std::vector<std::shared_ptr<Object>> shadowCastingObjects;
+    for (std::shared_ptr<Object> object : flattenedScenes)
+    {
+        if (object->HasTag(ObjectTag::Mesh))
+        {
+            if (object->CastsShadows())
+            {
+                shadowCastingObjects.push_back(object);
+            }
+        }
+        else if (object->HasTag(ObjectTag::Light))
+        {
+            std::shared_ptr<LightObject> lightObject = std::dynamic_pointer_cast<LightObject>(object);
+            lightObjects.push_back(lightObject);
+        }
+    }
+
+    // Populate ShadowCameras
+    lightData.ShadowCameras.clear();
+    for (std::shared_ptr<LightObject> lightObject : lightObjects)
+    {
+        if (lightObject->HasLightType(LightType::Point))
+        {
+            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Point);
+            if (sCam != nullptr)
+                lightData.ShadowCameras.push_back(sCam);
+        }
+        if (lightObject->HasLightType(LightType::Spot))
+        {
+            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Spot);
+            if (sCam != nullptr)
+                lightData.ShadowCameras.push_back(sCam);
+        }
+        if (lightObject->HasLightType(LightType::Directional))
+        {
+            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Directional);
+            if (sCam != nullptr)
+                lightData.ShadowCameras.push_back(sCam);
+        }
+    }
+
+    std::shared_ptr<Shader> shadowShader = ShadowMapping::GetShadowMappingShader(device);
+
+    // Actual rendering of the shadow scene, once per shadow camera
+    commandList->SetPipelineState(shadowShader->pipelineState);
+    commandList->SetGraphicsRootSignature(*shadowShader->rootSignature);
+    for (std::shared_ptr<ShadowCamera> shadowCamera : lightData.ShadowCameras)
+    {
+        if (shadowCamera == nullptr)
+            continue;
+
+        std::shared_ptr<RenderTarget> rt = shadowCamera->GetShadowMapRenderTarget();
+        std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap();
+        LightObject* lightObject = shadowCamera->GetLightObject();
+
+        if (lightObject == nullptr)
+            continue;
+
+        commandList->TransitionBarrier(*shadowMap, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+
+        commandList->ClearDepthStencilTexture(*shadowMap, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
+        commandList->SetRenderTargetDepthOnly(*rt);
+        commandList->SetScissorRect(shadowCamera->scissorRect);
+        commandList->SetViewport(shadowCamera->viewport);
+
+#pragma warning (suppress : 26813)
+        if (shadowCamera->GetLightType() == LightType::Directional)
+        {
+            for (std::shared_ptr<Object> object : shadowCastingObjects)
+            {
+                DrawObjectShadowDirectional(commandList, object, shadowCamera, lightObject, lightObject->GetDirectionalLight(), shadowShader);
+            }
+        }
+#pragma warning (suppress : 26813)
+        else if (shadowCamera->GetLightType() == LightType::Spot)
+        {
+            /*for (std::shared_ptr<Object> object : shadowCastingObjects)
+            {
+
+            }*/
+        }
+#pragma warning (suppress : 26813)
+        else if (shadowCamera->GetLightType() == LightType::Point)
+        {
+            /*for (std::shared_ptr<Object> object : shadowCastingObjects)
+            {
+
+            }*/
+        }
+
+        shadowMap->CopyDepthToReadableDepthTexture(commandList);
+    }
+
+    // Sort shadow cameras by ShadowMap rank
+    std::sort(lightData.ShadowCameras.begin(), lightData.ShadowCameras.end(), ShadowCameraRankSort);
+
+    // Populate ShadowMaps + ShadowInfos
+    lightData.SortedShadowMaps.clear();
+    lightData.SortedShadows.clear();
+    for (size_t i = 0; i < std::min<size_t>(MAX_SHADOW_MAPS, lightData.ShadowCameras.size()); i++)
+    {
+        std::shared_ptr<ShadowCamera> shadowCamera = lightData.ShadowCameras[i];
+
+        lightData.SortedShadowMaps.push_back(shadowCamera->GetShadowMap());
+
+        ShadowInfo shadowInfo;
+        shadowInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
+        lightData.SortedShadows.push_back(shadowInfo);
+    }
+
+    lightData.ShadowCount.ShadowCount = (uint32_t)lightData.SortedShadows.size();
+}
+
 void Achilles::AddScene(std::shared_ptr<Scene> scene)
 {
     scenes.emplace(scene);
@@ -925,6 +1046,10 @@ void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
     DrawEvent de{};
     de.object = object;
     de.camera = Camera::mainCamera;
+
+    if (Camera::debugShadowCamera)
+        de.camera = Camera::debugShadowCamera;
+
     de.eventType = DrawEventType::DrawIndexed;
     drawEventQueue.push(de);
 }
@@ -933,7 +1058,7 @@ void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
 {
     if (object == nullptr)
         return;
-    
+
     DrawEvent de{};
     de.object = object;
     de.camera = Camera::mainCamera;
@@ -1051,7 +1176,7 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 
     std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
     commandList->SetRenderTarget(*rt);
-    
+
     std::shared_ptr<Shader> shader = SpriteUnlit::GetSpriteUnlitShader(device);
 
     commandList->SetPipelineState(shader->pipelineState);
@@ -1071,6 +1196,24 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
     commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }
 
+void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader)
+{
+    ShadowMapping::ShadowMatrices shadowMatrices{};
+    shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
+    commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
+
+    for (uint32_t i = 0; i < object->GetKnitCount(); i++)
+    {
+        Knit knit = object->GetKnit(i);
+        std::shared_ptr<Mesh> mesh = knit.mesh;
+        commandList->SetPrimitiveTopology(mesh->topology);
+        commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
+        commandList->SetIndexBuffer(*mesh->indexBuffer);
+
+        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+    }
+}
+
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
     while (!drawEventQueue.empty())
@@ -1086,6 +1229,7 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
             break;
         case DrawEventType::DrawSprite:
             DrawSpriteIndexed(commandList, de.object, de.camera);
+            break;
         }
     }
 }

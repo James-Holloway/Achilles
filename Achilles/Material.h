@@ -35,4 +35,5 @@ public:
     std::map<std::wstring, std::shared_ptr<Texture>> textures;
     std::map<std::wstring, float> floats;
     std::map<std::wstring, DirectX::SimpleMath::Vector4> vectors;
+    bool transparency = false;
 };

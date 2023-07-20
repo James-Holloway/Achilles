@@ -21,6 +21,9 @@ namespace BlinnPhong
         float Specular;
         float SpecularPower;
         // 32 bytes
+        float ReceivesShadows;
+        float Padding[3];
+        // 48 bytes
 
         MaterialProperties();
     };
@@ -49,6 +52,9 @@ namespace BlinnPhong
         RootParameterSpotLights, // StructuredBuffer<SpotLight> SpotLights : register( t1 );
         RootParameterDirectionalLights, // StructuredBuffer<DirectionalLight> DirectionalLights : register( t2 )
         RootParameterTextures, // Texture2D DiffuseTexture : register( t3 );
+        RootParameterShadowCount, // ConstantBuffer<ShadowCount> ShadowCountCB : register(b0, space1);
+        RootParameterShadows, // StructuredBuffer<ShadowInfo> Shadows : register( t0, space1 )
+        RootParameterShadowMaps, // Texture2D ShadowMap0 : register( t1, space1 )
 
         RootParameterCount
     };
@@ -56,6 +62,6 @@ namespace BlinnPhong
     inline static std::shared_ptr<Texture> whitePixelTexture = nullptr;
 
     bool BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
-    std::shared_ptr<Mesh> BlinnPhongMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
+    std::shared_ptr<Mesh> BlinnPhongMeshCreation(aiScene* scene, aiNode*, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
     std::shared_ptr<Shader> GetBlinnPhongShader(ComPtr<ID3D12Device2> device = nullptr);
 }

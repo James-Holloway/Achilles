@@ -49,13 +49,10 @@
     <None Include="content\models\icosphere.fbx">
       <Filter>content\models</Filter>
     </None>
-    <None Include="content\models\torus combo.fbx">
-      <Filter>content\models</Filter>
-    </None>
     <None Include="content\models\achilles test.fbx">
       <Filter>content\models</Filter>
     </None>
-    <None Include="content\models\pink uv sphere.fbx">
+    <None Include="content\models\uv sphere.fbx">
       <Filter>content\models</Filter>
     </None>
     <None Include="content\models\cube.fbx">
@@ -77,6 +74,9 @@
       <Filter>content\models</Filter>
     </None>
     <None Include="content\models\light spot.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\models\achilles test 2.fbx">
       <Filter>content\models</Filter>
     </None>
   </ItemGroup>

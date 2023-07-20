@@ -8,15 +8,23 @@ Camera::Camera(std::wstring _name, int width, int height)
     UpdateViewport(width, height);
 }
 
+Camera::~Camera()
+{
+
+}
+
 void Camera::UpdateViewport(int width, int height)
 {
     viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
+    dirtyProjMatrix = true;
 }
 
 Matrix Camera::GetViewProj()
 {
-    if (dirtyViewMatrix || dirtyProjMatrix)
-        ConstructMatrices();
+    if (dirtyViewMatrix)
+        ConstructView();
+    if (dirtyProjMatrix)
+        ConstructProjection();
     return view * proj;
 }
 
@@ -49,6 +57,64 @@ Vector3 Camera::GetPosition()
 Vector3 Camera::GetRotation()
 {
     return rotation;
+}
+
+float Camera::GetFOV()
+{
+    return fov;
+}
+
+bool Camera::IsOrthographic()
+{
+    return orthographic;
+}
+
+bool Camera::IsPerspective()
+{
+    return !orthographic;
+}
+
+void Camera::SetProj(Matrix _proj)
+{
+    proj = _proj;
+    dirtyProjMatrix = false;
+}
+
+void Camera::SetView(Matrix _view)
+{
+    view = _view;
+    dirtyViewMatrix = false;
+}
+
+void Camera::SetPosition(Vector3 _position)
+{
+    position = _position;
+    dirtyViewMatrix = true;
+}
+
+void Camera::SetRotation(Vector3 _rotation)
+{
+    rotation = _rotation;
+    dirtyViewMatrix = true;
+}
+
+void Camera::SetFOV(float _fov)
+{
+    fov = _fov;
+    dirtyProjMatrix = true;
+}
+
+void Camera::SetOrthographic(bool _orthographic)
+{
+    if (orthographic != _orthographic)
+        dirtyProjMatrix = true;
+
+    orthographic = _orthographic;
+}
+
+void Camera::SetPerspective(bool _perspective)
+{
+    SetOrthographic(!_perspective);
 }
 
 Vector3 Camera::WorldToScreen(Vector3 worldPosition, bool& visible)
@@ -86,14 +152,17 @@ void Camera::ConstructMatrices()
 void Camera::ConstructView()
 {
     view = Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position);
-    inverseView = view.Transpose();
+    inverseView = view.Transpose(); // Normally it is view.Invert.Transpose() but view is already inverted so we just need to do tranpose
     view = view.Invert();
     dirtyViewMatrix = false;
 }
 
 void Camera::ConstructProjection()
 {
-    proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
+    if (orthographic)
+        proj = OrthographicProjection(orthographicSize * (viewport.Width / viewport.Height), orthographicSize, nearZ, farZ);
+    else
+        proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
     dirtyProjMatrix = false;
 }
 

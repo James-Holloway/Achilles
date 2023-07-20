@@ -3,7 +3,9 @@
 #include <directxtk12/SimpleMath.h>
 
 using DirectX::SimpleMath::Matrix;
+using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Vector3;
+using DirectX::SimpleMath::Vector4;
 using DirectX::SimpleMath::Quaternion;
 
 constexpr float AchillesPi = 3.1415926535f;
@@ -11,62 +13,33 @@ constexpr float Achilles2Pi = 6.2831853070f;
 constexpr float AchillesHalfPi = 1.5707963268f;
 constexpr float AchillesQuaterPi = 0.7853981634f;
 
-// Thank you to https://www.3dgep.com/understanding-the-view-matrix/ and https://www.youtube.com/watch?v=ih20l3pJoeU
-
-inline Matrix PerspectiveFovProjection(float width, float height, float fov, float nearZ, float farZ)
+inline Vector3 Recip(Vector3 vec)
 {
-    float aspectRatio = height / width;
-    float fovAngleY = fov * AchillesPi / 180.0f;
-
-    if (aspectRatio < 1.0f)
-    {
-        fovAngleY /= aspectRatio;
-    }
-
-    float cotFov = 1 / tanf(fovAngleY * 0.5f);
-    float zRange = farZ - nearZ;
-
-    Matrix perspective;
-    perspective.m[0][0] = aspectRatio * cotFov;
-    perspective.m[0][1] = 0;
-    perspective.m[0][2] = 0;
-    perspective.m[0][3] = 0;
-
-    perspective.m[1][0] = 0;
-    perspective.m[1][1] = cotFov;
-    perspective.m[1][2] = 0;
-    perspective.m[1][3] = 0;
-
-    perspective.m[2][0] = 0;
-    perspective.m[2][1] = 0;
-    perspective.m[2][2] = farZ / zRange;
-    perspective.m[2][3] = 1;
-
-    perspective.m[3][0] = 0;
-    perspective.m[3][1] = 0;
-    perspective.m[3][2] = (-farZ * nearZ) / zRange;
-    perspective.m[3][3] = 0;
-
-    return perspective;
+    return XMVectorReciprocal(vec);
+}
+inline Vector3 RecipSqrt(Vector3 vec)
+{
+    return DirectX::XMVectorReciprocalSqrt(vec);
 }
 
-inline Matrix ViewLookAt(Vector3 eye, Vector3 target, Vector3 up)
+inline Vector4 Recip(Vector4 vec)
 {
-    Vector3 z = (eye - target);
-    z.Normalize();
-    Vector3 x = up.Cross(z);
-    x.Normalize();
-    Vector3 y = z.Cross(x);
-
-    Matrix viewMatrix = {
-        x.x, y.x, z.x, 0,
-        x.y, y.y, z.y, 0,
-        x.z, y.z, z.z, 0,
-        -x.Dot(eye), -y.Dot(eye), -z.Dot(eye), 1
-    };
-
-    return viewMatrix;
+    return XMVectorReciprocal(vec);
 }
+inline Vector4 RecipSqrt(Vector4 vec)
+{
+    return DirectX::XMVectorReciprocalSqrt(vec);
+}
+
+Matrix PerspectiveFovProjection(float width, float height, float fov, float nearZ, float farZ);
+
+Matrix OrthographicProjection(float offsetX, float width, float offsetY, float height, float nearZ, float farZ);
+
+Matrix OrthographicProjection(float width, float height, float nearZ, float farZ);
+
+Matrix ViewLookAt(Vector3 eye, Vector3 target, Vector3 up);
+
+Quaternion ViewLookAt(Vector3 forward, Vector3 up);
 
 inline Matrix ViewFPS(Vector3 eye, float pitch, float yaw)
 {
@@ -209,4 +182,50 @@ inline T Deadzone(T val, T deadzone)
     }
 
     return val;
+}
+
+inline Vector3 QuaternionToAxisAngle(Quaternion quat, float& angle)
+{
+    // Normalize quaternion
+    if (quat.w > 1)
+        quat.Normalize();
+
+    angle = 2 * acosf(quat.w);
+    float s = sqrtf(1 - quat.w * quat.w);
+    if (s < 0.001) // test to avoid divide by zero
+    {
+        return Vector3(quat.x, quat.y, quat.z);
+    }
+    return Vector3(quat.x, quat.y, quat.z) / s;
+}
+
+inline Quaternion AxisAngleToQuaternion(Vector3 axis, float angle)
+{
+    float s = sinf(angle / 2);
+    return Quaternion(axis.x * s, axis.y * s, axis.z * s, cosf(angle / 2));
+}
+
+Quaternion DirectionToQuaternion(Vector3 pos, Vector3 direction);
+
+Vector3 Multiply(Quaternion rotation, Vector3 point);
+
+Vector3 Multiply(Matrix matrix, Vector3 rhs);
+
+inline Quaternion Inverse(Quaternion quat)
+{
+    const float length_squared = quat.LengthSquared();
+    if (length_squared == 1.0f)
+    {
+        quat.Conjugate();
+        return quat;
+    }
+    else if (length_squared >= std::numeric_limits<float>::epsilon())
+    {
+        quat.Conjugate();
+        return quat * (1.0f / length_squared);
+    }
+    else
+    {
+        return Quaternion::Identity;
+    }
 }

@@ -162,7 +162,7 @@ public:
 public:
     // Achilles callbacks
     virtual void OnUpdate(float deltaTime) {}; // Post internal Update
-    virtual void OnRender(float deltaTime) {}; // Called after RTV + DSV clear, before internal DrawQueuedEvents
+    virtual void OnRender(float deltaTime) {}; // Called after RTV + DSV clear, before internal internal drawing calls. Queue draws here
     virtual void OnPostRender(float deltaTime) {}; // Just before internal Present
     virtual void OnResize(int newWidth, int newHeight) {}; // Post internal Resize
     virtual void LoadContent() {}; // Load content to be used in Render, post Initialize
@@ -181,6 +181,7 @@ public:
     void AddScene(std::shared_ptr<Scene> scene);
     void RemoveScene(std::shared_ptr<Scene> scene);
     void DrawActiveScenes();
+    void DrawShadowScenes(std::shared_ptr<CommandList> commandList);
 
 public:
     // Achilles drawing functions
@@ -193,6 +194,7 @@ protected:
     void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);
     void DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);
     void DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);
+    void DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader);
     void DrawQueuedEvents(std::shared_ptr<CommandList> commandList);
     void EmptyDrawQueue();
 };

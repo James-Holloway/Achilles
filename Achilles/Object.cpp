@@ -9,6 +9,7 @@
 #include "CommandList.h"
 #include "LightObject.h"
 
+using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 //// Private constructor & destructor functions ////
@@ -168,6 +169,24 @@ void Object::SetActive(bool _active)
     active = _active;
 }
 
+
+//// Shadow States ////
+bool Object::CastsShadows()
+{
+    return castShadows;
+}
+bool Object::ReceivesShadows()
+{
+    return receiveShadows;
+}
+void Object::SetCastsShadows(bool _castShadows)
+{
+    castShadows = _castShadows;
+}
+void Object::SetReceiveShadows(bool _receiveShadows)
+{
+    receiveShadows = _receiveShadows;
+}
 
 //// Get/set this object's children ////
 
@@ -413,7 +432,7 @@ Vector3 Object::GetLocalPosition()
 {
     return position;
 }
-Vector3 Object::GetLocalRotation()
+Quaternion Object::GetLocalRotation()
 {
     return rotation;
 }
@@ -434,6 +453,7 @@ DirectX::SimpleMath::Matrix Object::GetInverseWorldMatrix()
         ConstructWorldMatrix();
     return inverseWorldMatrix;
 }
+
 Vector3 Object::GetWorldPosition()
 {
     Vector3 position, scale;
@@ -441,12 +461,12 @@ Vector3 Object::GetWorldPosition()
     GetWorldMatrix().Decompose(scale, quaternion, position);
     return position;
 }
-Vector3 Object::GetWorldRotation()
+Quaternion Object::GetWorldRotation()
 {
     Vector3 position, scale;
     Quaternion quaternion;
     GetWorldMatrix().Decompose(scale, quaternion, position);
-    return quaternion.ToEuler();
+    return quaternion;
 }
 Vector3 Object::GetWorldScale()
 {
@@ -464,7 +484,7 @@ void Object::SetLocalPosition(Vector3 _position)
     dirtyMatrix = true;
     SetWorldMatrixDirty();
 }
-void Object::SetLocalRotation(Vector3 _rotation)
+void Object::SetLocalRotation(Quaternion _rotation)
 {
     if (isScene)
         return;
@@ -484,10 +504,10 @@ void Object::SetLocalMatrix(Matrix _matrix)
 {
     Vector3 matrixPos, matrixScale;
     Quaternion matrixQuaternion;
-    _matrix.Transpose().Decompose(matrixScale, matrixQuaternion, matrixPos);
+    _matrix.Decompose(matrixScale, matrixQuaternion, matrixPos);
     matrix = _matrix;
     position = matrixPos;
-    rotation = matrixQuaternion.ToEuler();
+    rotation = matrixQuaternion;
     scale = matrixScale;
     dirtyMatrix = true;
     SetWorldMatrixDirty();
@@ -501,22 +521,19 @@ void Object::SetWorldPosition(Vector3 _position)
         SetLocalPosition(_position);
         return;
     }
-    Vector3 parentPosition, parentScale;
-    Quaternion parentQuaternion;
-    parent->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
-    SetLocalPosition(parentPosition - _position);
+
+    SetLocalPosition(Multiply(parent->GetInverseWorldMatrix(), _position));
 }
-void Object::SetWorldRotation(Vector3 _rotation)
+void Object::SetWorldRotation(Quaternion _rotation)
 {
     if (GetParent() == nullptr)
     {
         SetLocalRotation(_rotation);
         return;
     }
-    Vector3 parentPosition, parentScale;
-    Quaternion parentQuaternion;
-    GetParent()->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
-    SetLocalRotation(parentQuaternion.ToEuler() - _rotation);
+    Quaternion parentRotation = GetParent()->GetWorldRotation();
+    parentRotation = Inverse(parentRotation);
+    SetLocalRotation(_rotation * parentRotation);
 }
 void Object::SetWorldScale(Vector3 _scale)
 {
@@ -528,7 +545,7 @@ void Object::SetWorldScale(Vector3 _scale)
     Vector3 parentPosition, parentScale;
     Quaternion parentQuaternion;
     GetParent()->GetWorldMatrix().Decompose(parentScale, parentQuaternion, parentPosition);
-    SetLocalPosition(_scale / parentScale);
+    SetLocalScale(_scale / parentScale);
 }
 void Object::SetWorldMatrix(Matrix _matrix)
 {
@@ -537,12 +554,13 @@ void Object::SetWorldMatrix(Matrix _matrix)
         SetLocalMatrix(_matrix);
         return;
     }
-    SetLocalMatrix(GetParent()->GetWorldMatrix() - _matrix);
+    SetLocalMatrix(GetParent()->GetWorldMatrix().Invert() * _matrix);
 }
 
 void Object::ConstructMatrix()
 {
-    matrix = Matrix::CreateScale(scale) * (Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(position));
+    // SRT
+    matrix = (Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation)) * Matrix::CreateTranslation(position);
     dirtyMatrix = false;
 }
 void Object::ConstructWorldMatrix()
@@ -554,7 +572,7 @@ void Object::ConstructWorldMatrix()
     else
         worldMatrix = GetLocalMatrix();
 
-    inverseWorldMatrix = worldMatrix.Invert().Transpose();
+    inverseWorldMatrix = worldMatrix.Invert();
 
     dirtyWorldMatrix = false;
 }
@@ -669,7 +687,8 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
     {
         transformMatrix /= 100.0f;
     }
-    lightObject->SetLocalMatrix(transformMatrix);
+
+    lightObject->SetLocalMatrix(transformMatrix.Transpose());
 
     return lightObject;
 }
@@ -701,7 +720,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNod
     {
         aiMesh* inMesh = scene->mMeshes[node->mMeshes[i]];
         thisObject->SetKnit(i, Knit{}); // resize the knit vector so we can get the material directtly
-        std::shared_ptr<Mesh> mesh = createFunc(scene, inMesh, shader, thisObject->GetMaterial(i));
+        std::shared_ptr<Mesh> mesh = createFunc(scene, node, inMesh, shader, thisObject->GetMaterial(i));
         thisObject->SetMesh(i, mesh);
     }
 
@@ -716,9 +735,9 @@ std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNod
     // If we are a direct child of the root node then scale down into meters
     if (node->mParent != nullptr && node->mParent == scene->mRootNode)
     {
-        transformMatrix *= Matrix::CreateScale(0.01f);
+        transformMatrix /= 100.0f;
     }
-    thisObject->SetLocalMatrix(transformMatrix);
+    thisObject->SetLocalMatrix(transformMatrix.Transpose());
 
     thisObject->SetName(StringToWString(node->mName.C_Str()));
 
@@ -760,7 +779,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
 
     std::string filePathA = WStringToString(filePath);
 
-    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes));
+    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_MakeLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder));
     if (scene == nullptr)
     {
         OutputDebugStringAFormatted("Model importing (%s) failed: %s\n", filePathA, importer.GetErrorString());

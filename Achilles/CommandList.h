@@ -301,6 +301,7 @@ public:
     // Set the render targets for the graphics rendering pipeline.
     void SetRenderTarget(const RenderTarget& renderTarget);
     void SetRenderTargetNoDepth(const RenderTarget& renderTarget);
+    void SetRenderTargetDepthOnly(const RenderTarget& renderTarget);
     
     // Draw geometry.
     void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t startVertex = 0, uint32_t startInstance = 0);

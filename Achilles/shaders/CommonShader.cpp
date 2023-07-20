@@ -10,7 +10,7 @@ CommonShader::CommonShaderVertex::CommonShaderVertex() : Position(0,0,0), Normal
     
 }
 
-std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
+std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
 {
     uint32_t vertCount = inMesh->mNumVertices;
     std::vector<CommonShader::CommonShaderVertex> verts{};

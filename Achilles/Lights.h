@@ -5,6 +5,13 @@
 #include <d3d12.h>
 #include <directxtk12/SimpleMath.h>
 
+constexpr size_t MAX_SHADOW_MAPS = 8;
+
+class LightObject;
+class ShadowCamera;
+class ShadowMap;
+
+using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector4;
 using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Color;
@@ -15,18 +22,17 @@ struct PointLight
     // 0 bytes
     Vector4 PositionWorldSpace;
     // 16 bytes
-    Vector4 PositionViewSpace;
-    // 32 bytes
     Color Color;
-    // 48 bytes
+    // 32 bytes
     float Strength;
     float ConstantAttenuation;
     float LinearAttenuation;
     float QuadraticAttenuation;
-    // 64 bytes
+    // 48 bytes
     float MaxDistance;
-    float Padding[3];
-    // 80 bytes
+    float Rank;
+    float Padding[2];
+    // 64 bytes
 
     PointLight();
 };
@@ -36,15 +42,15 @@ struct SpotLight
 {
     // 0 bytes
     PointLight Light;
-    // 80 bytes
+    // 64 bytes
     Vector4 DirectionWorldSpace;
+    // 80 bytes
+    Vector4 RotationWorldSpace;
     // 96 bytes
-    Vector4 DirectionViewSpace;
-    // 112 bytes
     float InnerSpotAngle;
     float OuterSpotAngle;
     float Padding[2];
-    // 128 bytes
+    // 112 bytes
 
     SpotLight();
 };
@@ -54,12 +60,15 @@ struct DirectionalLight
 {
     // 0 bytes
     Vector4 DirectionWorldSpace;
-    Vector4 DirectionViewSpace;
+    // 16 bytes
+    Vector4 RotationWorldSpace;
+    // 32 bytes
     Color Color;
-    // 64 bytes
+    // 48 bytes
     float Strength;
-    float Padding[3];
-    // 80 bytes
+    float Rank;
+    float Padding[2];
+    // 64 bytes
 
     DirectionalLight();
 };
@@ -85,6 +94,16 @@ struct LightProperties
     LightProperties();
 };
 
+struct ShadowCount
+{
+    uint32_t ShadowCount;
+};
+
+struct ShadowInfo
+{
+    Matrix ShadowMatrix;
+};
+
 class LightData
 {
 public:
@@ -92,6 +111,12 @@ public:
     std::vector<SpotLight> SpotLights{};
     std::vector<DirectionalLight> DirectionalLights{};
     AmbientLight AmbientLight{};
+
+    std::vector<std::shared_ptr<ShadowCamera>> ShadowCameras{};
+    std::vector<std::shared_ptr<ShadowMap>> SortedShadowMaps{};
+    std::vector<ShadowInfo> SortedShadows{};
+
+    ShadowCount ShadowCount;
 
     LightProperties GetLightProperties();
 };

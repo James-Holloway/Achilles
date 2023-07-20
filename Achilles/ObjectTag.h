@@ -23,6 +23,7 @@ inline std::wstring ObjectTagToWString(ObjectTag tag)
     case ObjectTag::Sprite:
         return L"Sprite";
     case ObjectTag::Light:
+    case ObjectTag::Sprite | ObjectTag::Light:
         return L"Light";
     case ObjectTag::Camera:
         return L"Camera";

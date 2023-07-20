@@ -157,6 +157,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="content\models\achilles test 2.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\achilles test.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -179,7 +182,7 @@
     <None Include="content\models\monkey.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="content\models\pink uv sphere.fbx">
+    <None Include="content\models\uv sphere.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\plane.fbx">
@@ -190,9 +193,6 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\light spot.fbx">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="content\models\torus combo.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\torus.fbx">

@@ -3,6 +3,7 @@
 #include "SpriteObject.h"
 #include "Lights.h"
 #include "Camera.h"
+#include "ShadowCamera.h"
 
 using DirectX::SimpleMath::Color;
 
@@ -29,9 +30,18 @@ public:
     Color GetSpriteColor() override;
     void SetSpriteColor(Color color) override;
 
+    bool IsShadowCaster();
+    void SetIsShadowCaster(bool _shadowCaster);
+    std::shared_ptr<ShadowCamera> GetShadowCamera(LightType lightType);
+
 protected:
     LightType lightTypes = LightType::None;
     PointLight pointLight;
     SpotLight spotLight;
     DirectionalLight directionalLight;
+
+    bool shadowCaster = false;
+    std::shared_ptr<ShadowCamera> pointShadowCamera = nullptr;
+    std::shared_ptr<ShadowCamera> spotShadowCamera = nullptr;
+    std::shared_ptr<ShadowCamera> directionalShadowCamera = nullptr;
 };

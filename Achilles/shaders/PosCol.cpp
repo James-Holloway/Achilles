@@ -15,7 +15,7 @@ bool PosColShaderRender(std::shared_ptr<CommandList> commandList, std::shared_pt
     return true;
 }
 
-std::shared_ptr<Mesh> PosColMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
+std::shared_ptr<Mesh> PosColMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
 {
     uint32_t vertCount = inMesh->mNumVertices;
     std::vector<PosColVertex> verts{};

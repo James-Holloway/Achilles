@@ -82,8 +82,6 @@ public:
     static DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT format);
 
 protected:
-
-private:
     DescriptorAllocation CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc) const;
     DescriptorAllocation CreateUnorderedAccessView(const D3D12_UNORDERED_ACCESS_VIEW_DESC* uavDesc) const;
 

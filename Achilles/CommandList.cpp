@@ -1109,6 +1109,29 @@ void CommandList::SetRenderTargetNoDepth(const RenderTarget& renderTarget)
     d3d12CommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()), renderTargetDescriptors.data(), FALSE, nullptr);
 }
 
+void CommandList::SetRenderTargetDepthOnly(const RenderTarget& renderTarget)
+{
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetDescriptors;
+    renderTargetDescriptors.reserve(AttachmentPoint::NumAttachmentPoints);
+
+    const auto& textures = renderTarget.GetTextures();
+
+    std::shared_ptr<Texture> depthTexture = renderTarget.GetTexture(AttachmentPoint::DepthStencil);
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE depthStencilDescriptor(D3D12_DEFAULT);
+    if (depthTexture && depthTexture->GetD3D12Resource())
+    {
+        TransitionBarrier(*depthTexture, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+        depthStencilDescriptor = depthTexture->GetDepthStencilView();
+
+        TrackResource(*depthTexture);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE* pDSV = depthStencilDescriptor.ptr != 0 ? &depthStencilDescriptor : nullptr;
+
+    d3d12CommandList->OMSetRenderTargets(0, nullptr, FALSE, pDSV);
+}
+
 void CommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
 {
     FlushResourceBarriers();

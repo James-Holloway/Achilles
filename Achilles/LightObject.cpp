@@ -64,27 +64,35 @@ void LightObject::ConstructLightPositions(std::shared_ptr<Camera> camera)
     Vector3 worldPos = GetWorldPosition();
     Vector4 worldPos4 = Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
 
-    Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(GetWorldRotation().y + AchillesHalfPi, GetWorldRotation().x + AchillesPi + AchillesHalfPi, GetWorldRotation().z);
-    Vector3 direction = rotationMatrix.Forward();
+    // Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(GetWorldRotation().y + AchillesHalfPi, GetWorldRotation().x + AchillesPi + AchillesHalfPi, GetWorldRotation().z);
+    // Vector3 direction = rotationMatrix.Forward();
+    // Vector3 rotation = GetWorldRotation().ToEuler();
+    // rotation.x += AchillesPi + AchillesHalfPi;
+    // rotation.y += AchillesHalfPi;
+    // rotation.z = 0;
+    // Quaternion quat = Quaternion::CreateFromYawPitchRoll(rotation.y, rotation.x, rotation.z);
+    Matrix fix = Matrix::CreateFromYawPitchRoll(0, -AchillesHalfPi, 0);
+    Quaternion quat = GetWorldRotation();
+    quat *= Quaternion::CreateFromRotationMatrix(fix);
+    //Vector3 direction = Multiply(quat, Vector3::Forward;
+    Vector3 direction = (GetWorldMatrix() * fix).Backward(); // we need LH rather than SimpleMath's RH
     Vector4 direction4 = Vector4(direction.x, direction.y, direction.z, 0.0f);
 
     if (HasLightType(LightType::Point))
     {
         pointLight.PositionWorldSpace = worldPos4;
-        pointLight.PositionViewSpace = XMVector3TransformCoord(worldPos4, camera->GetView());
     }
     if (HasLightType(LightType::Spot))
     {
         spotLight.Light.PositionWorldSpace = worldPos4;
-        spotLight.Light.PositionViewSpace = XMVector3TransformCoord(worldPos, camera->GetView());
 
         spotLight.DirectionWorldSpace = direction4;
-        spotLight.DirectionViewSpace = XMVector3TransformCoord(direction, camera->GetView());
+        spotLight.RotationWorldSpace = (Vector4)quat;
     }
     if (HasLightType(LightType::Directional))
     {
         directionalLight.DirectionWorldSpace = direction4;
-        directionalLight.DirectionViewSpace = XMVector3TransformCoord(direction, camera->GetView());
+        directionalLight.RotationWorldSpace = (Vector4)quat;
     }
 }
 
@@ -106,8 +114,8 @@ Color LightObject::GetSpriteColor()
         color += pointLight.Color;
     if (HasLightType(LightType::Spot))
         color += spotLight.Light.Color;
-    if (HasLightType(LightType::Point))
-        color += pointLight.Color;
+    if (HasLightType(LightType::Directional))
+        color += directionalLight.Color;
 
     color.x /= numLights;
     color.y /= numLights;
@@ -120,4 +128,68 @@ Color LightObject::GetSpriteColor()
 void LightObject::SetSpriteColor(Color color)
 {
     // Do nothing
+}
+
+bool LightObject::IsShadowCaster()
+{
+    return shadowCaster;
+}
+
+void LightObject::SetIsShadowCaster(bool _shadowCaster)
+{
+    shadowCaster = _shadowCaster;
+}
+
+std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
+{
+    if (!HasLightType(lightType))
+        return nullptr;
+
+    Vector3 shadowCenter = Vector3::Zero;
+    BoundingSphere shadowBounds{ shadowCenter, 10.0f };
+
+    switch (lightType)
+    {
+    case LightType::Point:
+    {
+        if (pointShadowCamera == nullptr)
+        {
+            pointShadowCamera = std::make_shared<ShadowCamera>();
+            pointShadowCamera->SetLightType(LightType::Point);
+        }
+        pointShadowCamera->SetLightObject(this);
+        pointShadowCamera->UpdateMatrix(GetWorldPosition(), GetWorldRotation(), shadowBounds);
+        return pointShadowCamera;
+    }
+    break;
+    case LightType::Spot:
+    {
+        if (spotShadowCamera == nullptr)
+        {
+            spotShadowCamera = std::make_shared<ShadowCamera>();
+            spotShadowCamera->SetLightType(LightType::Spot);
+        }
+        spotShadowCamera->SetLightObject(this);
+        spotShadowCamera->UpdateMatrix(GetWorldPosition(), (Quaternion)spotLight.RotationWorldSpace, shadowBounds);
+        return spotShadowCamera;
+    }
+    break;
+    case LightType::Directional:
+    {
+        if (directionalShadowCamera == nullptr)
+        {
+            directionalShadowCamera = std::make_shared<ShadowCamera>();
+            directionalShadowCamera->SetLightType(LightType::Directional);
+        }
+        directionalShadowCamera->SetLightObject(this);
+
+        Vector3 lightDir = (Vector3)directionalLight.DirectionWorldSpace;
+        Vector3 lightPos = -2.0f * shadowBounds.Radius * lightDir;
+
+        directionalShadowCamera->UpdateMatrix(lightPos, (Quaternion)directionalLight.RotationWorldSpace, shadowBounds);
+        return directionalShadowCamera;
+    }
+    break;
+    }
+    return nullptr;
 }

@@ -19,6 +19,7 @@ protected:
     bool showPerformance = true;
     bool showObjectTree = true;
     bool showProperties = true;
+    bool showCameraProperties = false;
 
     std::vector<std::string> meshNames;
     std::vector<std::wstring> meshNamesWide;
@@ -43,6 +44,7 @@ protected:
     void DrawImGuiPerformance();
     void DrawImGuiScenes();
     void DrawImGuiProperties();
+    void DrawImGuiCameraProperties();
 
     void PopulateMeshNames();
     void CreateObjectInMainScene(uint32_t meshNameIndex);

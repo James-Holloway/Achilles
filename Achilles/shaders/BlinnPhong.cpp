@@ -1,4 +1,5 @@
 #include "BlinnPhong.h"
+#include "../ShadowMap.h"
 #include "../Application.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -7,7 +8,7 @@
 using namespace BlinnPhong;
 using namespace CommonShader;
 
-BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1)
+BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), Padding{ 0 }
 {
 
 }
@@ -30,12 +31,12 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
     commandList->SetGraphicsDynamicConstantBuffer<CommonShaderMatrices>(RootParameters::RootParameterMatrices, matrices);
 
     PixelInfo pixelInfo{};
-    pixelInfo.CameraPosition = camera->position;
+    pixelInfo.CameraPosition = camera->GetPosition();
     if (material.HasFloat(L"ShadingType"))
         pixelInfo.ShadingType = material.GetFloat(L"ShadingType");
 
     commandList->SetGraphicsDynamicConstantBuffer<PixelInfo>(RootParameters::RootParameterPixelInfo, pixelInfo);
-    
+
     commandList->SetGraphicsDynamicConstantBuffer<LightProperties>(RootParameters::RootParameterLightProperties, lightData.GetLightProperties());
     commandList->SetGraphicsDynamicConstantBuffer<AmbientLight>(RootParameters::RootParameterAmbientLight, lightData.AmbientLight);
 
@@ -48,6 +49,7 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
         materialProperties.Specular = material.GetFloat(L"Specular");
     if (material.HasFloat(L"SpecularPower"))
         materialProperties.SpecularPower = material.GetFloat(L"SpecularPower");
+    materialProperties.ReceivesShadows = object->ReceivesShadows();
 
     commandList->SetGraphicsDynamicConstantBuffer<MaterialProperties>(RootParameters::RootParameterMaterialProperties, materialProperties);
 
@@ -61,13 +63,26 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
     else
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, whitePixelTexture);
 
+    // Pass shadow maps to the shader for Shadow Factor
+    for (int i = 0; i < MAX_SHADOW_MAPS; i++)
+    {
+        std::shared_ptr<Texture> shadowMap = nullptr;
+        if (i < lightData.SortedShadowMaps.size())
+            shadowMap = lightData.SortedShadowMaps[i]->GetReadableDepthTexture();
+
+        material.shader->BindTexture(*commandList, RootParameters::RootParameterShadowMaps, i, shadowMap);
+    }
+
+    commandList->SetGraphicsDynamicConstantBuffer<ShadowCount>(RootParameters::RootParameterShadowCount, lightData.ShadowCount);
+    commandList->SetGraphicsDynamicStructuredBuffer<ShadowInfo>(RootParameters::RootParameterShadows, lightData.SortedShadows);
+
     return true;
 }
 
-std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
+std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
 {
     // Create the vertices using the common shader vertex format
-    std::shared_ptr<Mesh> mesh = CommonShaderMeshCreation(scene, inMesh, shader, material);
+    std::shared_ptr<Mesh> mesh = CommonShaderMeshCreation(scene, node, inMesh, shader, material);
 
     if (scene->HasMaterials())
     {
@@ -154,8 +169,9 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
         D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-    // Textures descriptor range
+    // Texture descriptor ranges
     CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0); // 1 texture, offset at 3, in space 0
+    CD3DX12_DESCRIPTOR_RANGE1 shadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 1, 1); // 8 textures, offset at 1, in space 1
 
     // Root parameters
     CD3DX12_ROOT_PARAMETER1 rootParameters[RootParameters::RootParameterCount]{};
@@ -172,14 +188,24 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
 
     rootParameters[RootParameters::RootParameterTextures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
+    rootParameters[RootParameters::RootParameterShadowCount].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
+    rootParameters[RootParameters::RootParameterShadows].InitAsShaderResourceView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
+    rootParameters[RootParameters::RootParameterShadowMaps].InitAsDescriptorTable(1, &shadowDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
     // Sampler(s)
-    CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0, 8U); // anisotropic sampler set to 8
+    std::vector<CD3DX12_STATIC_SAMPLER_DESC> samplers;
+    CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0, 8U); // anisotropic sampler set to 8
+    samplers.push_back(anisotropicSampler);
+    CD3DX12_STATIC_SAMPLER_DESC shadowSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+    shadowSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+    shadowSampler.RegisterSpace = 1;
+    samplers.push_back(shadowSampler);
 
     // Root signature creation
-    BlinnPhongRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 1, &anisotropicSampler, rootSignatureFlags); // 1 is number of static samplers
+    BlinnPhongRootSignature.Init_1_1(_countof(rootParameters), rootParameters, (UINT)samplers.size(), samplers.data(), rootSignatureFlags);
     std::shared_ptr rootSignature = std::make_shared<RootSignature>(BlinnPhongRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
 
-    BlinnPhongShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, BlinnPhongShaderRender, L"BlinnPhong");
+    BlinnPhongShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, BlinnPhongShaderRender, L"BlinnPhong", D3D12_CULL_MODE_BACK, false);
     BlinnPhongShader->meshCreateCallback = BlinnPhongMeshCreation;
 
     if (whitePixelTexture == nullptr || !whitePixelTexture->IsValid())

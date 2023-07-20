@@ -23,11 +23,6 @@ bool SpriteUnlit::SpriteUnlitShaderRender(std::shared_ptr<CommandList> commandLi
     SpriteProperties spriteProperties{};
     spriteProperties.Color = spriteObject->GetSpriteColor();
 
-    bool visible = false;
-    Vector3 screenPos = camera->WorldToScreen(position, visible);
-    if (!visible)
-        return false;
-
     Matrix billboard = camera->GetBillboardMatrix(position);
     Matrix mvp = (billboard * camera->GetView()) * camera->GetProj();
     spriteProperties.MVP = mvp;
