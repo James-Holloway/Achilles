@@ -361,7 +361,7 @@ std::vector<std::shared_ptr<Object>> Object::FindObjectsBySubstring(std::wstring
     std::vector<std::shared_ptr<Object>> matchedObjects;
     for (std::shared_ptr<Object> object : objects)
     {
-        if (object == nullptr || object->IsEmpty())
+        if (object == nullptr)
             continue;
         std::wstring objectName = object->GetName();
         if (Contains(objectName, name))
@@ -379,7 +379,7 @@ std::vector<std::shared_ptr<Object>> Object::FindAllObjectsBySubstring(std::wstr
     std::vector<std::shared_ptr<Object>> matchedObjects;
     for (std::shared_ptr<Object> object : objects)
     {
-        if (object == nullptr || object->IsEmpty())
+        if (object == nullptr)
             continue;
         std::wstring objectName = object->GetName();
         if (Contains(objectName, name))
@@ -395,7 +395,7 @@ std::shared_ptr<Object> Object::FindFirstObjectByName(std::wstring name)
 
     for (std::shared_ptr<Object> object : objects)
     {
-        if (object == nullptr || object->IsEmpty())
+        if (object == nullptr)
             continue;
 
         if (name == object->GetName())
@@ -411,7 +411,7 @@ std::shared_ptr<Object> Object::FindFirstActiveObjectByName(std::wstring name)
 
     for (std::shared_ptr<Object> object : objects)
     {
-        if (object == nullptr || object->IsEmpty())
+        if (object == nullptr)
             continue;
 
         if (name == object->GetName())

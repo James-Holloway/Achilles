@@ -380,6 +380,21 @@ void Thetis::DrawImGuiProperties()
                                 }
                             }
 
+                            if (knit.material.HasVector(L"Color"))
+                            {
+                                Color color = knit.material.GetVector(L"Color");
+                                float col[]
+                                {
+                                    color.x,
+                                    color.y,
+                                    color.z,
+                                };
+                                if (ImGui::ColorEdit3("Color", col))
+                                {
+                                    knit.material.SetVector(L"Color", Vector4(col[0], col[1], col[2], 1.0f));
+                                }
+                            }
+
                             ImGui::TreePop();
                         }
                         ImGui::TreePop();
@@ -749,13 +764,28 @@ void Thetis::LoadContent()
 
     // Create floor quad
     floorQuad = Object::CreateObjectsFromContentFile(L"plane.fbx", blinnPhongShader);
-    floorQuad->SetLocalPosition(Vector3(0, -2, 0));
-    floorQuad->SetLocalScale(Vector3(3, 3, 3));
+    floorQuad->SetLocalPosition(Vector3(0, -3, 0));
+    floorQuad->SetLocalScale(Vector3(10, 10, 10));
 
     std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
     commandList->LoadTextureFromContent(*floorTexture, L"MyUVSquare", TextureUsage::Albedo);
     floorQuad->GetMaterial().SetTexture(L"MainTexture", floorTexture);
     mainScene->AddObjectToScene(floorQuad);
+
+    std::shared_ptr<Object> achillesTest2 = Object::CreateObjectsFromContentFile(L"achilles test 2.fbx", blinnPhongShader);
+    std::shared_ptr<Object> testLight = achillesTest2->FindFirstObjectByName(L"Light");
+    if (testLight)
+        testLight->SetActive(false);
+    mainScene->AddObjectToScene(achillesTest2);
+
+    std::shared_ptr<LightObject> spotLightObject = std::make_shared<LightObject>(L"Spotlight");
+    SpotLight spotLight = SpotLight();
+    spotLight.InnerSpotAngle = toRad(42.5);
+    spotLight.OuterSpotAngle = toRad(47.5);
+    spotLightObject->AddLight(spotLight);
+    spotLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
+    spotLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+    mainScene->AddObjectToScene(spotLightObject);
 
     // Load content/models files into meshNames, used in Thetis' ImGui
     PopulateMeshNames();

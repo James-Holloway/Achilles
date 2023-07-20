@@ -174,8 +174,8 @@ void Camera::RotateEuler(Vector3 euler, bool unlockPitch, bool unlockRoll)
     rot = EulerVectorModulo(rot);
     if (!unlockPitch)
     {
-        rot.x = fmin(AchillesPi, rot.x);
-        rot.x = fmax(-AchillesPi, rot.x);
+        rot.x = fmin(AchillesHalfPi - 0.005, rot.x);
+        rot.x = fmax(-AchillesHalfPi + 0.005, rot.x);
     }
     if (!unlockRoll)
         rot = Vector3(rot.x, rot.y, 0);
