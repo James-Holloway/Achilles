@@ -158,9 +158,17 @@ void Thetis::DrawImGuiProperties()
         std::shared_ptr<Object> object = selectedPropertiesObject;
         if (object != nullptr)
         {
+            bool isActive = object->IsActive();
+            if (ImGui::Checkbox("##Active", &isActive))
+                object->SetActive(isActive);
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+                ImGui::SetTooltip("IsActive");
+
             std::string strName = WStringToString(object->GetName());
             char name[64];
             strcpy_s(name, strName.c_str());
+            ImGui::SameLine();
             ImGui::SetNextItemWidth(-1);
             ImGui::InputText("##PropertyName", name, 64);
             object->SetName(StringToWString(std::string(name)));
@@ -299,9 +307,14 @@ void Thetis::DrawImGuiProperties()
                 DeleteSelectedObject();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Copy"))
+            if (ImGui::Button("Clone"))
             {
                 CopySelectedObject();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Clear Parent"))
+            {
+                ClearSelectedParent();
             }
 
             ImGui::Separator();
@@ -945,4 +958,12 @@ std::shared_ptr<Object> Thetis::CopySelectedObject()
         return nullptr;
 
     return selectedPropertiesObject->Clone();
+}
+
+void Thetis::ClearSelectedParent()
+{
+    if (selectedPropertiesObject == nullptr)
+        return;
+
+    selectedPropertiesObject->SetParentKeepTransform(mainScene->GetObjectTree());
 }

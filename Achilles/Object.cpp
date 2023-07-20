@@ -268,6 +268,17 @@ bool Object::SetParent(std::shared_ptr<Object> newParent)
     return true;
 }
 
+bool Object::SetParentKeepTransform(std::shared_ptr<Object> newParent)
+{
+    Matrix matrix = GetWorldMatrix();
+    bool succeeded = SetParent(newParent);
+    if (succeeded)
+    {
+        SetWorldMatrix(matrix);
+    }
+
+    return succeeded;
+}
 
 //// Object tree traversal ////
 
@@ -330,13 +341,15 @@ void Object::Flatten(std::vector<std::shared_ptr<Object>>& flattenedTree)
 
 void Object::FlattenActive(std::vector<std::shared_ptr<Object>>& flattenedTree)
 {
-    if (IsActive() && !isScene)
+    if (IsActive() || isScene)
     {
-        flattenedTree.push_back(shared_from_this());
-    }
-    for (std::shared_ptr<Object> child : children)
-    {
-        child->Flatten(flattenedTree);
+        if (!isScene)
+            flattenedTree.push_back(shared_from_this());
+
+        for (std::shared_ptr<Object> child : children)
+        {
+            child->FlattenActive(flattenedTree);
+        }
     }
 }
 

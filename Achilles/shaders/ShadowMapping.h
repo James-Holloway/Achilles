@@ -30,4 +30,5 @@ namespace ShadowMapping
     };
 
     std::shared_ptr<Shader> GetShadowMappingShader(ComPtr<ID3D12Device2> device = nullptr);
+    std::shared_ptr<Shader> GetShadowMappingHighBiasShader(ComPtr<ID3D12Device2> device = nullptr);
 }

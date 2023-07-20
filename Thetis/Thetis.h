@@ -51,4 +51,5 @@ protected:
     void CreateObjectAsSelectedChild(uint32_t meshNameIndex);
     void DeleteSelectedObject();
     std::shared_ptr<Object> CopySelectedObject();
+    void ClearSelectedParent();
 };

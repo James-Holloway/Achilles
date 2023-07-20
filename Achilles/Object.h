@@ -95,6 +95,8 @@ public:
     // If this is the scene object, it returns itself
     std::shared_ptr<Object> GetParent();
     bool SetParent(std::shared_ptr<Object> newParent);
+    // Keeps the world transform from before the new parent was set
+    bool SetParentKeepTransform(std::shared_ptr<Object> newParent);
 
 
     //// Object tree traversal ////

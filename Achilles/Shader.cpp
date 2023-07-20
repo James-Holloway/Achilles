@@ -219,7 +219,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
     return shader;
 }
 
-std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName)
+std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName, uint32_t depthBias)
 {
     std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize);
     shader->rootSignature = rootSignature;
@@ -272,7 +272,7 @@ std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device
     rtvFormats.RTFormats[0] = DXGI_FORMAT_UNKNOWN;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
-    rasterizerDesc.DepthBias = 100;
+    rasterizerDesc.DepthBias = depthBias;
     rasterizerDesc.DepthBiasClamp = 0.0f;
     rasterizerDesc.SlopeScaledDepthBias = 1.0f;
 

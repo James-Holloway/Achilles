@@ -953,10 +953,9 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
     }
 
     std::shared_ptr<Shader> shadowShader = ShadowMapping::GetShadowMappingShader(device);
+    std::shared_ptr<Shader> shadowHighBiasShader = ShadowMapping::GetShadowMappingHighBiasShader(device);
 
     // Actual rendering of the shadow scene, once per shadow camera
-    commandList->SetPipelineState(shadowShader->pipelineState);
-    commandList->SetGraphicsRootSignature(*shadowShader->rootSignature);
     for (std::shared_ptr<ShadowCamera> shadowCamera : lightData.ShadowCameras)
     {
         if (shadowCamera == nullptr)
@@ -968,6 +967,17 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 
         if (lightObject == nullptr)
             continue;
+
+        if (shadowCamera->GetLightType() == LightType::Directional)
+        {
+            commandList->SetPipelineState(shadowHighBiasShader->pipelineState);
+            commandList->SetGraphicsRootSignature(*shadowHighBiasShader->rootSignature);
+        }
+        else
+        {
+            commandList->SetPipelineState(shadowShader->pipelineState);
+            commandList->SetGraphicsRootSignature(*shadowShader->rootSignature);
+        }
 
         commandList->TransitionBarrier(*shadowMap, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
 
@@ -981,7 +991,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
         {
             for (std::shared_ptr<Object> object : shadowCastingObjects)
             {
-                DrawObjectShadowDirectional(commandList, object, shadowCamera, lightObject, lightObject->GetDirectionalLight(), shadowShader);
+                DrawObjectShadowDirectional(commandList, object, shadowCamera, lightObject, lightObject->GetDirectionalLight(), shadowHighBiasShader);
             }
         }
 #pragma warning (suppress : 26813)
