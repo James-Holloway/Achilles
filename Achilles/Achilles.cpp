@@ -987,10 +987,10 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 #pragma warning (suppress : 26813)
         else if (shadowCamera->GetLightType() == LightType::Spot)
         {
-            /*for (std::shared_ptr<Object> object : shadowCastingObjects)
+            for (std::shared_ptr<Object> object : shadowCastingObjects)
             {
-
-            }*/
+                DrawObjectShadowSpot(commandList, object, shadowCamera, lightObject, lightObject->GetSpotLight(), shadowShader);
+            }
         }
 #pragma warning (suppress : 26813)
         else if (shadowCamera->GetLightType() == LightType::Point)
@@ -1018,6 +1018,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 
         ShadowInfo shadowInfo;
         shadowInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
+        shadowInfo.LightType = (uint32_t)shadowCamera->GetLightType();
         lightData.SortedShadows.push_back(shadowInfo);
     }
 
@@ -1197,6 +1198,24 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 }
 
 void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader)
+{
+    ShadowMapping::ShadowMatrices shadowMatrices{};
+    shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
+    commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
+
+    for (uint32_t i = 0; i < object->GetKnitCount(); i++)
+    {
+        Knit knit = object->GetKnit(i);
+        std::shared_ptr<Mesh> mesh = knit.mesh;
+        commandList->SetPrimitiveTopology(mesh->topology);
+        commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
+        commandList->SetIndexBuffer(*mesh->indexBuffer);
+
+        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+    }
+}
+
+void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, SpotLight spotLight, std::shared_ptr<Shader> shader)
 {
     ShadowMapping::ShadowMatrices shadowMatrices{};
     shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));

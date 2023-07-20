@@ -1,4 +1,5 @@
 #include "ShadowCamera.h"
+#include "LightObject.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -36,17 +37,45 @@ void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, Boun
     SetRotation(lightRotation.ToEuler());
     SetPosition(lightPos);
 
-    Vector3 sphereCenterLS = XMVector3TransformCoord((Vector3)shadowBounds.Center, GetView());
+    if (GetLightType() == LightType::Directional)
+    {
+        Vector3 sphereCenterLS = XMVector3TransformCoord((Vector3)shadowBounds.Center, GetView());
 
-    float l = sphereCenterLS.x - shadowBounds.Radius;
-    float b = sphereCenterLS.y - shadowBounds.Radius;
-    float n = sphereCenterLS.z - shadowBounds.Radius;
-    float r = sphereCenterLS.x + shadowBounds.Radius;
-    float t = sphereCenterLS.y + shadowBounds.Radius;
-    float f = sphereCenterLS.z + shadowBounds.Radius;
+        float l = sphereCenterLS.x - shadowBounds.Radius;
+        float b = sphereCenterLS.y - shadowBounds.Radius;
+        float n = sphereCenterLS.z - shadowBounds.Radius;
+        float r = sphereCenterLS.x + shadowBounds.Radius;
+        float t = sphereCenterLS.y + shadowBounds.Radius;
+        float f = sphereCenterLS.z + shadowBounds.Radius;
 
-    nearZ = n;
-    farZ = f;
+        nearZ = n;
+        farZ = f;
+
+        SetProj((Matrix)XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f));
+        SetOrthographic(true);
+    }
+    else if (GetLightType() == LightType::Spot)
+    {
+        LightObject* lightObject = GetLightObject();
+        if (lightObject != nullptr)
+        {
+            SpotLight spot = lightObject->GetSpotLight();
+            SetFOV((90.0f - toDeg(spot.InnerSpotAngle)) * 2.0f);
+            nearZ = 0.005f;
+            farZ = spot.Light.MaxDistance;
+        }
+        else
+        {
+            SetFOV(60.0f);
+            nearZ = 0.05f;
+            farZ = 100.0f;
+        }
+        SetPerspective(true);
+    }
+    else if ((GetLightType() & LightType::Point) != LightType::None)
+    {
+
+    }
 
     // Transform NDC space [-1,+1]^2 to texture space [0,1]^2
     Matrix transform{
@@ -55,8 +84,6 @@ void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, Boun
         0.0f, 0.0f, 1.0f, 0.0f,
         0.5f, 0.5f, 0.0f, 1.0f
     };
-
-    SetProj((Matrix)XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f));
 
     shadowMatrix = ((GetView() * GetProj()) * transform).Transpose();
 }

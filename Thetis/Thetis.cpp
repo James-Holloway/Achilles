@@ -448,6 +448,7 @@ void Thetis::DrawImGuiProperties()
                             ImGui::DragFloat("Quadratic Attenuation", &pointLight.QuadraticAttenuation, 0.00025f, 0.0f, 2.0f, "%.7f");
                             ImGui::Separator();
                             ImGui::DragFloat("Rank", &pointLight.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
+
                             ImGui::TreePop();
                         }
                     }
@@ -501,6 +502,14 @@ void Thetis::DrawImGuiProperties()
                                 Camera::debugShadowCamera = nullptr;
                             }
 
+                            ImGui::Separator();
+                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Spot);
+                            if (shadowCamera && shadowCamera->GetShadowMap())
+                            {
+                                std::shared_ptr<Texture> texture = shadowCamera->GetShadowMap()->GetReadableDepthTexture();
+                                AchillesImGui::Image(texture, ImVec2(256.0f, 256.0f));
+                            }
+
                             ImGui::TreePop();
                         }
                     }
@@ -547,6 +556,14 @@ void Thetis::DrawImGuiProperties()
                             if (ImGui::Button("Clear DSC"))
                             {
                                 Camera::debugShadowCamera = nullptr;
+                            }
+                            ImGui::Separator();
+
+                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Directional);
+                            if (shadowCamera && shadowCamera->GetShadowMap())
+                            {
+                                std::shared_ptr<Texture> texture = shadowCamera->GetShadowMap()->GetReadableDepthTexture();
+                                AchillesImGui::Image(texture, ImVec2(256.0f, 256.0f));
                             }
 
                             ImGui::TreePop();

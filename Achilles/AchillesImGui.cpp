@@ -222,7 +222,6 @@ void AchillesImGui::Render(const std::shared_ptr<CommandList>& commandList, cons
     };
 
     commandList->SetGraphics32BitConstants(RootParameters::RootParameterMatrixCB, mvp);
-    commandList->SetShaderResourceView(RootParameters::RootParameterFontTexture, 0, fontSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     D3D12_VIEWPORT viewport = {};
     viewport.Width = drawData->DisplaySize.x;
@@ -262,6 +261,16 @@ void AchillesImGui::Render(const std::shared_ptr<CommandList>& commandList, cons
                 scissorRect.top = static_cast<LONG>(clipRect.y - displayPos.y);
                 scissorRect.right = static_cast<LONG>(clipRect.z - displayPos.x);
                 scissorRect.bottom = static_cast<LONG>(clipRect.w - displayPos.y);
+
+                if (drawCmd.TextureId == 0)
+                {
+                    commandList->SetShaderResourceView(RootParameters::RootParameterFontTexture, 0, fontSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                }
+                else
+                {
+                    Texture* texture = (Texture*)(size_t)drawCmd.TextureId;
+                    commandList->SetShaderResourceView(RootParameters::RootParameterFontTexture, 0, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                }
 
                 if (scissorRect.right - scissorRect.left > 0.0f && scissorRect.bottom - scissorRect.top > 0.0)
                 {

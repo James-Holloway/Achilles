@@ -102,6 +102,7 @@ struct ShadowCount
 struct ShadowInfo
 {
     Matrix ShadowMatrix;
+    uint32_t LightType;
 };
 
 class LightData

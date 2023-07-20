@@ -1,3 +1,5 @@
+#define MAX_SHADOW_MAPS 8
+
 struct PointLight
 {
     // 0 bytes
@@ -105,6 +107,7 @@ struct ShadowCount
 struct ShadowInfo
 {
     matrix ShadowMatrix;
+    uint LightType;
 };
 
 ConstantBuffer<Matrices> MatricesCB : register(b0);

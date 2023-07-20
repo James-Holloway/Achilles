@@ -272,7 +272,7 @@ std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device
     rtvFormats.RTFormats[0] = DXGI_FORMAT_UNKNOWN;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
-    rasterizerDesc.DepthBias = 100000;
+    rasterizerDesc.DepthBias = 100;
     rasterizerDesc.DepthBiasClamp = 0.0f;
     rasterizerDesc.SlopeScaledDepthBias = 1.0f;
 
