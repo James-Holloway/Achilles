@@ -308,9 +308,10 @@ void CommandList::LoadTextureFromContent(Texture& texture, const std::wstring& f
         if (nameOnly == fileNameLower)
         {
             LoadTextureFromFile(texture, filePath.wstring(), _textureUsage);
-            break;
+            return;
         }
     }
+    OutputDebugStringWFormatted(L"Failed to find texture in content: %s\n", fileName.c_str());
 }
 
 bool CommandList::GetTextureFromCache(Texture& texture, std::wstring identifierName, TextureUsage textureUsage)

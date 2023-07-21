@@ -76,6 +76,9 @@ void Achilles::ParseCommandLineArguments()
 void Achilles::EnableDebugLayer()
 {
 #if defined(_DEBUG)
+    // PIXLoadLatestWinPixGpuCapturerLibrary();
+    // PIXLoadLatestWinPixTimingCapturerLibrary();
+
     // Always enable the debug layer before doing anything DX12 related so all possible errors generated while creating DX12 objects are caught by the debug layer
     ComPtr<ID3D12Debug> debugInterface;
     ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
@@ -534,6 +537,11 @@ void Achilles::LoadInternalContent()
 {
     std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
     std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+
+    std::shared_ptr<Texture> whitePixelTexture = std::make_shared<Texture>();
+    std::vector<uint32_t> pixels = { 0xFFFFFFFF };
+    commandList->CreateTextureFromMemory(*whitePixelTexture, L"White", pixels, 1, 1, TextureUsage::Albedo, false);
+    Texture::AddCachedTexture(L"White", whitePixelTexture);
 
     Texture::AddCachedTextureFromContent(commandList, L"lightbulb");
 

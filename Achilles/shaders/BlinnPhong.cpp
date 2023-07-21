@@ -208,15 +208,7 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
     BlinnPhongShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, BlinnPhongShaderRender, L"BlinnPhong", D3D12_CULL_MODE_BACK, false);
     BlinnPhongShader->meshCreateCallback = BlinnPhongMeshCreation;
 
-    if (whitePixelTexture == nullptr || !whitePixelTexture->IsValid())
-    {
-        whitePixelTexture = std::make_shared<Texture>();
-        std::shared_ptr<CommandQueue> commandQueue = Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-        std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
-        std::vector<uint32_t> pixels = { 0xFFFFFFFF };
-        commandList->CreateTextureFromMemory(*whitePixelTexture, L"White", pixels, 1, 1, TextureUsage::Albedo, false);
-        commandQueue->ExecuteCommandList(commandList);
-    }
+    whitePixelTexture = Texture::GetCachedTexture(L"White");
 
     return BlinnPhongShader;
 }

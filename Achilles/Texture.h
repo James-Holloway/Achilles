@@ -37,6 +37,9 @@ public:
     // Resize the texture.
     void Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize = 1);
 
+    // Get the size of the current texture resource. Returns whether the resource was valid
+    bool GetSize(float& width, float& height);
+
     // Create SRV and UAVs for the resource
     virtual void CreateViews();
 
@@ -101,6 +104,8 @@ protected:
 
 public:
     static void AddCachedTexture(std::wstring contentName, std::shared_ptr<Texture> texture);
-    static std::shared_ptr<Texture> AddCachedTextureFromContent(std::shared_ptr<CommandList> commandList, std::wstring contentName);
+    static std::shared_ptr<Texture> AddCachedTextureFromContent(std::shared_ptr<CommandList> commandList, std::wstring contentName, TextureUsage textureUsage = TextureUsage::Albedo);
     static std::shared_ptr<Texture> GetCachedTexture(std::wstring contentName);
+    static std::vector<std::wstring> GetCachedTextureNames();
+    static std::map<std::wstring, std::shared_ptr<Texture>>& GetTextureCache();
 };

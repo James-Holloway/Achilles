@@ -182,6 +182,9 @@
     <None Include="content\models\monkey.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="content\models\uv sphere high.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\uv sphere.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -201,7 +204,19 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="content\textures\ColorGrid.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Icy Planet Diffuse.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Icy Planet Normal.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="content\textures\MyUVSquare.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\UVGrid.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
   </ItemGroup>

@@ -21,6 +21,9 @@ protected:
     bool showProperties = true;
     bool showCameraProperties = false;
 
+    bool selectingTexture = false;
+    std::function<void(std::shared_ptr<Texture>)> selectTextureCallback;
+
     std::vector<std::string> meshNames;
     std::vector<std::wstring> meshNamesWide;
     int selectedMeshName = 0;
@@ -45,6 +48,9 @@ protected:
     void DrawImGuiScenes();
     void DrawImGuiProperties();
     void DrawImGuiCameraProperties();
+
+    void DrawTextureSelection();
+    void SelectTexture(std::function<void(std::shared_ptr<Texture>)> callback);
 
     void PopulateMeshNames();
     void CreateObjectInMainScene(uint32_t meshNameIndex);

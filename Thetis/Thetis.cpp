@@ -395,6 +395,43 @@ void Thetis::DrawImGuiProperties()
                                 }
                             }
 
+                            // Textures
+                            if (ImGui::CollapsingHeader("Textures"))
+                            {
+                                ImGui::Indent(4.0f);
+
+                                // MainTexture
+                                ImGui::Text("MainTexture");
+                                std::shared_ptr<Texture> mainTexture = knit.material.GetTexture(L"MainTexture");
+
+                                if (mainTexture == nullptr)
+                                {
+                                    if (ImGui::Button("No Texture", ImVec2(256, 256)))
+                                    {
+                                        SelectTexture([&](std::shared_ptr<Texture> newTexture) { knit.material.SetTexture(L"MainTexture", newTexture); });
+                                    }
+                                }
+                                else
+                                {
+                                    float width = 0.0f;
+                                    float height = 0.0f;
+                                    mainTexture->GetSize(width, height);
+
+                                    ImVec2 size(256, 256);
+                                    if (width > height)
+                                        size.y = (height / width) * size.y;
+                                    else if (height > width)
+                                        size.x = (width / height) * size.x;
+
+                                    if (AchillesImGui::ImageButton(mainTexture, size, ImVec2(0, 0), ImVec2(1, 1), 2))
+                                    {
+                                        SelectTexture([&](std::shared_ptr<Texture> newTexture) { knit.material.SetTexture(L"MainTexture", newTexture); });
+                                    }
+                                }
+
+                                ImGui::Unindent(4.0f);
+                            }
+
                             ImGui::TreePop();
                         }
                         ImGui::TreePop();
@@ -715,6 +752,79 @@ void Thetis::DrawImGuiCameraProperties()
     ImGui::End();
 }
 
+void Thetis::DrawTextureSelection()
+{
+    if (ImGui::Begin("Texture Select", &selectingTexture))
+    {
+        ImVec2 windowSize = ImVec2(550, 550);
+        ImGui::SetWindowSize(windowSize, ImGuiCond_Once);
+        ImGui::SetWindowPos(ImVec2(clientWidth / 2.0f - (windowSize.x / 2.0f), clientHeight / 2.0f - (windowSize.y / 2.0f)), ImGuiCond_Once);
+
+        auto textureNames = Texture::GetCachedTextureNames();
+
+        if (ImGui::BeginTable("textureTable", 3, ImGuiTableFlags_BordersOuter))
+        {
+            ImGui::TableNextColumn();
+            if (ImGui::Button("No Texture", ImVec2(128, 128)))
+            {
+                if (selectTextureCallback != nullptr)
+                {
+                    selectTextureCallback(nullptr);
+                }
+                selectingTexture = false;
+            }
+
+            for (size_t i = 0; i < textureNames.size(); i++)
+            {
+                std::wstring textureName = textureNames[i];
+                std::shared_ptr<Texture> texture = Texture::GetCachedTexture(textureName);
+
+                if (texture == nullptr)
+                    continue;
+
+                float width = 0.0f;
+                float height = 0.0f;
+                if (!texture->GetSize(width, height))
+                    continue; // continue if texture's resource doesn't exist
+
+                ImVec2 size(128, 128);
+                if (width > height)
+                {
+                    size.y = (height / width) * size.y;
+                }
+                else if (height > width)
+                {
+                    size.x = (width / height) * size.x;
+                }
+
+                ImGui::TableNextColumn();
+                ImGui::PushID(i);
+                if (AchillesImGui::ImageButton(texture, size, ImVec2(0, 0), ImVec2(1, 1), 2))
+                {
+                    if (selectTextureCallback != nullptr)
+                    {
+                        selectTextureCallback(texture);
+                    }
+                    selectingTexture = false;
+                }
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+                    ImGui::SetTooltip(WStringToString(textureName).c_str());
+                ImGui::PopID();
+            }
+
+            ImGui::EndTable();
+        }
+
+    }
+    ImGui::End();
+}
+
+void Thetis::SelectTexture(std::function<void(std::shared_ptr<Texture>)> callback)
+{
+    selectTextureCallback = callback;
+    selectingTexture = true;
+}
+
 void Thetis::OnPostRender(float deltaTime)
 {
     if (showPerformance)
@@ -733,6 +843,10 @@ void Thetis::OnPostRender(float deltaTime)
     if (showCameraProperties)
     {
         DrawImGuiCameraProperties();
+    }
+    if (selectingTexture)
+    {
+        DrawTextureSelection();
     }
 }
 
@@ -767,8 +881,7 @@ void Thetis::LoadContent()
     floorQuad->SetLocalPosition(Vector3(0, -3, 0));
     floorQuad->SetLocalScale(Vector3(10, 10, 10));
 
-    std::shared_ptr<Texture> floorTexture = std::make_shared<Texture>();
-    commandList->LoadTextureFromContent(*floorTexture, L"MyUVSquare", TextureUsage::Albedo);
+    std::shared_ptr<Texture> floorTexture = Texture::AddCachedTextureFromContent(commandList, L"MyUVSquare");
     floorQuad->GetMaterial().SetTexture(L"MainTexture", floorTexture);
     mainScene->AddObjectToScene(floorQuad);
 
@@ -789,6 +902,11 @@ void Thetis::LoadContent()
 
     // Load content/models files into meshNames, used in Thetis' ImGui
     PopulateMeshNames();
+    // Load and cache some extra textures we might use at runtime
+    Texture::AddCachedTextureFromContent(commandList, L"ColorGrid");
+    Texture::AddCachedTextureFromContent(commandList, L"UVGrid", TextureUsage::Linear);
+    Texture::AddCachedTextureFromContent(commandList, L"Icy Planet Diffuse");
+    Texture::AddCachedTextureFromContent(commandList, L"Icy Planet Normal", TextureUsage::Normalmap);
 
     // Execute command list
     uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
@@ -893,13 +1011,14 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
         DeleteSelectedObject();
     }
 
-    // Previously Achilles HandleKeyboard
+    // Previously in Achilles HandleKeyboard
     if (kbt.pressed.Escape)
     {
-        // Close camera popup before closing when ESC hit
-        if (showCameraProperties)
+        if (selectingTexture) // Close Texture select before camera popup
+            selectingTexture = false;
+        else if (showCameraProperties) // Close camera popup before application closing
             showCameraProperties = false;
-        else
+        else // Close application on ESC hit
             PostQuitMessage(0);
     }
 

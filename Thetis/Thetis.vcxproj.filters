@@ -79,9 +79,24 @@
     <None Include="content\models\achilles test 2.fbx">
       <Filter>content\models</Filter>
     </None>
+    <None Include="content\models\uv sphere high.fbx">
+      <Filter>content\models</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\MyUVSquare.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\ColorGrid.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\UVGrid.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Icy Planet Diffuse.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Icy Planet Normal.png">
       <Filter>content\textures</Filter>
     </Image>
   </ItemGroup>

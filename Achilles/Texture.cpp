@@ -71,6 +71,20 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
     }
 }
 
+bool Texture::GetSize(float& width, float& height)
+{
+    width = 0;
+    height = 0;
+    if (d3d12Resource)
+    {
+        CD3DX12_RESOURCE_DESC resDesc(d3d12Resource->GetDesc());
+        width = resDesc.Width;
+        height = resDesc.Height;
+        return true;
+    }
+    return false;
+}
+
 // Get a UAV description that matches the resource description.
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, UINT mipSlice, UINT arraySlice = 0, UINT planeSlice = 0)
 {
@@ -412,10 +426,10 @@ void Texture::AddCachedTexture(std::wstring contentName, std::shared_ptr<Texture
     textureCache[contentName] = texture;
 }
 
-std::shared_ptr<Texture> Texture::AddCachedTextureFromContent(std::shared_ptr<CommandList> commandList, std::wstring contentName)
+std::shared_ptr<Texture> Texture::AddCachedTextureFromContent(std::shared_ptr<CommandList> commandList, std::wstring contentName, TextureUsage textureUsage)
 {
     std::shared_ptr<Texture> texture = std::make_shared<Texture>();
-    commandList->LoadTextureFromContent(*texture, contentName, TextureUsage::Albedo);
+    commandList->LoadTextureFromContent(*texture, contentName, textureUsage);
     AddCachedTexture(contentName, texture);
     return texture;
 }
@@ -428,4 +442,19 @@ std::shared_ptr<Texture> Texture::GetCachedTexture(std::wstring contentName)
         return iter->second;
     }
     return nullptr;
+}
+
+std::vector<std::wstring> Texture::GetCachedTextureNames()
+{
+    std::vector<std::wstring> names{};
+    for (auto pair : textureCache)
+    {
+        names.push_back(pair.first);
+    }
+    return names;
+}
+
+std::map<std::wstring, std::shared_ptr<Texture>>& Texture::GetTextureCache()
+{
+    return textureCache;
 }

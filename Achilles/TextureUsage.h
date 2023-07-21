@@ -8,6 +8,7 @@ enum class TextureUsage
     // Treat height and depth textures the same
     Heightmap,
     Depth = Heightmap,
+    Linear = Depth,
     Normalmap,
     // Texture is used as a render target
     RenderTarget,
