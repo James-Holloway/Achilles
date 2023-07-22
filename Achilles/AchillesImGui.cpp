@@ -7,6 +7,7 @@
 #include <DirectXTex.h>
 
 #include "Helpers.h"
+#include "Profiling.h"
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "RenderTarget.h"
@@ -191,6 +192,7 @@ void AchillesImGui::NewFrame()
 void AchillesImGui::Render(const std::shared_ptr<CommandList>& commandList, const RenderTarget& renderTarget)
 {
     assert(commandList);
+    ScopedTimer _prof(L"AchillesImGui Render");
 
     ImGui::SetCurrentContext(imGuiContext);
     ImPlot::SetImGuiContext(imGuiContext);

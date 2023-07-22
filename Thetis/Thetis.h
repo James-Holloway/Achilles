@@ -20,6 +20,7 @@ protected:
     bool showObjectTree = true;
     bool showProperties = true;
     bool showCameraProperties = false;
+    bool drawPostProcessing = false;
 
     bool selectingTexture = false;
     std::function<void(std::shared_ptr<Texture>)> selectTextureCallback;
@@ -51,6 +52,8 @@ protected:
 
     void DrawTextureSelection();
     void SelectTexture(std::function<void(std::shared_ptr<Texture>)> callback);
+
+    void DrawImGuiPostProcessing();
 
     void PopulateMeshNames();
     void CreateObjectInMainScene(uint32_t meshNameIndex);

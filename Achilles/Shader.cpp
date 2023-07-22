@@ -79,6 +79,10 @@ HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring 
     return S_OK;
 }
 
+Shader::Shader(std::wstring _name) : name(_name)
+{
+}
+
 Shader::Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize) : name(_name), vertexLayout(_vertexLayout), vertexSize(_vertexSize)
 {
 
@@ -120,6 +124,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
 {
     std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize, _renderCallback);
     shader->rootSignature = rootSignature;
+    shader->shaderType = ShaderType::VSPS;
 
     std::wstring shaderPath = GetContentDirectoryW() + L"shaders/" + shaderName + L".hlsl";
 
@@ -223,6 +228,7 @@ std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device
 {
     std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize);
     shader->rootSignature = rootSignature;
+    shader->shaderType = ShaderType::VSPS;
 
     std::wstring shaderPath = GetContentDirectoryW() + L"shaders/" + shaderName + L".hlsl";
 
@@ -306,6 +312,42 @@ std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device
     SRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
     shader->defaultSRV = std::make_shared<ShaderResourceView>(nullptr, &SRV);
+
+    return shader;
+}
+
+std::shared_ptr<Shader> Shader::ShaderCS(ComPtr<ID3D12Device2> device, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName)
+{
+    std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName);
+    shader->rootSignature = rootSignature;
+    shader->shaderType = ShaderType::CS;
+
+    std::wstring shaderPath = GetContentDirectoryW() + L"shaders/" + shaderName + L".hlsl";
+
+    // Compile shaders at runtime
+
+    ComPtr<IDxcBlob> computeShader;
+    ThrowIfFailed(CompileShader(shaderPath, L"CS", L"cs_6_4", computeShader));
+
+    if (computeShader == nullptr)
+        throw std::exception("Shader did not compile");
+
+    struct PipelineStateStream
+    {
+        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        CD3DX12_PIPELINE_STATE_STREAM_CS CS;
+    } pipelineStateStream;
+
+    pipelineStateStream.pRootSignature = rootSignature->GetRootSignature().Get();
+    pipelineStateStream.CS = CD3DX12_SHADER_BYTECODE(computeShader->GetBufferPointer(), computeShader->GetBufferSize());
+
+    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+        sizeof(PipelineStateStream), &pipelineStateStream
+    };
+
+    ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&shader->pipelineState)));
+
+    shader->pipelineState->SetName(shaderName.c_str());
 
     return shader;
 }

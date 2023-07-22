@@ -16,6 +16,13 @@ struct aiScene;
 struct aiMesh;
 struct aiNode;
 
+enum class ShaderType
+{
+    None,
+    VSPS,
+    CS
+};
+
 typedef bool (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
 
 typedef std::shared_ptr<Mesh> (CALLBACK* MeshCreation)(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
@@ -26,6 +33,8 @@ class Shader
 {
 public:
     std::wstring name;
+    ShaderType shaderType;
+
     D3D12_INPUT_ELEMENT_DESC* vertexLayout;
     size_t vertexSize;
     // Root signature
@@ -38,6 +47,7 @@ public:
     ShaderRender renderCallback;
     MeshCreation meshCreateCallback;
 
+    Shader(std::wstring _name);
     Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize);
     Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize, ShaderRender _renderCallback);
 
@@ -48,6 +58,7 @@ public:
     // Presumes shader file is contains two entrypoints - VS + PS for vertex and pixel shaders respectively
     static std::shared_ptr<Shader> ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName, D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK, bool enableTransparency = false);
     static std::shared_ptr<Shader> ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName, uint32_t depthBias = 100);
+    static std::shared_ptr<Shader> ShaderCS(ComPtr<ID3D12Device2> device, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName);
 };
 
 inline void ThrowBlobIfFailed(HRESULT hr, ComPtr<ID3DBlob> errorBlob)

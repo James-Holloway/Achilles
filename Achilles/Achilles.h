@@ -20,6 +20,7 @@
 #include "Lights.h"
 #include "SpriteObject.h"
 #include "LightObject.h"
+#include "PostProcessing.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -82,6 +83,7 @@ public:
     // Public variables
     FLOAT clearColor[4] = { 0.4f, 0.58f, 0.93f, 1.0f }; // Cornflower Blue
     double lastFPS = 0.0;
+    bool postProcessingEnable = true;
 
 protected:
     // Protected variables for internal use
@@ -105,6 +107,7 @@ protected:
 
     // Drawing states
     LightData lightData{};
+    std::shared_ptr<PostProcessing> postProcessing;
 
 public:
     // Constructor and destructor functions
@@ -148,6 +151,7 @@ protected:
     void HandleMouse(int& mouseX, int& mouseY, int& scroll, DirectX::Mouse::State& state);
     void Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList);
     void LoadInternalContent();
+    virtual void ApplyPostProcessing(std::shared_ptr<Texture> texture);
 
 public:
     // Achilles functions to run things

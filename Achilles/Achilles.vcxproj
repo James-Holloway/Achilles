@@ -212,6 +212,8 @@
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PanoToCubemapPSO.cpp" />
+    <ClCompile Include="PostProcessing.cpp" />
+    <ClCompile Include="Profiling.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="ResourceStateTracker.cpp" />
@@ -223,6 +225,8 @@
     <ClCompile Include="shaders\CommonShader.cpp" />
     <ClCompile Include="shaders\PosCol.cpp" />
     <ClCompile Include="shaders\PosTextured.cpp" />
+    <ClCompile Include="shaders\PPBloom.cpp" />
+    <ClCompile Include="shaders\PPBlur.cpp" />
     <ClCompile Include="shaders\SpriteUnlit.cpp" />
     <ClCompile Include="ShadowCamera.cpp" />
     <ClCompile Include="ShadowMap.cpp" />
@@ -231,6 +235,7 @@
     <ClCompile Include="StructuredBuffer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="ThreadSafeQueue.cpp" />
+    <ClCompile Include="UnorderedAccessView.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
     <ClCompile Include="VertexBuffer.cpp" />
   </ItemGroup>
@@ -272,6 +277,9 @@
     <ClInclude Include="Object.h" />
     <ClInclude Include="ObjectTag.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
+    <ClInclude Include="PostProcessing.h" />
+    <ClInclude Include="Profiling.h" />
+    <ClInclude Include="shaders\PPBloom.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceStateTracker.h" />
@@ -284,6 +292,7 @@
     <ClInclude Include="shaders\CommonShader.h" />
     <ClInclude Include="shaders\PosCol.h" />
     <ClInclude Include="shaders\PosTextured.h" />
+    <ClInclude Include="shaders\PPBlur.h" />
     <ClInclude Include="shaders\SpriteUnlit.h" />
     <ClInclude Include="ShadowCamera.h" />
     <ClInclude Include="ShadowMap.h" />
@@ -294,10 +303,14 @@
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureUsage.h" />
     <ClInclude Include="ThreadSafeQueue.h" />
+    <ClInclude Include="UnorderedAccessView.h" />
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="content\shaders\ColorCommon.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -329,6 +342,33 @@
     <None Include="content\shaders\ShadowMapping.hlsl">
       <FileType>Document</FileType>
       <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\PPBloomExtract.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\PPBloomDownsample.hlsl">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\shaders\PPBlur.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="content\shaders\PPBlurUpsample.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\PPBloomApply.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

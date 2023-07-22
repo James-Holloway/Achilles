@@ -798,7 +798,7 @@ void Thetis::DrawTextureSelection()
                 }
 
                 ImGui::TableNextColumn();
-                ImGui::PushID(i);
+                ImGui::PushID((int)i);
                 if (AchillesImGui::ImageButton(texture, size, ImVec2(0, 0), ImVec2(1, 1), 2))
                 {
                     if (selectTextureCallback != nullptr)
@@ -825,8 +825,29 @@ void Thetis::SelectTexture(std::function<void(std::shared_ptr<Texture>)> callbac
     selectingTexture = true;
 }
 
+void Thetis::DrawImGuiPostProcessing()
+{
+    if (ImGui::Begin("Post Processing", &drawPostProcessing))
+    {
+        ImVec2 windowSize = ImVec2(300, 400);
+        ImGui::SetWindowSize(windowSize, ImGuiCond_Once);
+        ImGui::SetWindowPos(ImVec2(clientWidth / 2.0f - (windowSize.x / 2.0f), clientHeight / 2.0f - (windowSize.y / 2.0f)), ImGuiCond_Once);
+        ImGui::Checkbox("Enable Post Processing", &postProcessingEnable);
+        ImGui::Separator();
+        if (postProcessing != nullptr)
+        {
+            ImGui::Checkbox("Enable Bloom", &postProcessing->EnableBloom);
+            ImGui::DragFloat("Bloom Strength", &postProcessing->BloomStrength, 0.01f, 0.0f, 2.0f, "%.2f");
+            ImGui::DragFloat("Bloom Threshold", &postProcessing->BloomThreshold, 0.1f, 0.0f, 8.0f, "%.2f");
+            ImGui::DragFloat("Bloom Upsample Factor", &postProcessing->BloomUpsampleFactor, 0.01f, 0.0f, 2.0f, "%.2f");
+        }
+    }
+    ImGui::End();
+}
+
 void Thetis::OnPostRender(float deltaTime)
 {
+    ScopedTimer _prof(L"OnPostRender");
     if (showPerformance)
     {
         DrawImGuiPerformance();
@@ -847,6 +868,10 @@ void Thetis::OnPostRender(float deltaTime)
     if (selectingTexture)
     {
         DrawTextureSelection();
+    }
+    if (drawPostProcessing)
+    {
+        DrawImGuiPostProcessing();
     }
 }
 
@@ -908,6 +933,9 @@ void Thetis::LoadContent()
     Texture::AddCachedTextureFromContent(commandList, L"Icy Planet Diffuse");
     Texture::AddCachedTextureFromContent(commandList, L"Icy Planet Normal", TextureUsage::Normalmap);
 
+    // Create post processing class
+    postProcessing = std::make_shared<PostProcessing>((float)clientWidth, (float)clientHeight);
+
     // Execute command list
     uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
     commandQueue->WaitForFenceValue(fenceValue);
@@ -942,6 +970,10 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     if (kb.LeftShift && kbt.pressed.F5)
     {
         showCameraProperties = !showCameraProperties;
+    }
+    if (kb.LeftControl && kbt.pressed.F5)
+    {
+        drawPostProcessing = !drawPostProcessing;
     }
 
     if (kbt.pressed.PageUp)
@@ -1014,8 +1046,10 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     // Previously in Achilles HandleKeyboard
     if (kbt.pressed.Escape)
     {
-        if (selectingTexture) // Close Texture select before camera popup
+        if (selectingTexture) // Close Texture select before post processing properties
             selectingTexture = false;
+        else if (drawPostProcessing) // Close post processing properties before camera popup
+            drawPostProcessing = false;
         else if (showCameraProperties) // Close camera popup before application closing
             showCameraProperties = false;
         else // Close application on ESC hit
@@ -1025,6 +1059,20 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     if (kbt.pressed.V)
     {
         vSync = !vSync;
+    }
+
+    // Press B to toggle bloom
+    if (kbt.pressed.B)
+    {
+        if (postProcessing != nullptr)
+        {
+            postProcessing->EnableBloom = !postProcessing->EnableBloom;
+        }
+    }
+
+    if (kbt.pressed.P)
+    {
+        Profiling::ProfilerShouldPrint = true;
     }
 }
 

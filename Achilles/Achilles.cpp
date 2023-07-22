@@ -383,6 +383,7 @@ std::shared_ptr<RenderTarget> Achilles::GetSwapChainRenderTarget() const
 // Stall CPU while we signal and wait
 void Achilles::Flush()
 {
+    ScopedTimer _prof(L"Full Flush");
     directCommandQueue->Flush();
     computeCommandQueue->Flush();
     copyCommandQueue->Flush();
@@ -497,6 +498,7 @@ void Achilles::HandleMouse(int& mouseX, int& mouseY, int& scroll, Mouse::State& 
 
 void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList)
 {
+    ScopedTimer _prof(L"Present");
     std::shared_ptr<Texture> backBuffer = backBuffers[currentBackBufferIndex];
 
     std::shared_ptr<RenderTarget> currentRT = GetCurrentRenderTarget();
@@ -548,9 +550,21 @@ void Achilles::LoadInternalContent()
     commandQueue->ExecuteCommandList(commandList);
 }
 
+void Achilles::ApplyPostProcessing(std::shared_ptr<Texture> texture)
+{
+    ScopedTimer _prof(L"Apply Post Processing");
+    if (postProcessing != nullptr && postProcessingEnable)
+    {
+        postProcessing->ApplyPostProcessing(texture);
+    }
+}
+
 // Achilles functions
 void Achilles::Update()
 {
+    Profiling::ClearFrame();
+    ScopedTimer _prof(L"Update");
+
     std::chrono::steady_clock::time_point currClock = clock.now();
     std::chrono::duration<long long, std::nano> deltaTime = currClock - prevUpdateClock;
     prevUpdateClock = currClock;
@@ -599,6 +613,7 @@ void Achilles::Update()
 
 void Achilles::Render()
 {
+    ScopedTimer _prof(L"Render");
     frameCounter++;
     std::chrono::steady_clock::time_point currClock = clock.now();
     std::chrono::duration<long long, std::nano> deltaTime = currClock - prevRenderClock;
@@ -612,6 +627,7 @@ void Achilles::Render()
     std::shared_ptr<Texture> rtTexture = rt->GetTexture(AttachmentPoint::Color0);
     // Clear render target
     {
+        ScopedTimer _prof(L"Clear RT");
         // Transition into a state from which we can clear the RT
         directCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -636,9 +652,22 @@ void Achilles::Render()
     DrawQueuedEvents(directCommandList); // Rendering deferred
     OnPostRender(dt);
 
-    directCommandQueue->ExecuteCommandList(directCommandList);
+    // Transition ready for post processing's compute command list
+    directCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+
+    {
+        ScopedTimer _prof(L"Execute Command List & Flush");
+        directCommandQueue->ExecuteCommandList(directCommandList);
+        directCommandQueue->Flush(); // Required else we crash when accessing rtTexture from compute (only when debugger is not present though)
+    }
+
+    // Apply post processing effects to the RT
+    ApplyPostProcessing(rtTexture);
 
     std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();
+
+    // Transition back from post processing's compute command list
+    presentCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
 
     achillesImGui->Render(presentCommandList, *GetCurrentRenderTarget());
 
@@ -653,6 +682,8 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 {
     if (clientWidth != width || clientHeight != height)
     {
+        ScopedTimer _prof(L"Resize");
+
         // Don't allow 0 size swap chain back buffers.
         clientWidth = std::max(1u, width);
         clientHeight = std::max(1u, height);
@@ -680,6 +711,11 @@ void Achilles::Resize(uint32_t width, uint32_t height)
         UpdateRenderTargetViews();
 
         Flush();
+
+        if (postProcessing != nullptr)
+        {
+            postProcessing->Resize(clientWidth, clientHeight);
+        }
 
         OnResize(clientWidth, clientHeight);
     }
@@ -884,6 +920,7 @@ std::shared_ptr<Scene> Achilles::GetMainScene()
 
 void Achilles::DrawActiveScenes()
 {
+    ScopedTimer _prof(L"DrawActiveScenes");
     ClearLightData(lightData);
 
     // Pre-scene-render light gathering pass
@@ -907,6 +944,7 @@ void Achilles::DrawActiveScenes()
 
 void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 {
+    ScopedTimer _prof(L"DrawShadowScenes");
     // Get all objects from each active scene
     std::vector<std::shared_ptr<Object>> flattenedScenes;
     for (std::shared_ptr<Scene> scene : scenes)
@@ -1253,6 +1291,7 @@ void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, st
 
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
+    ScopedTimer _prof(L"DrawQueuedEvents");
     while (!drawEventQueue.empty())
     {
         DrawEvent de = drawEventQueue.front();

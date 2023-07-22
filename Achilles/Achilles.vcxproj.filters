@@ -21,7 +21,7 @@
     </Filter>
     <Filter Include="content\shaders">
       <UniqueIdentifier>{8c07c858-f7e0-4d48-bfaa-c67e03241a33}</UniqueIdentifier>
-      <Extensions>hlsl</Extensions>
+      <Extensions>hlsl;hlsli</Extensions>
     </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{2a4e7fec-5b5f-4e2c-957f-7cddb7f12d41}</UniqueIdentifier>
@@ -192,6 +192,21 @@
     </ClCompile>
     <ClCompile Include="shaders\BlinnPhong.cpp">
       <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="PostProcessing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UnorderedAccessView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\PPBloom.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\PPBlur.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="Profiling.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -378,6 +393,21 @@
     <ClInclude Include="shaders\BlinnPhong.h">
       <Filter>Shaders</Filter>
     </ClInclude>
+    <ClInclude Include="PostProcessing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UnorderedAccessView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\PPBloom.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\PPBlur.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Profiling.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -396,10 +426,28 @@
     <None Include="content\shaders\ShadowMapping.hlsl">
       <Filter>content\shaders</Filter>
     </None>
+    <None Include="content\shaders\ColorCommon.hlsli">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPBloomExtract.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPBloomDownsample.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPBlurUpsample.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPBlur.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPBloomApply.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\lightbulb.png">
-      <Filter>Resource Files</Filter>
+      <Filter>content\textures</Filter>
     </Image>
   </ItemGroup>
 </Project>

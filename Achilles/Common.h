@@ -46,6 +46,8 @@
 #include "Helpers.h"
 #include "MathHelpers.h"
 
+#include "Profiling.h"
+
 #if defined(min)
 #undef min
 #endif

@@ -363,9 +363,10 @@ LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 
         result.Specular += lightResult.Specular;
     }
     
-    result.Diffuse = saturate(result.Diffuse);
-    result.Specular = saturate(result.Specular);
-    result.Ambient = saturate(AmbientLightCB.Color.rgb * AmbientLightCB.Strength);
+    // result.Diffuse = saturate(result.Diffuse);
+    // result.Specular = saturate(result.Specular);
+    // result.Ambient = saturate(AmbientLightCB.Color.rgb * AmbientLightCB.Strength);
+    result.Ambient = AmbientLightCB.Color.rgb * AmbientLightCB.Strength;
     
     return result;
 }

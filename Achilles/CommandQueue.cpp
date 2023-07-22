@@ -205,6 +205,8 @@ void CommandQueue::ProccessInFlightCommandLists()
 {
     std::unique_lock<std::mutex> lock(processInFlightCommandListsThreadMutex, std::defer_lock);
 
+    SetThreadName(GetCurrentThreadId(), "ProccessInFlightCommandLists");
+
     while (processInFlightCommandLists)
     {
         CommandListEntry commandListEntry;
