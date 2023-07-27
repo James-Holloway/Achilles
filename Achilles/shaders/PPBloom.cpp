@@ -203,7 +203,7 @@ void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_p
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 0, *bloomBuffer1[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 0, *texture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    commandList->Dispatch(bloomWidth, bloomHeight);
+    commandList->Dispatch2D(bloomWidth, bloomHeight);
 
     commandList->FlushResourceBarriers();
 
@@ -222,7 +222,7 @@ void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_p
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 2, *bloomBuffer4[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 3, *bloomBuffer5[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    commandList->Dispatch(bloomWidth / 2, bloomHeight / 2);
+    commandList->Dispatch2D(bloomWidth / 2, bloomHeight / 2);
 
     commandList->FlushResourceBarriers();
 
@@ -251,7 +251,7 @@ void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_p
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 0, *bloomIntermediaryTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 1, *bloomLumaBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    commandList->Dispatch((uint32_t)textureWidth, (uint32_t)textureHeight);
+    commandList->Dispatch2D((uint32_t)textureWidth, (uint32_t)textureHeight);
 
     commandList->FlushResourceBarriers();
 

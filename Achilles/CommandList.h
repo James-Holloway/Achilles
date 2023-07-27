@@ -311,6 +311,9 @@ public:
     // Dispatch a compute shader.
     void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
+    // Dispatch a compute shader using thread count rather than group size
+    void Dispatch2D(uint32_t ThreadCountX, uint32_t ThreadCountY, uint32_t GroupSizeX = 8, uint32_t GroupSizeY = 8);
+
     // **************************************************************************
     // Methods defined below are only intended to be used by internal classes.  *
     // **************************************************************************

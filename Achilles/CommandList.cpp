@@ -1169,6 +1169,11 @@ void CommandList::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t nu
     d3d12CommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);
 }
 
+void CommandList::Dispatch2D(uint32_t ThreadCountX, uint32_t ThreadCountY, uint32_t GroupSizeX, uint32_t GroupSizeY)
+{
+    Dispatch(DivideByMultiple(ThreadCountX, GroupSizeX), DivideByMultiple(ThreadCountY, GroupSizeY));
+}
+
 bool CommandList::Close(CommandList& pendingCommandList)
 {
     // Flush any remaining barriers.

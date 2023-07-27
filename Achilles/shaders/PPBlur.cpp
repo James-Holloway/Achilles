@@ -87,7 +87,7 @@ void PPBlur::BlurTexture(std::shared_ptr<CommandList> commandList, std::shared_p
         commandList->SetPipelineState(shader->pipelineState);
         commandList->SetComputeRootSignature(*shader->rootSignature);
 
-        commandList->Dispatch(bufferWidth, bufferHeight);
+        commandList->Dispatch2D(bufferWidth, bufferHeight);
     }
     else // Upsample and blur
     {
@@ -107,7 +107,7 @@ void PPBlur::BlurTexture(std::shared_ptr<CommandList> commandList, std::shared_p
         commandList->SetPipelineState(shader->pipelineState);
         commandList->SetComputeRootSignature(*shader->rootSignature);
 
-        commandList->Dispatch(bufferWidth, bufferHeight);
+        commandList->Dispatch2D(bufferWidth, bufferHeight);
     }
     commandList->FlushResourceBarriers();
 }
