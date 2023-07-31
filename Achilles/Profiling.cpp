@@ -81,14 +81,14 @@ void Profiling::Print()
 
 ScopedTimer::ScopedTimer(const std::wstring& name)
 {
-#if _DEBUG
+#if defined(_DEBUG) || defined(_UNOPTIMIZED)
     Profiling::BeginBlock(name);
 #endif
 }
 
 ScopedTimer::~ScopedTimer()
 {
-#if _DEBUG
+#if defined(_DEBUG) || defined(_UNOPTIMIZED)
     Profiling::EndBlock();
 #endif
 }

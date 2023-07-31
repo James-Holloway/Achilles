@@ -76,7 +76,7 @@ void Achilles::ParseCommandLineArguments()
 
 void Achilles::EnableDebugLayer()
 {
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(_UNOPTIMIZED)
     // PIXLoadLatestWinPixGpuCapturerLibrary();
     // PIXLoadLatestWinPixTimingCapturerLibrary();
 
@@ -221,7 +221,7 @@ ComPtr<ID3D12Device2> Achilles::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
     ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
 
     // Enable debug messages in debug mode.
-#if defined(_DEBUG)
+#if defined(_DEBUG)|| defined(_UNOPTIMIZED)
     ComPtr<ID3D12InfoQueue> pInfoQueue;
     if (SUCCEEDED(d3d12Device2.As(&pInfoQueue)))
     {
@@ -266,7 +266,7 @@ ComPtr<IDXGISwapChain4> Achilles::CreateSwapChain(HWND hWnd, ComPtr<ID3D12Comman
     ComPtr<IDXGISwapChain4> dxgiSwapChain4;
     ComPtr<IDXGIFactory4> dxgiFactory4;
     UINT createFactoryFlags = 0;
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(_UNOPTIMIZED)
     createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 

@@ -19,7 +19,7 @@ HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring 
     };
 
     // Indicate that the shader should be in a debuggable state if in debug mode
-#if _DEBUG
+#if defined(_DEBUG) || defined(_UNOPTIMIZED)
     compilationArguments.push_back(L"-Zs"); // Enable debug information (slim format)
 #else
     compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
