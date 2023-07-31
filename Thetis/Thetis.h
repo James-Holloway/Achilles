@@ -21,6 +21,7 @@ protected:
     bool showProperties = true;
     bool showCameraProperties = false;
     bool drawPostProcessing = false;
+    bool drawSkyboxProperties = false;
 
     bool selectingTexture = false;
     std::function<void(std::shared_ptr<Texture>)> selectTextureCallback;
@@ -54,6 +55,7 @@ protected:
     void SelectTexture(std::function<void(std::shared_ptr<Texture>)> callback);
 
     void DrawImGuiPostProcessing();
+    void DrawImGuiSkyboxProperties();
 
     void PopulateMeshNames();
     void CreateObjectInMainScene(uint32_t meshNameIndex);

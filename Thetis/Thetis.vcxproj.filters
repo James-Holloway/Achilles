@@ -99,5 +99,8 @@
     <Image Include="content\textures\Icy Planet Normal.png">
       <Filter>content\textures</Filter>
     </Image>
+    <Image Include="content\textures\OutdoorHDRI064_4K-TONEMAPPED.jpg">
+      <Filter>content\textures</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -845,6 +845,97 @@ void Thetis::DrawImGuiPostProcessing()
     ImGui::End();
 }
 
+void Thetis::DrawImGuiSkyboxProperties()
+{
+    if (ImGui::Begin("Skybox", &drawSkyboxProperties))
+    {
+        ImVec2 windowSize = ImVec2(300, 550);
+        ImGui::SetWindowSize(windowSize, ImGuiCond_Once);
+        ImGui::SetWindowPos(ImVec2(clientWidth / 2.0f - (windowSize.x / 2.0f), clientHeight / 2.0f - (windowSize.y / 2.0f)), ImGuiCond_Once);
+
+        if (skydome != nullptr)
+        {
+            bool skyboxActive = skydome->IsActive();
+            if (ImGui::Checkbox("Skybox Active", &skyboxActive))
+            {
+                skydome->SetActive(skyboxActive);
+            }
+
+            ImGui::Separator();
+
+            Material& skyMaterial = skydome->GetMaterial(0);
+
+            Color skyColor = skyMaterial.GetVector(L"SkyColor");
+            if (ImGui::ColorEdit3("Sky Color", &skyColor.x))
+                skyMaterial.SetVector(L"SkyColor", skyColor);
+
+            Color upSkyColor = skyMaterial.GetVector(L"UpSkyColor");
+            if (ImGui::ColorEdit3("Up Sky Color", &upSkyColor.x))
+                skyMaterial.SetVector(L"UpSkyColor", upSkyColor);
+
+            Color horizonColor = skyMaterial.GetVector(L"HorizonColor");
+            if (ImGui::ColorEdit3("Horizon Color", &horizonColor.x))
+                skyMaterial.SetVector(L"HorizonColor", horizonColor);
+
+            Color groundColor = skyMaterial.GetVector(L"GroundColor");
+            if (ImGui::ColorEdit3("Ground Color", &groundColor.x))
+                skyMaterial.SetVector(L"GroundColor", groundColor);
+
+            ImGui::Separator();
+
+            float primarySunSize = skyMaterial.GetFloat(L"PrimarySunSize");
+            if (ImGui::DragFloat("Sun Size", &primarySunSize, 0.05f, 0.0f, 10.0f, "%.2f"))
+                skyMaterial.SetFloat(L"PrimarySunSize", primarySunSize);
+
+            float primarySunShineExponent = skyMaterial.GetFloat(L"PrimarySunShineExponent");
+            if (ImGui::DragFloat("Primary Sun Shine Exponent", &primarySunShineExponent, 0.1f, 0.0f, 64.0f, "%.1f"))
+                skyMaterial.SetFloat(L"PrimarySunShineExponent", primarySunShineExponent);
+
+            bool debugCheck = skyMaterial.GetFloat(L"Debug") > 0.5f;
+            if (ImGui::Checkbox("Debug", &debugCheck))
+            {
+                skyMaterial.SetFloat(L"Debug", debugCheck ? 1.0f : 0.0f);
+            }
+
+            bool hideSunBehindHorizon = skyMaterial.GetFloat(L"HideSunBehindHorizon");
+            if (ImGui::Checkbox("Hide Sun Behind Horizon", &hideSunBehindHorizon))
+            {
+                skyMaterial.SetFloat(L"HideSunBehindHorizon", hideSunBehindHorizon ? 1.0f : 0.0f);
+            }
+
+            // Cubemap Texture
+            ImGui::Text("Cubemap Texture");
+            std::shared_ptr<Texture> cubemap = skyMaterial.GetTexture(L"Cubemap");
+
+            if (cubemap == nullptr)
+            {
+                if (ImGui::Button("No Texture", ImVec2(256, 256)))
+                {
+                    SelectTexture([&](std::shared_ptr<Texture> newTexture) { skyMaterial.SetTexture(L"Cubemap", newTexture); });
+                }
+            }
+            else
+            {
+                float width = 0.0f;
+                float height = 0.0f;
+                cubemap->GetSize(width, height);
+
+                ImVec2 size(256, 256);
+                if (width > height)
+                    size.y = (height / width) * size.y;
+                else if (height > width)
+                    size.x = (width / height) * size.x;
+
+                if (AchillesImGui::ImageButton(cubemap, size, ImVec2(0, 0), ImVec2(1, 1), 2))
+                {
+                    SelectTexture([&](std::shared_ptr<Texture> newTexture) { skyMaterial.SetTexture(L"Cubemap", newTexture); });
+                }
+            }
+        }
+    }
+    ImGui::End();
+}
+
 void Thetis::OnPostRender(float deltaTime)
 {
     ScopedTimer _prof(L"OnPostRender");
@@ -873,6 +964,10 @@ void Thetis::OnPostRender(float deltaTime)
     {
         DrawImGuiPostProcessing();
     }
+    if (drawSkyboxProperties)
+    {
+        DrawImGuiSkyboxProperties();
+    }
 }
 
 void Thetis::OnResize(int newWidth, int newHeight)
@@ -888,6 +983,9 @@ void Thetis::LoadContent()
     // Get command queue + list
     std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
     std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+
+    std::shared_ptr<CommandQueue> computeQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    std::shared_ptr<CommandList> computeList = computeQueue->GetCommandList();
 
     // Create camera
     camera = std::make_shared<Camera>(L"Thetis Camera", clientWidth, clientHeight);
@@ -925,6 +1023,13 @@ void Thetis::LoadContent()
     spotLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
     mainScene->AddObjectToScene(spotLightObject);
 
+    std::shared_ptr<LightObject> sunLightObject = std::make_shared<LightObject>(L"Sun");
+    sunLightObject->AddLight(DirectionalLight());
+    sunLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
+    sunLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+    sunLightObject->SetActive(false);
+    mainScene->AddObjectToScene(sunLightObject);
+
     // Load content/models files into meshNames, used in Thetis' ImGui
     PopulateMeshNames();
     // Load and cache some extra textures we might use at runtime
@@ -933,12 +1038,26 @@ void Thetis::LoadContent()
     Texture::AddCachedTextureFromContent(commandList, L"Icy Planet Diffuse");
     Texture::AddCachedTextureFromContent(commandList, L"Icy Planet Normal", TextureUsage::Normalmap);
 
+    // Load Outdoor HDRI 064 HDRI from Pano to Cubemap
+    std::shared_ptr<Texture> outdoorPano = std::make_shared<Texture>(TextureUsage::Linear, L"Outdoor HDRI 064 Pano");
+    commandList->LoadTextureFromContent(*outdoorPano, L"OutdoorHDRI064_4K-TONEMAPPED", TextureUsage::Linear);
+    std::shared_ptr<Texture> outdoorCubemap = CreateCubemap(1024, 1024);
+    outdoorCubemap->SetName(L"Outdoor HDRI 64 Cubemap");
+    computeList->PanoToCubemap(*outdoorCubemap, *outdoorPano);
+    // Set the skybox's cubemap texture
+    skydome->GetMaterial().SetTexture(L"Cubemap", outdoorCubemap);
+    Texture::AddCachedTexture(L"Outdoor HDRI 64 Cubemap", outdoorCubemap);
+
     // Create post processing class
     postProcessing = std::make_shared<PostProcessing>((float)clientWidth, (float)clientHeight);
 
-    // Execute command list
+    // Execute direct command list
     uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);
     commandQueue->WaitForFenceValue(fenceValue);
+
+    // Execute compute command list
+    fenceValue = computeQueue->ExecuteCommandList(computeList);
+    computeQueue->WaitForFenceValue(fenceValue);
 }
 
 void Thetis::UnloadContent()
@@ -974,6 +1093,10 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     if (kb.LeftControl && kbt.pressed.F5)
     {
         drawPostProcessing = !drawPostProcessing;
+    }
+    if (kb.LeftControl && kbt.pressed.F6)
+    {
+        drawSkyboxProperties = !drawSkyboxProperties;
     }
 
     if (kbt.pressed.PageUp)
@@ -1046,8 +1169,10 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     // Previously in Achilles HandleKeyboard
     if (kbt.pressed.Escape)
     {
-        if (selectingTexture) // Close Texture select before post processing properties
+        if (selectingTexture) // Close Texture select before skybox properties
             selectingTexture = false;
+        else if (drawSkyboxProperties) // Close skybox properties before post processing properties
+            drawSkyboxProperties = false;
         else if (drawPostProcessing) // Close post processing properties before camera popup
             drawPostProcessing = false;
         else if (showCameraProperties) // Close camera popup before application closing

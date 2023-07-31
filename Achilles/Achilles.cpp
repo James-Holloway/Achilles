@@ -1,5 +1,6 @@
 #include "Achilles.h"
 #include "shaders/ShadowMapping.h"
+#include "shaders/Skybox.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -547,6 +548,19 @@ void Achilles::LoadInternalContent()
 
     Texture::AddCachedTextureFromContent(commandList, L"lightbulb");
 
+    {
+        skydome = Object::CreateObjectsFromContentFile(L"skydome.fbx", Skybox::GetSkyboxShader(device));
+        // Set skydome material vectors to the same as the skybox info defaults
+        Skybox::SkyboxInfo skyboxInfo;
+        Material& skydomeMaterial = skydome->GetMaterial(0);
+        skydomeMaterial.SetVector(L"SkyColor", skyboxInfo.SkyColor);
+        skydomeMaterial.SetVector(L"UpSkyColor", skyboxInfo.UpSkyColor);
+        skydomeMaterial.SetVector(L"HorizonColor", skyboxInfo.HorizonColor);
+        skydomeMaterial.SetVector(L"GroundColor", skyboxInfo.GroundColor);
+        skydomeMaterial.SetFloat(L"PrimarySunSize", skyboxInfo.PrimarySunSize);
+        skydomeMaterial.SetFloat(L"PrimarySunShineExponent", skyboxInfo.PrimarySunShineExponent);
+    }
+
     commandQueue->ExecuteCommandList(commandList);
 }
 
@@ -650,6 +664,7 @@ void Achilles::Render()
     DrawActiveScenes(); // Deferred
     DrawShadowScenes(directCommandList); // Immediate
     DrawQueuedEvents(directCommandList); // Rendering deferred
+    DrawSkybox(directCommandList, lightData); // Draw skybox last
     OnPostRender(dt);
 
     // Transition ready for post processing's compute command list
@@ -912,6 +927,14 @@ std::shared_ptr<Texture> Achilles::CreateTexture(ComPtr<ID3D12Resource> resource
     return std::make_shared<Texture>(resource, clearValue);
 }
 
+std::shared_ptr<Texture> Achilles::CreateCubemap(uint32_t width, uint32_t height)
+{
+    CD3DX12_RESOURCE_DESC cubemapResourceDesc;
+    cubemapResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 6, 0, 1U, 0U, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    std::shared_ptr<Texture> cubemap = std::make_shared<Texture>(cubemapResourceDesc, nullptr, TextureUsage::Albedo, L"Unnamed Cubemap");
+    return cubemap;
+}
+
 // Scene functions
 std::shared_ptr<Scene> Achilles::GetMainScene()
 {
@@ -1108,7 +1131,7 @@ void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
         de.camera = Camera::debugShadowCamera;
 
     de.eventType = DrawEventType::DrawIndexed;
-    drawEventQueue.push(de);
+    drawEventQueue.push_back(de);
 }
 
 void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
@@ -1120,7 +1143,7 @@ void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
     de.object = object;
     de.camera = Camera::mainCamera;
     de.eventType = DrawEventType::DrawSprite;
-    drawEventQueue.push(de);
+    drawEventQueue.push_back(de);
 }
 
 void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
@@ -1169,6 +1192,47 @@ void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedS
     }
 }
 
+void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& lightData)
+{
+    if (skydome == nullptr)
+        return;
+    if (skydome->GetKnitCount() <= 0)
+        return;
+    if (!skydome->IsActive()) // Don't draw the skybox if the object is inactive
+        return;
+
+    std::shared_ptr<Mesh> mesh = skydome->GetMesh(0);
+    Material material = skydome->GetMaterial(0);
+    std::shared_ptr<Shader> skyboxShader = material.shader;
+    if (mesh == nullptr || skyboxShader == nullptr)
+        return;
+
+    std::shared_ptr<RenderTarget> RT = GetCurrentRenderTarget();
+    if (RT == nullptr)
+        return;
+
+    commandList->SetRenderTarget(*RT);
+
+    commandList->SetPipelineState(skyboxShader->pipelineState);
+    commandList->SetGraphicsRootSignature(*skyboxShader->rootSignature);
+
+    std::shared_ptr<Camera> camera = Camera::mainCamera;
+    if (camera == nullptr)
+        return;
+
+    commandList->SetViewport(camera->viewport);
+    commandList->SetScissorRect(camera->scissorRect);
+
+    if (!skyboxShader->renderCallback(commandList, skydome, 0, mesh, material, camera, lightData))
+        return;
+
+    commandList->SetPrimitiveTopology(mesh->topology);
+    commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
+    commandList->SetIndexBuffer(*mesh->indexBuffer);
+
+    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+}
+#pragma optimize("s", on)
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
 {
     std::shared_ptr<Mesh> mesh = object->GetMesh(knitIndex);
@@ -1292,10 +1356,8 @@ void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, st
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
     ScopedTimer _prof(L"DrawQueuedEvents");
-    while (!drawEventQueue.empty())
+    for (DrawEvent de : drawEventQueue)
     {
-        DrawEvent de = drawEventQueue.front();
-        drawEventQueue.pop();
         switch (de.eventType)
         {
         case DrawEventType::Ignore:
@@ -1308,9 +1370,10 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
             break;
         }
     }
+    drawEventQueue.clear();
 }
-
+#pragma optimize("", on)
 void Achilles::EmptyDrawQueue()
 {
-    std::queue<DrawEvent>().swap(drawEventQueue);
+    std::deque<DrawEvent>().swap(drawEventQueue);
 }

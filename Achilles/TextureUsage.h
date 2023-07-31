@@ -12,4 +12,5 @@ enum class TextureUsage
     Normalmap,
     // Texture is used as a render target
     RenderTarget,
+    sRGB,
 };

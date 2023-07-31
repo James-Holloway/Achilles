@@ -238,7 +238,7 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
             ThrowIfFailed(LoadFromWICFile(fileName.c_str(), WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
         }
 
-        if (textureUsage == TextureUsage::Albedo)
+        if (textureUsage == TextureUsage::sRGB)
         {
             metadata.format = MakeSRGB(metadata.format);
         }
@@ -463,6 +463,7 @@ void CommandList::GenerateMips_UAV(Texture& texture)
     SetComputeRootSignature(generateMipsPSO->GetRootSignature());
 
     GenerateMipsCB generateMipsCB;
+    generateMipsCB.IsSRGB = texture.GetTextureUsage() == TextureUsage::sRGB;
 
     for (uint32_t srcMip = 0; srcMip < resourceDesc.MipLevels - 1u; )
     {

@@ -29,6 +29,10 @@
     <Filter Include="content\textures">
       <UniqueIdentifier>{9b206ff0-2318-4fa1-ba41-e42dd358ea54}</UniqueIdentifier>
     </Filter>
+    <Filter Include="content\models">
+      <UniqueIdentifier>{387bba8b-ffe0-4c2a-b52f-4afe8a92e991}</UniqueIdentifier>
+      <Extensions>fbx</Extensions>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Achilles.cpp">
@@ -207,6 +211,9 @@
     </ClCompile>
     <ClCompile Include="Profiling.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\Skybox.cpp">
+      <Filter>Shaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -408,6 +415,9 @@
     <ClInclude Include="Profiling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\Skybox.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -442,6 +452,21 @@
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\shaders\PPBloomApply.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\Skybox.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\models\skydome.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\shaders\CommonShader.hlsli">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\Lighting.hlsli">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\Shadows.hlsli">
       <Filter>content\shaders</Filter>
     </None>
   </ItemGroup>

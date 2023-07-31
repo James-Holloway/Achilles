@@ -17,11 +17,13 @@ Texture::Texture(ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* _clea
 
 Texture::Texture(const Texture& copy) : Resource(copy)
 {
+    textureUsage = copy.textureUsage;
     CreateViews();
 }
 
 Texture::Texture(Texture&& copy) noexcept : Resource(copy)
 {
+    textureUsage = copy.textureUsage;
     CreateViews();
 }
 

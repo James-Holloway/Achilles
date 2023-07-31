@@ -98,8 +98,9 @@ protected:
     std::deque<double> historicalFrameTimes{};
 
     // Achilles drawing internals
-    std::queue<DrawEvent> drawEventQueue{};
+    std::deque<DrawEvent> drawEventQueue{};
     std::shared_ptr<AchillesImGui> achillesImGui;
+    std::shared_ptr<Object> skydome;
 
     // Scene objects
     std::shared_ptr<Scene> mainScene;
@@ -178,6 +179,7 @@ public:
     // Achilles functions for creating things
     std::shared_ptr<Texture> CreateTexture(const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
     std::shared_ptr<Texture> CreateTexture(ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
+    std::shared_ptr<Texture> CreateCubemap(uint32_t width = 2048, uint32_t height = 2048);
 
 public:
     // Scene functions
@@ -194,6 +196,7 @@ public:
     void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
     void ClearLightData(LightData& lightData);
     void PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera, LightData& lightData);
+    void DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& lightData);
 protected:
     void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);
     void DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);

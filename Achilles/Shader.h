@@ -33,7 +33,7 @@ class Shader
 {
 public:
     std::wstring name;
-    ShaderType shaderType;
+    ShaderType shaderType = ShaderType::None;
 
     D3D12_INPUT_ELEMENT_DESC* vertexLayout;
     size_t vertexSize;
@@ -44,8 +44,8 @@ public:
     // SRV that can be used to pad unused texture slots
     std::shared_ptr<ShaderResourceView> defaultSRV;
 
-    ShaderRender renderCallback;
-    MeshCreation meshCreateCallback;
+    ShaderRender renderCallback = nullptr;
+    MeshCreation meshCreateCallback = nullptr;
 
     Shader(std::wstring _name);
     Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize);
@@ -58,6 +58,7 @@ public:
     // Presumes shader file is contains two entrypoints - VS + PS for vertex and pixel shaders respectively
     static std::shared_ptr<Shader> ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName, D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK, bool enableTransparency = false);
     static std::shared_ptr<Shader> ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName, uint32_t depthBias = 100);
+    static std::shared_ptr<Shader> ShaderSkyboxVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName);
     static std::shared_ptr<Shader> ShaderCS(ComPtr<ID3D12Device2> device, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName);
 };
 

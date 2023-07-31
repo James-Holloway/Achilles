@@ -10,6 +10,7 @@ constexpr size_t MAX_SHADOW_MAPS = 8;
 class LightObject;
 class ShadowCamera;
 class ShadowMap;
+class Material;
 
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector4;
@@ -118,7 +119,7 @@ public:
     std::vector<ShadowInfo> SortedShadows{};
 
     ShadowCount ShadowCount;
-
+    
     LightProperties GetLightProperties();
 };
 

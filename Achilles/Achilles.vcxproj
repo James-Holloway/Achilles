@@ -117,6 +117,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)imgui\;$(SolutionDir)implot\</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -199,6 +200,24 @@
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="ConstantBuffer.cpp" />
     <ClCompile Include="ConstantBufferView.cpp" />
+    <None Include="content\models\skydome.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\shaders\CommonShader.hlsli">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\shaders\Lighting.hlsli">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\shaders\Shadows.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\shaders\Skybox.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
     <ClCompile Include="DescriptorAllocation.cpp" />
     <ClCompile Include="DescriptorAllocator.cpp" />
     <ClCompile Include="DescriptorAllocatorPage.cpp" />
@@ -231,6 +250,7 @@
     <ClCompile Include="ShadowCamera.cpp" />
     <ClCompile Include="ShadowMap.cpp" />
     <ClCompile Include="shaders\ShadowMapping.cpp" />
+    <ClCompile Include="shaders\Skybox.cpp" />
     <ClCompile Include="SpriteObject.cpp" />
     <ClCompile Include="StructuredBuffer.cpp" />
     <ClCompile Include="Texture.cpp" />
@@ -297,6 +317,7 @@
     <ClInclude Include="ShadowCamera.h" />
     <ClInclude Include="ShadowMap.h" />
     <ClInclude Include="shaders\ShadowMapping.h" />
+    <ClInclude Include="shaders\Skybox.h" />
     <ClInclude Include="SpriteCommon.h" />
     <ClInclude Include="SpriteObject.h" />
     <ClInclude Include="StructuredBuffer.h" />
