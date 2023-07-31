@@ -1,6 +1,7 @@
 #include "DescriptorAllocation.h"
 #include "DescriptorAllocatorPage.h"
 #include "Application.h"
+#include "Profiling.h"
 
 DescriptorAllocation::DescriptorAllocation() : descriptor{ 0 }, numHandles(0), descriptorSize(0), page(nullptr)
 {

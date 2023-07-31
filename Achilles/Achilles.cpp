@@ -1123,6 +1123,8 @@ void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
     if (object->IsEmpty())
         return;
 
+    ScopedTimer _prof(L"QueueObjectDraw");
+
     DrawEvent de{};
     de.object = object;
     de.camera = Camera::mainCamera;
@@ -1139,6 +1141,8 @@ void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
     if (object == nullptr)
         return;
 
+    ScopedTimer _prof(L"QueueSpriteObjectDraw");
+
     DrawEvent de{};
     de.object = object;
     de.camera = Camera::mainCamera;
@@ -1150,6 +1154,8 @@ void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
 {
     if (scene == nullptr)
         return;
+
+    ScopedTimer _prof(L"QueueSceneDraw");
 
     std::vector<std::shared_ptr<Object>> flattenedScene;
     scene->GetObjectTree()->FlattenActive(flattenedScene);
@@ -1172,6 +1178,7 @@ void Achilles::ClearLightData(LightData& lightData)
 
 void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera, LightData& lightData)
 {
+    ScopedTimer _prof(L"PopulateLightData");
     for (std::shared_ptr<Object> object : flattenedScene)
     {
         if (object->HasTag(ObjectTag::Light))
@@ -1200,6 +1207,8 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
         return;
     if (!skydome->IsActive()) // Don't draw the skybox if the object is inactive
         return;
+
+    ScopedTimer _prof(L"DrawSkybox");
 
     std::shared_ptr<Mesh> mesh = skydome->GetMesh(0);
     Material material = skydome->GetMaterial(0);
@@ -1235,6 +1244,8 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
 #pragma optimize("s", on)
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
 {
+    ScopedTimer _prof(L"DrawObjectKnitIndexed");
+
     std::shared_ptr<Mesh> mesh = object->GetMesh(knitIndex);
     Material& material = object->GetMaterial(knitIndex);
     std::shared_ptr<Shader> shader = material.shader;
@@ -1266,6 +1277,8 @@ void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::
     if (camera.use_count() <= 0)
         throw std::exception("Rendered camera was not available");
 
+    ScopedTimer _prof(L"DrawObjectIndexed");
+
     commandList->SetViewport(camera->viewport);
     commandList->SetScissorRect(camera->scissorRect);
 
@@ -1286,6 +1299,8 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 
     if (camera.use_count() <= 0)
         throw std::exception("Rendered camera was not available");
+
+    ScopedTimer _prof(L"DrawSpriteIndexed");
 
     std::shared_ptr<SpriteObject> spriteObject = std::dynamic_pointer_cast<SpriteObject>(object);
     std::shared_ptr<Mesh> mesh = spriteObject->GetSpriteMesh(commandList);
@@ -1319,6 +1334,7 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 
 void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader)
 {
+    ScopedTimer _prof(L"DrawObjectShadowDirectional");
     ShadowMapping::ShadowMatrices shadowMatrices{};
     shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
     commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
@@ -1337,6 +1353,7 @@ void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandL
 
 void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, SpotLight spotLight, std::shared_ptr<Shader> shader)
 {
+    ScopedTimer _prof(L"DrawObjectShadowSpot");
     ShadowMapping::ShadowMatrices shadowMatrices{};
     shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
     commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
