@@ -650,6 +650,9 @@ void Thetis::DrawImGuiCameraProperties()
         ImGui::SetWindowSize(ImVec2(400, 600), ImGuiCond_Once);
         ImGui::SetWindowPos(ImVec2(clientWidth / 2.0f - 200.0f, clientHeight / 2.0f - 300.0f), ImGuiCond_Once);
 
+        ImGui::DragFloat("Mouse Sensitivity", &mouseSensitivity, 0.05f, 0.0f, 5.0f, "%.3f");
+        ImGui::DragFloat("Camera Base Move Speed", &cameraBaseMoveSpeed, 0.05f, 0.0f, 10.0f, "%.3f");
+
         std::shared_ptr<Camera> camera = Camera::debugShadowCamera == nullptr ? Camera::mainCamera : Camera::debugShadowCamera;
         if (camera == nullptr)
         {
@@ -1110,29 +1113,33 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
         OutputDebugStringWFormatted(L"FOV is now %.1f\n", camera->fov);
     }
 
-    float cameraRotationAmount = 15;
-    if (kbt.pressed.Up)
+    float cameraRotationAmount = 45 * dt;
+    if (kb.LeftControl)
+        cameraRotationAmount /= 4.0f;
+    if (kb.LeftShift)
+        cameraRotationAmount *= 4.0f;
+    if (kb.Up)
     {
         camera->RotateEuler(Vector3(-toRad(cameraRotationAmount), 0, 0));
     }
-    if (kbt.pressed.Down)
+    if (kb.Down)
     {
         camera->RotateEuler(Vector3(toRad(cameraRotationAmount), 0, 0));
     }
-    if (kbt.pressed.Right)
+    if (kb.Right)
     {
         camera->RotateEuler(Vector3(0, toRad(cameraRotationAmount), 0));
     }
-    if (kbt.pressed.Left)
+    if (kb.Left)
     {
         camera->RotateEuler(Vector3(0, -toRad(cameraRotationAmount), 0));
     }
 
     float movementSpeed = cameraBaseMoveSpeed;
     if (kb.LeftControl)
-        movementSpeed *= 0.5f;
+        movementSpeed /= 4.0f;
     if (kb.LeftShift)
-        movementSpeed *= 2.0f;
+        movementSpeed *= 4.0f;
 
     movementSpeed *= dt;
 
@@ -1205,12 +1212,12 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
 {
     if (mt.rightButton)
     {
-        float cameraRotationSpeed = toRad(45) * dt * mouseSensitivity;
+        float cameraRotationSpeed = toRad(45) * 0.01 * mouseSensitivity;
         camera->RotateEuler(Vector3(cameraRotationSpeed * md.mouseYDelta, cameraRotationSpeed * md.mouseXDelta, 0));
     }
     if (md.scrollDelta < 0)
     {
-        if (cameraBaseMoveSpeed < 1)
+        if (cameraBaseMoveSpeed <= 1)
             cameraBaseMoveSpeed -= 0.125;
         else
             cameraBaseMoveSpeed -= 0.5;
