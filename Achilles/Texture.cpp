@@ -2,6 +2,13 @@
 #include "Application.h"
 #include "ResourceStateTracker.h"
 #include "CommandList.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <DirectXTex.h>
+#include "ResourceStateTracker.h"
+
+using namespace DirectX;
 
 Texture::Texture(TextureUsage _textureUsage, const std::wstring& name) : Resource(name) , textureUsage(_textureUsage) {}
 
@@ -459,4 +466,93 @@ std::vector<std::wstring> Texture::GetCachedTextureNames()
 std::map<std::wstring, std::shared_ptr<Texture>>& Texture::GetTextureCache()
 {
     return textureCache;
+}
+
+
+std::shared_ptr<Texture> Texture::LoadTextureFromAssimp(std::shared_ptr<CommandList> commandList, const aiTexture* tex, std::wstring textureFilename)
+{
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>();
+    if (tex->mHeight != 0)
+    {
+        uint32_t pixelCount = tex->mWidth * tex->mHeight;
+        std::vector<uint32_t> pixels{};
+        pixels.reserve(pixelCount);
+        for (size_t i = 0; i < pixelCount; i++)
+        {
+            aiTexel texel = tex->pcData[i];
+            pixels.push_back(ColorPack(texel.r, texel.g, texel.b, texel.a));
+        }
+        commandList->CreateTextureFromMemory(*texture, textureFilename, pixels, tex->mWidth, tex->mHeight, TextureUsage::Albedo, true);
+    }
+    else
+    {
+        TexMetadata metadata;
+        ScratchImage scratchImage;
+        ComPtr<ID3D12Resource> textureResource;
+
+        if (tex->achFormatHint == "dds")
+        {
+            // Use DDS texture loader.
+            ThrowIfFailed(LoadFromDDSMemory((void*)tex->pcData, tex->mWidth, DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
+        }
+        else if (tex->achFormatHint == "hdr")
+        {
+            ThrowIfFailed(LoadFromHDRMemory((void*)tex->pcData, tex->mWidth, &metadata, scratchImage));
+        }
+        else if (tex->achFormatHint == "tga")
+        {
+            ThrowIfFailed(LoadFromTGAMemory((void*)tex->pcData, tex->mWidth, &metadata, scratchImage));
+        }
+        else
+        {
+            ThrowIfFailed(LoadFromWICMemory((void*)tex->pcData, tex->mWidth, WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
+        }
+
+        D3D12_RESOURCE_DESC textureDesc = {};
+        switch (metadata.dimension)
+        {
+        case TEX_DIMENSION_TEXTURE1D:
+            textureDesc = CD3DX12_RESOURCE_DESC::Tex1D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT16>(metadata.arraySize));
+            break;
+        case TEX_DIMENSION_TEXTURE2D:
+            textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT>(metadata.height), static_cast<UINT16>(metadata.arraySize));
+            break;
+        case TEX_DIMENSION_TEXTURE3D:
+            textureDesc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT>(metadata.height), static_cast<UINT16>(metadata.depth));
+            break;
+        default:
+            throw std::exception("Invalid texture dimension.");
+            break;
+        }
+
+        CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        ThrowIfFailed(Application::GetD3D12Device()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&textureResource)));
+
+        // Update the global state tracker.
+        ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
+
+        texture->SetTextureUsage(TextureUsage::Albedo);
+        texture->SetD3D12Resource(textureResource);
+        texture->CreateViews();
+        texture->SetName(textureFilename);
+
+        std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
+        const Image* pImages = scratchImage.GetImages();
+        for (int i = 0; i < scratchImage.GetImageCount(); ++i)
+        {
+            auto& subresource = subresources[i];
+            subresource.RowPitch = pImages[i].rowPitch;
+            subresource.SlicePitch = pImages[i].slicePitch;
+            subresource.pData = pImages[i].pixels;
+        }
+
+        commandList->CopyTextureSubresource(*texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
+        if (subresources.size() < textureResource->GetDesc().MipLevels)
+        {
+            commandList->GenerateMips(*texture);
+        }
+
+        Texture::AddCachedTexture(textureFilename, texture);;
+    }
+    return texture;
 }

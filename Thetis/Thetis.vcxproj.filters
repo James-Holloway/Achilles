@@ -82,6 +82,9 @@
     <None Include="content\models\uv sphere high.fbx">
       <Filter>content\models</Filter>
     </None>
+    <None Include="content\models\duck.fbx">
+      <Filter>content\models</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\MyUVSquare.png">

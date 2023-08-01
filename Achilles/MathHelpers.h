@@ -231,3 +231,13 @@ inline Quaternion Inverse(Quaternion quat)
 }
 
 Matrix DirectionToRotationMatrix(Vector3 dir, Vector3 up = Vector3::Up);
+
+inline uint32_t ColorPack(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255)
+{
+    uint32_t out;
+    out = r << 0;
+    out |= g << 8;
+    out |= b << 16;
+    out |= a << 24;
+    return out;
+}

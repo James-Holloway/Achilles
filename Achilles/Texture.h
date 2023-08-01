@@ -6,6 +6,7 @@
 #include "TextureUsage.h"
 
 class CommandList;
+struct aiTexture;
 
 using Microsoft::WRL::ComPtr;
 
@@ -108,4 +109,6 @@ public:
     static std::shared_ptr<Texture> GetCachedTexture(std::wstring contentName);
     static std::vector<std::wstring> GetCachedTextureNames();
     static std::map<std::wstring, std::shared_ptr<Texture>>& GetTextureCache();
+
+    static std::shared_ptr<Texture> LoadTextureFromAssimp(std::shared_ptr<CommandList> commandList, const aiTexture* tex, std::wstring textureFilename);
 };

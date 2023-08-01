@@ -7,6 +7,7 @@
 
 using namespace BlinnPhong;
 using namespace CommonShader;
+using namespace DirectX;
 
 BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), Padding{ 0 }
 {
@@ -89,25 +90,28 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
         material.name = StringToWString(mat->GetName().C_Str());
 
         // MainTexture - Diffuse or base colour
-        if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+        if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0 || mat->GetTextureCount(aiTextureType_BASE_COLOR) > 0)
         {
             aiString texturePath;
-            mat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
+            if (mat->GetTextureCount(aiTextureType_BASE_COLOR) > 0)
+                mat->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &texturePath);
+            if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) // If we have both then use diffuse
+                mat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
+            
             std::wstring textureFilename = std::filesystem::path(texturePath.C_Str()).filename().replace_extension();
 
-            std::shared_ptr<Texture> texture = std::make_shared<Texture>();
-            Object::GetCreationCommandList()->LoadTextureFromContent(*texture, textureFilename, TextureUsage::Diffuse);
-            material.SetTexture(L"MainTexture", texture);
-        }
-        else if (mat->GetTextureCount(aiTextureType_BASE_COLOR) > 0)
-        {
-            aiString texturePath;
-            mat->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &texturePath);
-            std::wstring textureFilename = std::filesystem::path(texturePath.C_Str()).filename().replace_extension();
-
-            std::shared_ptr<Texture> texture = std::make_shared<Texture>();
-            Object::GetCreationCommandList()->LoadTextureFromContent(*texture, textureFilename, TextureUsage::Diffuse);
-            material.SetTexture(L"MainTexture", texture);
+            const aiTexture* tex = scene->GetEmbeddedTexture(texturePath.C_Str());
+            if (tex != nullptr) // Texture exists as embedded texture
+            {
+                std::shared_ptr<Texture> texture = Texture::LoadTextureFromAssimp(Object::GetCreationCommandList(), tex, textureFilename);
+                material.SetTexture(L"MainTexture", texture);
+            }
+            else // Texture is just a filename
+            {
+                std::shared_ptr<Texture> texture = std::make_shared<Texture>();
+                Object::GetCreationCommandList()->LoadTextureFromContent(*texture, textureFilename, TextureUsage::Diffuse);
+                material.SetTexture(L"MainTexture", texture);
+            }
         }
 
         // Color
@@ -137,6 +141,9 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
 
         ai_real specularPower = 32.0f;
         mat->Get(AI_MATKEY_SHININESS, specularPower);
+        if (specularPower == 0.0f)
+            specularPower = 32.0f;
+
         material.SetFloat(L"SpecularPower", specularPower);
     }
     else

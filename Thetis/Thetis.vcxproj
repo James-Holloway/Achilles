@@ -158,6 +158,9 @@
     <None Include="content\models\cylinder.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="content\models\duck.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="content\models\light directional.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
