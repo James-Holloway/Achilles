@@ -1,5 +1,9 @@
 #pragma once
-#include "Common.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <wrl.h>
+#include <dxgi1_6.h>
 #include <directx-dxc/dxcapi.h>
 #include "CommandList.h"
 #include "ShaderResourceView.h"

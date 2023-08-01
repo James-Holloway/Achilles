@@ -24,10 +24,10 @@
 
 #pragma warning( push )
 #pragma warning( disable : 6001 26451 26827)
-#include <directx/d3d12.h>
+#include <d3d12.h>
 #include <dxgi1_6.h>
 #include <DirectXMath.h>
-#include <directx/d3dx12.h>
+#include <d3dx12.h>
 #pragma warning( pop )
 
 #include <DirectXTex.h>
@@ -47,14 +47,6 @@
 #include "MathHelpers.h"
 
 #include "Profiling.h"
-
-#if defined(min)
-#undef min
-#endif
-
-#if defined(max)
-#undef max
-#endif
 
 #pragma comment( lib, "d3d12.lib" )
 #pragma comment( lib, "dxgi.lib" )

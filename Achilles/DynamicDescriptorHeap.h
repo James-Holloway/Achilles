@@ -1,7 +1,14 @@
 #pragma once
 
-#include "Common.h"
-
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <queue>
+#include <d3d12.h>
+#include <d3dx12.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <wrl.h>
 using Microsoft::WRL::ComPtr;
 
 class CommandList;

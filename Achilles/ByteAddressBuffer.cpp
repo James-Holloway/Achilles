@@ -1,6 +1,6 @@
 #include "ByteAddressBuffer.h"
 #include "Application.h"
-
+#include "MathHelpers.h"
 
 ByteAddressBuffer::ByteAddressBuffer(const std::wstring& name) : Buffer(name)
 {
@@ -15,7 +15,7 @@ void ByteAddressBuffer::CreateViews(size_t numElements, size_t elementSize)
     auto device = Application::GetD3D12Device();
 
     // Make sure buffer size is aligned to 4 bytes.
-    bufferSize = DirectX::AlignUp(numElements * elementSize, 4);
+    bufferSize = AlignUp(numElements * elementSize, 4);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;

@@ -1,6 +1,9 @@
 #pragma once
 
-#include "Common.h"
+#include <map>
+#include <unordered_map>
+#include <mutex>
+#include <d3d12.h>
 
 class CommandList;
 class Resource;

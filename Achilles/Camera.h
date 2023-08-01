@@ -1,5 +1,10 @@
 #pragma once
-#include "Common.h"
+
+#include <string>
+#include <memory>
+#include <d3dx12.h>
+#include <DirectXMath.h>
+#include <directxtk12/SimpleMath.h>
 
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector2;

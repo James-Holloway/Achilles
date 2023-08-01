@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <cassert>
 #include <d3dx12.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <wrl.h>
 #include "Helpers.h"
 

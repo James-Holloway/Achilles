@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common.h"
 #include "Buffer.h"
 #include "DescriptorAllocation.h"
 

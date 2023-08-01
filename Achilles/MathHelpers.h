@@ -2,6 +2,14 @@
 #include <DirectXMath.h>
 #include <directxtk12/SimpleMath.h>
 
+#if defined(min)
+#undef min
+#endif
+
+#if defined(max)
+#undef max
+#endif
+
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Vector3;

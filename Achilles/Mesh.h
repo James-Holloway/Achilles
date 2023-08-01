@@ -1,5 +1,4 @@
 #pragma once
-#include "Common.h"
 #include "CommandQueue.h"
 #include "CommandList.h"
 #include "Material.h"

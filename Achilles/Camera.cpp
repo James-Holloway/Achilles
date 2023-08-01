@@ -1,4 +1,6 @@
 #include "Camera.h"
+#include "MathHelpers.h"
+
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 

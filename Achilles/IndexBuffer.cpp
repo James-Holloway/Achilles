@@ -1,9 +1,9 @@
 #include "IndexBuffer.h"
+#include <cassert>
 
 IndexBuffer::IndexBuffer(const std::wstring& _name) : Buffer(_name), numIndicies(0), indexFormat(DXGI_FORMAT_UNKNOWN), indexBufferView({}) {}
 
-IndexBuffer::~IndexBuffer()
-{}
+IndexBuffer::~IndexBuffer() {}
 
 void IndexBuffer::CreateViews(size_t numElements, size_t elementSize)
 {

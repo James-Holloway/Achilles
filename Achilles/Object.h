@@ -1,5 +1,11 @@
 #pragma once
-#include "Common.h"
+
+#include <cstdint>
+#include <vector>
+#include <memory>
+#include <string>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include "ObjectTag.h"
 #include "Material.h"
 #include "Knit.h"

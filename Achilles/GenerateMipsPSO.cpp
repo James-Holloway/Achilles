@@ -1,11 +1,8 @@
 #include "GenerateMipsPSO.h"
-
+#include <d3dx12.h>
 #include "Application.h"
 #include "Helpers.h"
-
 #include "prebuilt/shaders/GenerateMips_CS.h"
-
-#include <d3dx12.h>
 
 GenerateMipsPSO::GenerateMipsPSO()
 {

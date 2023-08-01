@@ -1,5 +1,10 @@
 #pragma once
-#include "Common.h"
+#include <tuple>
+#include <mutex>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <wrl.h>
+#include <d3d12.h>
 #include "ThreadSafeQueue.h"
 
 using Microsoft::WRL::ComPtr;

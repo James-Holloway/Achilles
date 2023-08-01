@@ -1,5 +1,7 @@
 #pragma once
-#include "Common.h"
+#include <d3d12.h>
+#include <directxtk12/Keyboard.h>
+#include <directxtk12/Mouse.h>
 #include "Resource.h"
 #include "Texture.h"
 #include "Application.h"

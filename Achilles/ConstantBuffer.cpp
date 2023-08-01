@@ -1,5 +1,6 @@
 #include "ConstantBuffer.h"
 #include "Application.h"
+#include "MathHelpers.h"
 
 ConstantBuffer::ConstantBuffer(const std::wstring& _name) : Buffer(_name), sizeInBytes(0)
 {
@@ -15,7 +16,7 @@ void ConstantBuffer::CreateViews(size_t numElements, size_t elementSize)
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC d3d12ConstantBufferViewDesc;
     d3d12ConstantBufferViewDesc.BufferLocation = d3d12Resource->GetGPUVirtualAddress();
-    d3d12ConstantBufferViewDesc.SizeInBytes = static_cast<UINT>(DirectX::AlignUp(sizeInBytes, 16));
+    d3d12ConstantBufferViewDesc.SizeInBytes = static_cast<UINT>(AlignUp(sizeInBytes, 16));
 
     auto device = Application::GetD3D12Device();
 

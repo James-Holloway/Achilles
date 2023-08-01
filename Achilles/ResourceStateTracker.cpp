@@ -1,4 +1,6 @@
 #include "ResourceStateTracker.h"
+#include <d3dx12.h>
+#include <cassert>
 #include "CommandList.h"
 #include "Resource.h"
 
