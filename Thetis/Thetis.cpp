@@ -108,6 +108,14 @@ void Thetis::DrawImGuiScenes()
                 std::string sceneName = WStringToString(scene->GetName());
                 if (ImGui::BeginTabItem(sceneName.c_str()))
                 {
+                    selectedPropertiesScene = scene;
+
+                    bool sceneActive = scene->IsActive();
+                    if (ImGui::Checkbox("Scene Active", &sceneActive))
+                        scene->SetActive(sceneActive);
+
+                    ImGui::Separator();
+
                     ImGui::Unindent(8);
                     radioIndex = 0;
                     scene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
@@ -135,7 +143,7 @@ void Thetis::DrawImGuiScenes()
         }
         if (ImGui::Button("Add"))
         {
-            CreateObjectInMainScene(selectedMeshName);
+            CreateObjectInSelectedScene(selectedMeshName);
         }
         ImGui::SameLine();
         ImGui::BeginDisabled(selectedPropertiesObject == nullptr);
@@ -1006,7 +1014,7 @@ void Thetis::LoadContent()
     std::shared_ptr<Shader> blinnPhongShader = BlinnPhong::GetBlinnPhongShader(device);
 
     // Create floor quad
-    floorQuad = Object::CreateObjectsFromContentFile(L"plane.fbx", blinnPhongShader);
+    std::shared_ptr<Object> floorQuad = Object::CreateObjectsFromContentFile(L"plane.fbx", blinnPhongShader);
     floorQuad->SetLocalPosition(Vector3(0, -3, 0));
     floorQuad->SetLocalScale(Vector3(10, 10, 10));
 
@@ -1037,6 +1045,50 @@ void Thetis::LoadContent()
     sunLightObject->SetActive(false);
     sunLightObject->SetIsShadowCaster(true);
     mainScene->AddObjectToScene(sunLightObject);
+
+    // Secondary scene
+    {
+        std::shared_ptr<Scene> scene2 = std::make_shared<Scene>(L"Spotlights");
+        AddScene(scene2);
+        scene2->SetActive(false);
+
+        SpotLight spot = SpotLight();
+        spot.InnerSpotAngle = toRad(42.5);
+        spot.OuterSpotAngle = toRad(47.5);
+        std::shared_ptr<LightObject> spotR = std::make_shared<LightObject>(L"Spot Red");
+        spot.Light.Color = Color(1, 0, 0, 1);
+        spotR->AddLight(spot);
+        spotR->SetLocalPosition(Vector3(2.0f, 7.5f, 0));
+        spotR->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+        spotR->SetIsShadowCaster(true);
+        scene2->AddObjectToScene(spotR);
+
+        std::shared_ptr<LightObject> spotG = std::make_shared<LightObject>(L"Spot Green");
+        spot.Light.Color = Color(0, 1, 0, 1);
+        spotG->AddLight(spot);
+        spotG->SetLocalPosition(Vector3(-1.0f, 7.5f, 1.75f));
+        spotG->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+        spotG->SetIsShadowCaster(true);
+        scene2->AddObjectToScene(spotG);
+
+        std::shared_ptr<LightObject> spotB = std::make_shared<LightObject>(L"Spot Blue");
+        spot.Light.Color = Color(0, 0, 1, 1);
+        spotB->AddLight(spot);
+        spotB->SetLocalPosition(Vector3(-1.0f, 7.5f, -1.75f));
+        spotB->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+        spotB->SetIsShadowCaster(true);
+        scene2->AddObjectToScene(spotB);
+
+        std::shared_ptr<Object> quad2 = floorQuad->Clone();
+        quad2->SetName(L"Spotlight Quad");
+        quad2->SetLocalScale(Vector3(15.0f, 15.0f, 15.0f));
+        quad2->GetMaterial(0).SetTexture(L"MainTexture", nullptr);
+        scene2->AddObjectToScene(quad2);
+
+        std::shared_ptr<Object> torus = Object::CreateObjectsFromContentFile(L"torus.fbx", BlinnPhong::GetBlinnPhongShader(device));
+        torus->SetLocalScale(Vector3(2.0f, 2.0f, 2.0f));
+        scene2->AddObjectToScene(torus);
+    }
 
     // Load content/models files into meshNames, used in Thetis' ImGui
     PopulateMeshNames();
@@ -1177,6 +1229,19 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     {
         DeleteSelectedObject();
     }
+    if (kbt.pressed.T)
+    {
+        if (kb.LeftControl)
+        {
+            if (selectedPropertiesScene != nullptr)
+                selectedPropertiesScene->SetActive(!selectedPropertiesScene->IsActive());
+        }
+        else
+        {
+            if (selectedPropertiesObject != nullptr)
+                selectedPropertiesObject->SetActive(!selectedPropertiesObject->IsActive());
+        }
+    }
 
     // Previously in Achilles HandleKeyboard
     if (kbt.pressed.Escape)
@@ -1257,10 +1322,13 @@ void Thetis::PopulateMeshNames()
     }
 }
 
-void Thetis::CreateObjectInMainScene(uint32_t meshNameIndex)
+void Thetis::CreateObjectInSelectedScene(uint32_t meshNameIndex)
 {
+    if (selectedPropertiesScene == nullptr)
+        return;
+
     std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], BlinnPhong::GetBlinnPhongShader(device));
-    mainScene->AddObjectToScene(object);
+    selectedPropertiesScene->AddObjectToScene(object);
     selectedPropertiesObject = object;
 }
 
@@ -1268,7 +1336,7 @@ void Thetis::CreateObjectAsSelectedChild(uint32_t meshNameIndex)
 {
     if (selectedPropertiesObject == nullptr)
     {
-        CreateObjectInMainScene(meshNameIndex);
+        CreateObjectInSelectedScene(meshNameIndex);
         return;
     }
     std::shared_ptr<Object> object = Object::CreateObjectsFromContentFile(meshNamesWide[meshNameIndex], BlinnPhong::GetBlinnPhongShader(device));

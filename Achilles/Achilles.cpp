@@ -175,7 +175,7 @@ ComPtr<IDXGIAdapter4> Achilles::GetAdapter(bool useWarp)
 {
     ComPtr<IDXGIFactory4> dxgiFactory;
     UINT createFactoryFlags = 0;
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(_UNOPTIMIZED)
     createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -198,13 +198,8 @@ ComPtr<IDXGIAdapter4> Achilles::GetAdapter(bool useWarp)
             DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
             dxgiAdapter1->GetDesc1(&dxgiAdapterDesc1);
 
-            // Check to see if the adapter can create a D3D12 device without actually 
-            // creating it. The adapter with the largest dedicated video memory
-            // is favored.
-            if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
-                SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(),
-                    D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
-                dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
+            // Check to see if the adapter can create a D3D12 device without actually creating it. The adapter with the largest dedicated video memory is favored.
+            if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 && SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) && dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
             {
                 maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
                 ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));

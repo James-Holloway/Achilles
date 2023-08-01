@@ -210,3 +210,26 @@ Vector3 Multiply(Matrix matrix, Vector3 rhs)
 
     return Vector3(vWorking.x * vWorking.w, vWorking.y * vWorking.w, vWorking.z * vWorking.w);
 }
+
+Matrix DirectionToRotationMatrix(Vector3 dir, Vector3 up)
+{
+    Vector3 xAxis = up.Cross(dir);
+    xAxis.Normalize();
+    Vector3 yAxis = dir.Cross(xAxis);
+    yAxis.Normalize();
+
+    Matrix matrix = Matrix::Identity;
+    matrix._11 = xAxis.x;
+    matrix._12 = yAxis.x;
+    matrix._13 = dir.x;
+
+    matrix._21 = xAxis.y;
+    matrix._22 = yAxis.y;
+    matrix._23 = dir.y;
+
+    matrix._31 = xAxis.z;
+    matrix._32 = yAxis.z;
+    matrix._33 = dir.z;
+
+    return matrix;
+}

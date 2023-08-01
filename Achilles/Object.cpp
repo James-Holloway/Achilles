@@ -648,6 +648,7 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
 {
     bool directChildOfRoot = node->mParent != nullptr && node->mParent == scene->mRootNode;
     std::shared_ptr<LightObject> lightObject = Object::CreateLightObject(StringToWString(node->mName.C_Str()), parent);
+
     switch (light->mType)
     {
     case aiLightSource_POINT:

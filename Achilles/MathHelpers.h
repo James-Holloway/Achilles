@@ -229,3 +229,5 @@ inline Quaternion Inverse(Quaternion quat)
         return Quaternion::Identity;
     }
 }
+
+Matrix DirectionToRotationMatrix(Vector3 dir, Vector3 up = Vector3::Up);

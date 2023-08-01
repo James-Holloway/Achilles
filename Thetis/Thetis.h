@@ -10,7 +10,6 @@
 class Thetis : public Achilles
 {
 protected:
-    std::shared_ptr<Object> floorQuad;
     std::shared_ptr<Camera> camera;
 
     float mouseSensitivity = 1.0f;
@@ -31,6 +30,7 @@ protected:
     int selectedMeshName = 0;
 public:
     inline static std::shared_ptr<Object> selectedPropertiesObject = nullptr;
+    inline static std::shared_ptr<Scene> selectedPropertiesScene = nullptr;
 
 public:
     Thetis(std::wstring name);
@@ -58,7 +58,7 @@ protected:
     void DrawImGuiSkyboxProperties();
 
     void PopulateMeshNames();
-    void CreateObjectInMainScene(uint32_t meshNameIndex);
+    void CreateObjectInSelectedScene(uint32_t meshNameIndex);
     void CreateObjectAsSelectedChild(uint32_t meshNameIndex);
     void DeleteSelectedObject();
     std::shared_ptr<Object> CopySelectedObject();
