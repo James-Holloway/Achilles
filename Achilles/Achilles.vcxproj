@@ -209,9 +209,6 @@
       <FileType>Document</FileType>
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="content\shaders\Shadows.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="content\shaders\Skybox.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>

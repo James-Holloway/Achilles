@@ -22,7 +22,7 @@ AmbientLight::AmbientLight() : Color(1, 1, 1, 1), Strength(0.125), Padding{ 0 }
 
 }
 
-LightProperties::LightProperties() : PointLightCount(0), SpotLightCount(0), DirectionalLightCount(0)
+LightProperties::LightProperties() : PointLightCount(0), SpotLightCount(0), DirectionalLightCount(0), ShadowCount(0), LightInfoCount(0)
 {
 
 }
@@ -33,5 +33,7 @@ LightProperties LightData::GetLightProperties()
     lightProperties.PointLightCount = (uint32_t)PointLights.size();
     lightProperties.SpotLightCount = (uint32_t)SpotLights.size();
     lightProperties.DirectionalLightCount = (uint32_t)DirectionalLights.size();
+    lightProperties.ShadowCount = (uint32_t)SortedShadowMaps.size();
+    lightProperties.LightInfoCount = (uint32_t)SortedLightInfo.size();
     return lightProperties;
 }

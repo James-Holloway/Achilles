@@ -32,7 +32,7 @@ std::shared_ptr<Shader> ShadowMapping::GetShadowMappingShader(ComPtr<ID3D12Devic
     ShadowMappingRootSignature.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags); // 0 static samplers
     std::shared_ptr rootSignature = std::make_shared<RootSignature>(ShadowMappingRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
 
-    ShadowMappingShader = Shader::ShaderDepthOnlyVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, L"ShadowMapping", 100); // Use low bias for perspective lights
+    ShadowMappingShader = Shader::ShaderDepthOnlyVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, L"ShadowMapping", 500); // Use low bias for perspective lights
 
     return ShadowMappingShader;
 }

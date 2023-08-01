@@ -12,6 +12,7 @@ class LightObject : public SpriteObject
 public:
     LightObject(std::wstring _name = Object::DefaultName);
     virtual ~LightObject();
+    virtual std::shared_ptr<Object> Clone(std::shared_ptr<Object> newParent = nullptr) override;
 
     bool HasLightType(LightType lightType);
 
@@ -32,6 +33,7 @@ public:
 
     bool IsShadowCaster();
     void SetIsShadowCaster(bool _shadowCaster);
+    // @returns nullptr if the camera doesn't have the light type or if it is not a shadow caster, otherwise the relevant shadow camera
     std::shared_ptr<ShadowCamera> GetShadowCamera(LightType lightType);
 
 protected:

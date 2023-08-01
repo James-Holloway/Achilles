@@ -1,7 +1,7 @@
 #define MAX_SHADOW_MAPS 8
+#define SHADOWS 1
 #include "CommonShader.hlsli"
 #include "Lighting.hlsli"
-#include "Shadows.hlsli"
 
 struct Matrices
 {
@@ -45,10 +45,20 @@ ConstantBuffer<AmbientLight> AmbientLightCB : register(b4);
 StructuredBuffer<PointLight> PointLights : register(t0);
 StructuredBuffer<SpotLight> SpotLights : register(t1);
 StructuredBuffer<DirectionalLight> DirectionalLights : register(t2);
+StructuredBuffer<LightInfo> LightInfos : register(t3);
 
-Texture2D DiffuseTexture : register(t3);
+Texture2D DiffuseTexture : register(t4);
 
 SamplerState TextureSampler : register(s0);
+
+Texture2D ShadowMap0 : register(t0, space1);
+Texture2D ShadowMap1 : register(t1, space1);
+Texture2D ShadowMap2 : register(t2, space1);
+Texture2D ShadowMap3 : register(t3, space1);
+Texture2D ShadowMap4 : register(t4, space1);
+Texture2D ShadowMap5 : register(t5, space1);
+Texture2D ShadowMap6 : register(t6, space1);
+Texture2D ShadowMap7 : register(t7, space1);
 
 struct PS_IN
 {
@@ -78,82 +88,62 @@ PS_IN VS(CommonShaderVertex v)
     o.TangentWS = mul(MatricesCB.Model, float4(v.Tangent, 0)).xyz;
     o.UV = v.UV;
     
-    int shadowCount = ShadowCountCB.ShadowCount;
+    int shadowCount = LightPropertiesCB.ShadowCount;
     
     if (shadowCount > 0)
-        o.ShadowPosH0 = mul(o.PositionWS, Shadows[0].ShadowMatrix);
+        o.ShadowPosH0 = mul(o.PositionWS, LightInfos[0].ShadowMatrix);
     if (shadowCount > 1)
-        o.ShadowPosH1 = mul(o.PositionWS, Shadows[1].ShadowMatrix);
+        o.ShadowPosH1 = mul(o.PositionWS, LightInfos[1].ShadowMatrix);
     if (shadowCount > 2)
-        o.ShadowPosH2 = mul(o.PositionWS, Shadows[2].ShadowMatrix);
+        o.ShadowPosH2 = mul(o.PositionWS, LightInfos[2].ShadowMatrix);
     if (shadowCount > 3)
-        o.ShadowPosH3 = mul(o.PositionWS, Shadows[3].ShadowMatrix);
+        o.ShadowPosH3 = mul(o.PositionWS, LightInfos[3].ShadowMatrix);
     if (shadowCount > 4)
-        o.ShadowPosH4 = mul(o.PositionWS, Shadows[4].ShadowMatrix);
+        o.ShadowPosH4 = mul(o.PositionWS, LightInfos[4].ShadowMatrix);
     if (shadowCount > 5)
-        o.ShadowPosH5 = mul(o.PositionWS, Shadows[5].ShadowMatrix);
+        o.ShadowPosH5 = mul(o.PositionWS, LightInfos[5].ShadowMatrix);
     if (shadowCount > 6)
-        o.ShadowPosH6 = mul(o.PositionWS, Shadows[6].ShadowMatrix);
+        o.ShadowPosH6 = mul(o.PositionWS, LightInfos[6].ShadowMatrix);
     if (shadowCount > 7)
-        o.ShadowPosH7 = mul(o.PositionWS, Shadows[7].ShadowMatrix);
+        o.ShadowPosH7 = mul(o.PositionWS, LightInfos[7].ShadowMatrix);
     
     return o;
 }
 
-float CalcShadowFactors(PS_IN i)
-{
-    float shadowFactor = 0.0f;
-    
-    int shadowCount = ShadowCountCB.ShadowCount;
-    
-    if (shadowCount <= 0)
-        return shadowFactor;
-    
-    // Only calculate further shadows if we're not in shadow
-    if (shadowCount > 0)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH0, ShadowMap0);
-    if (shadowCount > 1 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH1, ShadowMap1);
-    if (shadowCount > 2 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH2, ShadowMap2);
-    if (shadowCount > 3 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH3, ShadowMap3);
-    if (shadowCount > 4 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH4, ShadowMap4);
-    if (shadowCount > 5 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH5, ShadowMap5);
-    if (shadowCount > 6 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH6, ShadowMap6);
-    if (shadowCount > 7 && shadowFactor < 1)
-        shadowFactor += CalcShadowFactor(i.ShadowPosH7, ShadowMap7);
-    
-    return saturate(shadowFactor);
-}
-
-LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 viewPos, float specularPower)
+LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 viewPos, float specularPower, float shadowFactors[MAX_SHADOW_MAPS])
 {
     LightResult result = (LightResult) 0;
     float3 viewDir = normalize(viewPos - worldPos);
     
-    uint i = 0;
-    
-    for (i = 0; i < LightPropertiesCB.PointLightCount; i++)
+    LightResult lightResult;
+    for (uint i = 0; i < LightPropertiesCB.LightInfoCount; i++)
     {
-        LightResult lightResult = DoPointLighting(PointLights[i], worldPos, normal, viewDir, specularPower);
-        result.Diffuse += lightResult.Diffuse;
-        result.Specular += lightResult.Specular;
-    }
-    
-    for (i = 0; i < LightPropertiesCB.SpotLightCount; i++)
-    {
-        LightResult lightResult = DoSpotLighting(SpotLights[i], worldPos, normal, viewDir, specularPower);
-        result.Diffuse += lightResult.Diffuse;
-        result.Specular += lightResult.Specular;
-    }
-    
-    for (i = 0; i < LightPropertiesCB.DirectionalLightCount; i++)
-    {
-        LightResult lightResult = DoDirectionalLighting(DirectionalLights[i], normal, viewDir, specularPower);
+        LightInfo lightInfo = LightInfos[i];
+        
+        if (lightInfo.LightType == 1) // Point
+        {
+            lightResult = DoPointLighting(PointLights[lightInfo.LightIndex], worldPos, normal, viewDir, specularPower);
+        }
+        else if (lightInfo.LightType == 2) // Spot
+        {
+            lightResult = DoSpotLighting(SpotLights[lightInfo.LightIndex], worldPos, normal, viewDir, specularPower);
+        }
+        else if (lightInfo.LightType == 4) // Directional
+        {
+            lightResult = DoDirectionalLighting(DirectionalLights[lightInfo.LightIndex], normal, viewDir, specularPower);
+        }
+        else
+        {
+            lightResult.Diffuse = float3(0, 0, 0);
+            lightResult.Specular = float3(0, 0, 0);
+        }
+        
+        if (i < LightPropertiesCB.ShadowCount)
+        {
+            lightResult.Diffuse *= shadowFactors[i];
+            lightResult.Specular *= shadowFactors[i];
+        }
+        
         result.Diffuse += lightResult.Diffuse;
         result.Specular += lightResult.Specular;
     }
@@ -174,18 +164,33 @@ float4 PS(PS_IN i) : SV_Target
     float3 normal = normalize(i.NormalWS);
     if (PixelInfoCB.ShadingType >= 0.5) // shading type of 1 means enabled
     {
-        LightResult result = DoLighting(i.Position.xyz, i.PositionWS.xyz, normal, PixelInfoCB.CameraPosition, MaterialPropertiesCB.SpecularPower);
+        float shadowFactors[MAX_SHADOW_MAPS];
+        if (MaterialPropertiesCB.ReceivesShadows > 0.5f) // receives shadows so calculate shadowFactors for the lights
+        {
+            float4 ShadowPos[MAX_SHADOW_MAPS] =
+            {
+                i.ShadowPosH0, i.ShadowPosH1, i.ShadowPosH2, i.ShadowPosH3, i.ShadowPosH4, i.ShadowPosH5, i.ShadowPosH6, i.ShadowPosH7
+            };
+            Texture2D ShadowMaps[MAX_SHADOW_MAPS] =
+            {
+                ShadowMap0, ShadowMap1, ShadowMap2, ShadowMap3, ShadowMap4, ShadowMap5, ShadowMap6, ShadowMap7
+            };
+            CalcShadowFactors(LightPropertiesCB.ShadowCount, ShadowPos, ShadowMaps, shadowFactors);
+        }
+        else // If no shadows received then populate
+        {
+            [unroll]
+            for (int i = 0; i < MAX_SHADOW_MAPS; i++)
+            {
+                shadowFactors[i] = 1.0f;
+            }
+        }
+        
+        LightResult result = DoLighting(i.Position.xyz, i.PositionWS.xyz, normal, PixelInfoCB.CameraPosition, MaterialPropertiesCB.SpecularPower, shadowFactors);
         float3 diffuse = result.Diffuse * MaterialPropertiesCB.Diffuse;
         float3 specular = result.Specular * MaterialPropertiesCB.Specular;
         float3 ambient = result.Ambient;
-        float shadowFactor = 1;
-        
-        if (MaterialPropertiesCB.ReceivesShadows > 0.5f)
-        {
-            shadowFactor = CalcShadowFactors(i);
-        }
-        
-        float3 light = (float3(diffuse + specular) * shadowFactor) + ambient;
+        float3 light = diffuse + specular + ambient;
         
         col *= float4(light, 1);
         

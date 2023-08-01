@@ -62,6 +62,16 @@ struct LightProperties
     uint PointLightCount;
     uint SpotLightCount;
     uint DirectionalLightCount;
+    uint ShadowCount;
+    uint LightInfoCount;
+};
+
+struct LightInfo
+{
+    matrix ShadowMatrix;
+    uint LightType;
+    uint LightIndex;
+    uint IsShadowCaster;
 };
 
 struct LightResult
@@ -141,3 +151,60 @@ LightResult DoDirectionalLighting(DirectionalLight light, float3 normal, float3 
     lightResult.Specular = DoSpecular(viewDir, normal, lightDir, specularPower) * light.Color.rgb * light.Strength;
     return lightResult;
 }
+
+#if SHADOWS
+SamplerComparisonState ShadowSampler : register(s0, space1);
+
+float CalcShadowFactor(float4 shadowPosH, Texture2D shadowMap)
+{
+    shadowPosH.xyz /= shadowPosH.w; // Complete projection by doing division by w
+    
+    // Depth in NDC space
+    float depth = shadowPosH.z;
+    
+    uint width, height, numMips;
+    shadowMap.GetDimensions(0, width, height, numMips);
+    float dx = 1.0f / (float) width; // Texel size
+    
+    float percentLit = 0.0f;
+    
+    const float2 offsets[9] =
+    {
+        float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
+        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+        float2(-dx, dx), float2(0.0f, dx), float2(dx, dx)
+    };
+
+    [unroll]
+    for (int i = 0; i < 9; i++)
+    {
+        percentLit += shadowMap.SampleCmpLevelZero(ShadowSampler, shadowPosH.xy + offsets[i], depth).r;
+    }
+    
+    return percentLit / 9.0f;
+}
+
+void CalcShadowFactors(in uint shadowCount, in float4 ShadowPos[MAX_SHADOW_MAPS], in Texture2D ShadowMaps[MAX_SHADOW_MAPS], out float shadowFactors[MAX_SHADOW_MAPS])
+{
+    if (shadowCount <= 0) // No shadows
+    {
+        [unroll]
+        for (int i = 0; i < MAX_SHADOW_MAPS; i++)
+        {
+            shadowFactors[i] = 1.0f;
+        }
+        return;
+    }
+    
+    [unroll]
+    for (int s = 0; s < MAX_SHADOW_MAPS; s++)
+    {
+        if (shadowCount > s)
+            shadowFactors[s] = CalcShadowFactor(ShadowPos[s], ShadowMaps[s]);
+        else
+            shadowFactors[s] = 1.0f;
+    }
+    
+    return;
+}
+#endif

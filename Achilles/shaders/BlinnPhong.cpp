@@ -56,12 +56,14 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
     commandList->SetGraphicsDynamicStructuredBuffer<PointLight>(RootParameters::RootParameterPointLights, lightData.PointLights);
     commandList->SetGraphicsDynamicStructuredBuffer<SpotLight>(RootParameters::RootParameterSpotLights, lightData.SpotLights);
     commandList->SetGraphicsDynamicStructuredBuffer<DirectionalLight>(RootParameters::RootParameterDirectionalLights, lightData.DirectionalLights);
+    commandList->SetGraphicsDynamicStructuredBuffer<LightInfo>(RootParameters::RootParameterLightInfos, lightData.SortedLightInfo);
 
     std::shared_ptr<Texture> mainTexture = material.GetTexture(L"MainTexture");
     if (mainTexture != nullptr && mainTexture->IsValid())
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, mainTexture);
     else
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, whitePixelTexture);
+
 
     // Pass shadow maps to the shader for Shadow Factor
     for (int i = 0; i < MAX_SHADOW_MAPS; i++)
@@ -72,9 +74,6 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
 
         material.shader->BindTexture(*commandList, RootParameters::RootParameterShadowMaps, i, shadowMap);
     }
-
-    commandList->SetGraphicsDynamicConstantBuffer<ShadowCount>(RootParameters::RootParameterShadowCount, lightData.ShadowCount);
-    commandList->SetGraphicsDynamicStructuredBuffer<ShadowInfo>(RootParameters::RootParameterShadows, lightData.SortedShadows);
 
     return true;
 }
@@ -170,8 +169,8 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     // Texture descriptor ranges
-    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0); // 1 texture, offset at 3, in space 0
-    CD3DX12_DESCRIPTOR_RANGE1 shadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 1, 1); // 8 textures, offset at 1, in space 1
+    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0); // 1 texture, offset at 4, in space 0
+    CD3DX12_DESCRIPTOR_RANGE1 shadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 0, 1); // 8 textures, offset at 0, in space 1
 
     // Root parameters
     CD3DX12_ROOT_PARAMETER1 rootParameters[RootParameters::RootParameterCount]{};
@@ -179,26 +178,26 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
 
     rootParameters[RootParameters::RootParameterPixelInfo].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[RootParameters::RootParameterMaterialProperties].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
-    rootParameters[RootParameters::RootParameterLightProperties].InitAsConstantBufferView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterLightProperties].InitAsConstantBufferView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
     rootParameters[RootParameters::RootParameterAmbientLight].InitAsConstantBufferView(4, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
     rootParameters[RootParameters::RootParameterPointLights].InitAsShaderResourceView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[RootParameters::RootParameterSpotLights].InitAsShaderResourceView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[RootParameters::RootParameterDirectionalLights].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterLightInfos].InitAsShaderResourceView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
 
     rootParameters[RootParameters::RootParameterTextures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
-
-    rootParameters[RootParameters::RootParameterShadowCount].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
-    rootParameters[RootParameters::RootParameterShadows].InitAsShaderResourceView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
     rootParameters[RootParameters::RootParameterShadowMaps].InitAsDescriptorTable(1, &shadowDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // Sampler(s)
     std::vector<CD3DX12_STATIC_SAMPLER_DESC> samplers;
     CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0, 8U); // anisotropic sampler set to 8
     samplers.push_back(anisotropicSampler);
-    CD3DX12_STATIC_SAMPLER_DESC shadowSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+
+    CD3DX12_STATIC_SAMPLER_DESC shadowSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
     shadowSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
     shadowSampler.RegisterSpace = 1;
+    shadowSampler.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
     samplers.push_back(shadowSampler);
 
     // Root signature creation

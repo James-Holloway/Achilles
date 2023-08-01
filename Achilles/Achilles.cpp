@@ -338,6 +338,10 @@ std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
     D3D12_CLEAR_VALUE depthClearValue;
     depthClearValue.Format = depthDesc.Format;
     depthClearValue.DepthStencil = { 1.0f, 0 };
+    depthClearValue.Color[0] = 0;
+    depthClearValue.Color[1] = 0;
+    depthClearValue.Color[2] = 0;
+    depthClearValue.Color[3] = 0;
 
     std::shared_ptr<Texture> rtTexture = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Albedo, name);
     rtTexture->CreateViews();
@@ -944,7 +948,6 @@ std::shared_ptr<Scene> Achilles::GetMainScene()
 void Achilles::DrawActiveScenes()
 {
     ScopedTimer _prof(L"DrawActiveScenes");
-    ClearLightData(lightData);
 
     // Pre-scene-render light gathering pass
     for (std::shared_ptr<Scene> scene : scenes)
@@ -953,7 +956,7 @@ void Achilles::DrawActiveScenes()
         {
             std::vector<std::shared_ptr<Object>> flattenedScene;
             scene->GetObjectTree()->FlattenActive(flattenedScene);
-            PopulateLightData(flattenedScene, Camera::mainCamera, lightData); // TODO allow multiple cameras?
+            ConstructLightPositions(flattenedScene, Camera::mainCamera);
         }
     }
 
@@ -978,8 +981,8 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
         }
     }
 
-    // Populate light objects
-    std::vector<std::shared_ptr<LightObject>> lightObjects;
+#pragma region Populate Light Objects
+    std::vector<CombinedLight> allLights;
     std::vector<std::shared_ptr<Object>> shadowCastingObjects;
     for (std::shared_ptr<Object> object : flattenedScenes)
     {
@@ -993,14 +996,60 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
         else if (object->HasTag(ObjectTag::Light))
         {
             std::shared_ptr<LightObject> lightObject = std::dynamic_pointer_cast<LightObject>(object);
-            lightObjects.push_back(lightObject);
+            if (lightObject->HasLightType(LightType::Point))
+            {
+                PointLight& light = lightObject->GetPointLight();
+                CombinedLight combinedLight
+                {
+                    .Rank = light.Rank,
+                    .LightObject = lightObject.get(),
+                    .LightType = LightType::Point,
+                    .IsShadowCaster = lightObject->IsShadowCaster(),
+                    .PointLight = light
+                };
+                allLights.push_back(combinedLight);
+            }
+            if (lightObject->HasLightType(LightType::Spot))
+            {
+                SpotLight& light = lightObject->GetSpotLight();
+                CombinedLight combinedLight
+                {
+                    .Rank = light.Light.Rank,
+                    .LightObject = lightObject.get(),
+                    .LightType = LightType::Spot,
+                    .IsShadowCaster = lightObject->IsShadowCaster(),
+                    .SpotLight = light
+                };
+                allLights.push_back(combinedLight);
+            }
+            if (lightObject->HasLightType(LightType::Directional))
+            {
+                DirectionalLight& light = lightObject->GetDirectionalLight();
+                CombinedLight combinedLight
+                {
+                    .Rank = light.Rank,
+                    .LightObject = lightObject.get(),
+                    .LightType = LightType::Directional,
+                    .IsShadowCaster = lightObject->IsShadowCaster(),
+                    .DirectionalLight = light
+                };
+                allLights.push_back(combinedLight);
+            }
         }
     }
+#pragma endregion
+
+    // Sort all lights by rank and if they are a shadow caster
+    std::sort(allLights.begin(), allLights.end(), CombinedLightRankSort);
+
+    ClearLightData(lightData);
 
     // Populate ShadowCameras
+#pragma region Shadow Camera Population and Drawing
     lightData.ShadowCameras.clear();
-    for (std::shared_ptr<LightObject> lightObject : lightObjects)
+    for (CombinedLight combinedLight : allLights)
     {
+        LightObject* lightObject = combinedLight.LightObject;
         if (lightObject->HasLightType(LightType::Point))
         {
             std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Point);
@@ -1082,26 +1131,50 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 
         shadowMap->CopyDepthToReadableDepthTexture(commandList);
     }
-
-    // Sort shadow cameras by ShadowMap rank
-    std::sort(lightData.ShadowCameras.begin(), lightData.ShadowCameras.end(), ShadowCameraRankSort);
+#pragma endregion
 
     // Populate ShadowMaps + ShadowInfos
     lightData.SortedShadowMaps.clear();
-    lightData.SortedShadows.clear();
-    for (size_t i = 0; i < std::min<size_t>(MAX_SHADOW_MAPS, lightData.ShadowCameras.size()); i++)
+    lightData.SortedLightInfo.clear();
+
+    size_t cameraIndex = 0;
+    for (size_t i = 0; i < allLights.size(); i++)
     {
-        std::shared_ptr<ShadowCamera> shadowCamera = lightData.ShadowCameras[i];
+        CombinedLight combinedLight = allLights[i];
+        LightObject* lightObject = combinedLight.LightObject;
 
-        lightData.SortedShadowMaps.push_back(shadowCamera->GetShadowMap());
+        LightInfo lightInfo
+        {
+            .ShadowMatrix = Matrix::Identity,
+            .LightType = (uint32_t)combinedLight.LightType,
+            .IsShadowCaster = lightObject->IsShadowCaster(),
+        };
 
-        ShadowInfo shadowInfo;
-        shadowInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
-        shadowInfo.LightType = (uint32_t)shadowCamera->GetLightType();
-        lightData.SortedShadows.push_back(shadowInfo);
+        if (cameraIndex < MAX_SHADOW_MAPS && lightObject->IsShadowCaster())
+        {
+            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(combinedLight.LightType);
+            lightData.SortedShadowMaps.push_back(shadowCamera->GetShadowMap());
+            lightInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
+        }
+
+        if (combinedLight.LightType == LightType::Point)
+        {
+            lightData.PointLights.push_back(combinedLight.PointLight);
+            lightInfo.LightIndex = lightData.PointLights.size() - 1;
+        }
+        else if (combinedLight.LightType == LightType::Spot)
+        {
+            lightData.SpotLights.push_back(combinedLight.SpotLight);
+            lightInfo.LightIndex = lightData.SpotLights.size() - 1;
+        }
+        else if (combinedLight.LightType == LightType::Directional)
+        {
+            lightData.DirectionalLights.push_back(combinedLight.DirectionalLight);
+            lightInfo.LightIndex = lightData.DirectionalLights.size() - 1;
+        }
+
+        lightData.SortedLightInfo.push_back(lightInfo);
     }
-
-    lightData.ShadowCount.ShadowCount = (uint32_t)lightData.SortedShadows.size();
 }
 
 void Achilles::AddScene(std::shared_ptr<Scene> scene)
@@ -1176,9 +1249,9 @@ void Achilles::ClearLightData(LightData& lightData)
     lightData.DirectionalLights.clear();
 }
 
-void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera, LightData& lightData)
+void Achilles::ConstructLightPositions(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera)
 {
-    ScopedTimer _prof(L"PopulateLightData");
+    ScopedTimer _prof(L"ConstructLightPositions");
     for (std::shared_ptr<Object> object : flattenedScene)
     {
         if (object->HasTag(ObjectTag::Light))
@@ -1186,15 +1259,6 @@ void Achilles::PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedS
             std::shared_ptr<LightObject> lightObject = std::dynamic_pointer_cast<LightObject>(object);
 
             lightObject->ConstructLightPositions(camera);
-
-            if (lightObject->HasLightType(LightType::Point))
-                lightData.PointLights.push_back(lightObject->GetPointLight());
-
-            if (lightObject->HasLightType(LightType::Spot))
-                lightData.SpotLights.push_back(lightObject->GetSpotLight());
-
-            if (lightObject->HasLightType(LightType::Directional))
-                lightData.DirectionalLights.push_back(lightObject->GetDirectionalLight());
         }
     }
 }

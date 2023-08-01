@@ -51,10 +51,9 @@ namespace BlinnPhong
         RootParameterPointLights, // StructuredBuffer<PointLight> PointLights : register( t0 );
         RootParameterSpotLights, // StructuredBuffer<SpotLight> SpotLights : register( t1 );
         RootParameterDirectionalLights, // StructuredBuffer<DirectionalLight> DirectionalLights : register( t2 )
-        RootParameterTextures, // Texture2D DiffuseTexture : register( t3 );
-        RootParameterShadowCount, // ConstantBuffer<ShadowCount> ShadowCountCB : register(b0, space1);
-        RootParameterShadows, // StructuredBuffer<ShadowInfo> Shadows : register( t0, space1 )
-        RootParameterShadowMaps, // Texture2D ShadowMap0 : register( t1, space1 )
+        RootParameterLightInfos, // StructuredBuffer<LightInfo> LightInfos : register( t3 )
+        RootParameterTextures, // Texture2D DiffuseTexture : register( t4 );
+        RootParameterShadowMaps, // Texture2D ShadowMap0 : register( t0, space1 )
 
         RootParameterCount
     };

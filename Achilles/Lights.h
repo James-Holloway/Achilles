@@ -91,19 +91,18 @@ struct LightProperties
     uint32_t PointLightCount;
     uint32_t SpotLightCount;
     uint32_t DirectionalLightCount;
+    uint32_t ShadowCount;
+    uint32_t LightInfoCount;
 
     LightProperties();
 };
 
-struct ShadowCount
-{
-    uint32_t ShadowCount;
-};
-
-struct ShadowInfo
+struct LightInfo
 {
     Matrix ShadowMatrix;
     uint32_t LightType;
+    uint32_t LightIndex;
+    uint32_t IsShadowCaster;
 };
 
 class LightData
@@ -116,9 +115,7 @@ public:
 
     std::vector<std::shared_ptr<ShadowCamera>> ShadowCameras{};
     std::vector<std::shared_ptr<ShadowMap>> SortedShadowMaps{};
-    std::vector<ShadowInfo> SortedShadows{};
-
-    ShadowCount ShadowCount;
+    std::vector<LightInfo> SortedLightInfo{};
     
     LightProperties GetLightProperties();
 };
@@ -131,3 +128,31 @@ enum class LightType
     Directional = 4
 };
 DEFINE_ENUM_FLAG_OPERATORS(LightType);
+
+struct CombinedLight
+{
+    float Rank;
+    LightObject* LightObject;
+    LightType LightType;
+    bool IsShadowCaster;
+    union
+    {
+        PointLight PointLight;
+        SpotLight SpotLight;
+        DirectionalLight DirectionalLight;
+    };
+};
+
+struct {
+    bool operator()(CombinedLight& a, CombinedLight& b) const
+    {
+        if (a.IsShadowCaster != b.IsShadowCaster)
+        {
+            if (a.IsShadowCaster)
+                return true;
+            else
+                return false;
+        }
+        return a.Rank > b.Rank;
+    }
+} CombinedLightRankSort;

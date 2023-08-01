@@ -52,10 +52,3 @@ protected:
     LightType lightType = LightType::None;
     LightObject* lightObject{};
 };
-
-struct {
-    bool operator()(std::shared_ptr<ShadowCamera> a, std::shared_ptr<ShadowCamera> b) const
-    {
-        return a->GetRank() > b->GetRank();
-    }
-} ShadowCameraRankSort;

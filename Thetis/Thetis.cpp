@@ -602,7 +602,10 @@ void Thetis::DrawImGuiProperties()
 
                             ImGui::Separator();
 
-                            Matrix shadowMatrix = lightObject->GetShadowCamera(LightType::Directional)->GetShadowMatrix();
+                            Matrix shadowMatrix = Matrix::Identity;
+                            if (lightObject->GetShadowCamera(LightType::Directional) != nullptr)
+                                shadowMatrix = lightObject->GetShadowCamera(LightType::Directional)->GetShadowMatrix();
+
                             ImGui::Text("Shadow Matrix");
                             ImGui::BeginDisabled(true);
                             ImGui::InputFloat4("##ShadowMatrix1", shadowMatrix.m[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
@@ -1024,6 +1027,7 @@ void Thetis::LoadContent()
     spotLightObject->AddLight(spotLight);
     spotLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
     spotLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+    spotLightObject->SetIsShadowCaster(true);
     mainScene->AddObjectToScene(spotLightObject);
 
     std::shared_ptr<LightObject> sunLightObject = std::make_shared<LightObject>(L"Sun");
@@ -1031,6 +1035,7 @@ void Thetis::LoadContent()
     sunLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
     sunLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
     sunLightObject->SetActive(false);
+    sunLightObject->SetIsShadowCaster(true);
     mainScene->AddObjectToScene(sunLightObject);
 
     // Load content/models files into meshNames, used in Thetis' ImGui

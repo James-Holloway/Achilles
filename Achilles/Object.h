@@ -30,7 +30,7 @@ public:
     // Should not be used. Use CreateObject instead!
     Object(std::wstring _name = DefaultName);
     virtual ~Object();
-    std::shared_ptr<Object> Clone(std::shared_ptr<Object> newParent = nullptr);
+    virtual std::shared_ptr<Object> Clone(std::shared_ptr<Object> newParent = nullptr);
 
 public:
     //// Name functions ////

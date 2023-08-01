@@ -187,6 +187,7 @@ public:
     void AddScene(std::shared_ptr<Scene> scene);
     void RemoveScene(std::shared_ptr<Scene> scene);
     void DrawActiveScenes();
+    // Also populates the light and shadow info for LightData
     void DrawShadowScenes(std::shared_ptr<CommandList> commandList);
 
 public:
@@ -195,7 +196,7 @@ public:
     void QueueSpriteObjectDraw(std::shared_ptr<Object> object);
     void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
     void ClearLightData(LightData& lightData);
-    void PopulateLightData(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera, LightData& lightData);
+    void ConstructLightPositions(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera);
     void DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& lightData);
 protected:
     void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);

@@ -466,9 +466,6 @@
     <None Include="content\shaders\Lighting.hlsli">
       <Filter>content\shaders</Filter>
     </None>
-    <None Include="content\shaders\Shadows.hlsli">
-      <Filter>content\shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\lightbulb.png">

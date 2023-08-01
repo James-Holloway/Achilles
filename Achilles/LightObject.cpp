@@ -16,6 +16,48 @@ LightObject::~LightObject()
 
 }
 
+std::shared_ptr<Object> LightObject::Clone(std::shared_ptr<Object> newParent)
+{
+    if (newParent == nullptr)
+        newParent = GetParent();
+
+    std::shared_ptr<LightObject> clone = std::make_shared<LightObject>(name + L" (Clone)");
+    clone->SetParent(newParent);
+    clone->SetLocalPosition(GetLocalPosition());
+    clone->SetLocalRotation(GetLocalRotation());
+    clone->SetLocalScale(GetLocalScale());
+    for (uint32_t i = 0; i < knits.size(); i++)
+    {
+        clone->SetKnit(i, Knit(knits[i]));
+    }
+    clone->SetActive(IsActive());
+
+    if (HasLightType(LightType::Point))
+    {
+        PointLight light = GetPointLight();
+        clone->AddLight(light);
+    }
+    if (HasLightType(LightType::Spot))
+    {
+        SpotLight light = GetSpotLight();
+        clone->AddLight(light);
+    }
+    if (HasLightType(LightType::Directional))
+    {
+        DirectionalLight light = GetDirectionalLight();
+        clone->AddLight(light);
+    }
+
+    clone->SetIsShadowCaster(IsShadowCaster());
+
+    for (auto child : GetChildren())
+    {
+        child->Clone(clone);
+    }
+
+    return clone;
+}
+
 bool LightObject::HasLightType(LightType lightType)
 {
     return (size_t)(lightTypes & lightType) > 0;
@@ -143,6 +185,9 @@ void LightObject::SetIsShadowCaster(bool _shadowCaster)
 std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
 {
     if (!HasLightType(lightType))
+        return nullptr;
+
+    if (!IsShadowCaster())
         return nullptr;
 
     Vector3 shadowCenter = Vector3::Zero;
