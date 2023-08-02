@@ -79,7 +79,7 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
     return true;
 }
 
-std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
+std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material, std::wstring meshPath)
 {
     // Create the vertices using the common shader vertex format
     std::shared_ptr<Mesh> mesh = CommonShaderMeshCreation(scene, node, inMesh, shader, material);
@@ -98,7 +98,8 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
             if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) // If we have both then use diffuse
                 mat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
             
-            std::wstring textureFilename = std::filesystem::path(texturePath.C_Str()).filename().replace_extension();
+            std::filesystem::path path = std::filesystem::path(texturePath.C_Str());
+            std::wstring textureFilename = path.filename().replace_extension();
 
             const aiTexture* tex = scene->GetEmbeddedTexture(texturePath.C_Str());
             if (tex != nullptr) // Texture exists as embedded texture
@@ -108,8 +109,8 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
             }
             else // Texture is just a filename
             {
-                std::shared_ptr<Texture> texture = std::make_shared<Texture>();
-                Object::GetCreationCommandList()->LoadTextureFromContent(*texture, textureFilename, TextureUsage::Diffuse);
+                std::wstring basePath = std::filesystem::path(meshPath).remove_filename();
+                std::shared_ptr<Texture> texture = Texture::GetTextureFromPath(Object::GetCreationCommandList(), std::filesystem::path(texturePath.C_Str()), basePath);
                 material.SetTexture(L"MainTexture", texture);
             }
         }

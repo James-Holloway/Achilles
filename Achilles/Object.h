@@ -198,8 +198,8 @@ public:
     // Create a light object from the scene
     static std::shared_ptr<LightObject> CreateLightObjectFromSceneNode(aiScene* scene, aiNode* node, aiLight* light, std::shared_ptr<Object> parent);
     // Returns one object or nullptr. Child meshes are parented under one object with the scene name
-    static std::shared_ptr<Object> CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader);
-    static std::shared_ptr<Object> CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader);
+    static std::shared_ptr<Object> CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader, std::wstring filePath);
+    static std::shared_ptr<Object> CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader, std::wstring filePath);
     static std::shared_ptr<Object> CreateObjectsFromFile(std::wstring filePath, std::shared_ptr<Shader> shader);
     static std::shared_ptr<Object> CreateObjectsFromContentFile(std::wstring file, std::shared_ptr<Shader> shader);
 

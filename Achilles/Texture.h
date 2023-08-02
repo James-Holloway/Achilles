@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include "Common.h"
 #include "Resource.h"
 #include "DescriptorAllocation.h"
@@ -111,4 +112,5 @@ public:
     static std::map<std::wstring, std::shared_ptr<Texture>>& GetTextureCache();
 
     static std::shared_ptr<Texture> LoadTextureFromAssimp(std::shared_ptr<CommandList> commandList, const aiTexture* tex, std::wstring textureFilename);
+    static std::shared_ptr<Texture> GetTextureFromPath(std::shared_ptr<CommandList> commandList, std::wstring path, std::wstring basePath = L"");
 };

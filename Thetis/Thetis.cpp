@@ -1336,6 +1336,14 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
     }
 }
 
+void Thetis::AddObjectToScene(std::shared_ptr<Object> object)
+{
+    if (selectedPropertiesScene == nullptr)
+        return;
+    selectedPropertiesScene->AddObjectToScene(object);
+    selectedPropertiesObject = object;
+}
+
 
 void Thetis::PopulateMeshNames()
 {

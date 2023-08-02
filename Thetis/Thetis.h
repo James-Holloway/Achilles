@@ -45,6 +45,8 @@ public:
     virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt) override;
     virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) override;
 
+    virtual void AddObjectToScene(std::shared_ptr<Object> object) override;
+
 protected:
     void DrawImGuiPerformance();
     void DrawImGuiScenes();

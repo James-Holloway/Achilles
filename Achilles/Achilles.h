@@ -2,6 +2,7 @@
 #include <d3d12.h>
 #include <directxtk12/Keyboard.h>
 #include <directxtk12/Mouse.h>
+#include "AchillesDrop.h"
 #include "Resource.h"
 #include "Texture.h"
 #include "Application.h"
@@ -61,8 +62,8 @@ protected:
     UINT currentBackBufferIndex = 0;
 
     // Synchronization objects
-    uint64_t fenceValues[BufferCount] = {0};
-    uint64_t frameValues[BufferCount] = {0};
+    uint64_t fenceValues[BufferCount] = { 0 };
+    uint64_t frameValues[BufferCount] = { 0 };
 
     bool isInitialized = false; // Stores init state
 
@@ -87,6 +88,7 @@ public:
     FLOAT clearColor[4] = { 0.4f, 0.58f, 0.93f, 1.0f }; // Cornflower Blue
     double lastFPS = 0.0;
     bool postProcessingEnable = true;
+    bool acceptingFiles = false;
 
 protected:
     // Protected variables for internal use
@@ -194,6 +196,7 @@ public:
     void DrawActiveScenes();
     // Also populates the light and shadow info for LightData
     void DrawShadowScenes(std::shared_ptr<CommandList> commandList);
+    virtual void AddObjectToScene(std::shared_ptr<Object> object);
 
 public:
     // Achilles drawing functions
@@ -211,4 +214,15 @@ protected:
     void DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, SpotLight spotLight, std::shared_ptr<Shader> shader);
     void DrawQueuedEvents(std::shared_ptr<CommandList> commandList);
     void EmptyDrawQueue();
+
+public:
+    // Static functions
+    static Achilles* GetAchillesInstance(HWND hWnd);
+
+public:
+    // Drop functions
+    virtual void HandleDroppedFile(std::wstring file, std::shared_ptr<CommandList> commandList);
+    virtual void HandleDroppedFiles(std::vector<std::wstring> files);
+    virtual void LoadObjectFromFile(std::wstring path);
+    virtual void LoadTextureFromFile(std::wstring path, std::shared_ptr<CommandList> commandList);
 };

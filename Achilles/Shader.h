@@ -29,7 +29,7 @@ enum class ShaderType
 
 typedef bool (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
 
-typedef std::shared_ptr<Mesh> (CALLBACK* MeshCreation)(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
+typedef std::shared_ptr<Mesh> (CALLBACK* MeshCreation)(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material, std::wstring meshPath);
 
 HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring profile, ComPtr<IDxcResult>& outShader);
 

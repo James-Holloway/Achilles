@@ -189,6 +189,7 @@
     </ClCompile>
     <ClCompile Include="..\implot\implot_items.cpp" />
     <ClCompile Include="Achilles.cpp" />
+    <ClCompile Include="AchillesDrop.cpp" />
     <ClCompile Include="AchillesImGui.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Buffer.cpp" />
@@ -264,6 +265,7 @@
     <ClInclude Include="..\implot\implot.h" />
     <ClInclude Include="..\implot\implot_internal.h" />
     <ClInclude Include="Achilles.h" />
+    <ClInclude Include="AchillesDrop.h" />
     <ClInclude Include="AchillesImGui.h" />
     <ClInclude Include="AchillesShaders.h" />
     <ClInclude Include="Application.h" />

@@ -1,4 +1,5 @@
 #include "Achilles.h"
+#include "shaders/BlinnPhong.h"
 #include "shaders/ShadowMapping.h"
 #include "shaders/Skybox.h"
 
@@ -166,7 +167,13 @@ HWND Achilles::AchillesCreateWindow(const wchar_t* windowClassName, HINSTANCE hI
 
     assert(hWnd && "Failed to create window");
 
+    AchillesDrop* dropTarget = new AchillesDrop(hWnd);
+
+    HRESULT result = RegisterDragDrop(hWnd, (LPDROPTARGET)dropTarget);
+
     instanceMapping[hWnd] = this;
+
+    dropTarget->Release();
 
     return hWnd;
 }
@@ -798,8 +805,8 @@ void Achilles::Initialize()
     ParseCommandLineArguments();
     EnableDebugLayer();
 
-    // Initialize COM, used for Texture loading using CommandList::LoadTextureFromFile
-    ThrowIfFailed(CoInitializeEx(NULL, COINIT_MULTITHREADED));
+    // Initialize COM, used for Texture loading using CommandList::LoadTextureFromFile and for Drag & Drop
+    ThrowIfFailed(OleInitialize(NULL));
 
     std::wstring windowClassName = (L"AchillesWindowClass" + name);
 
@@ -859,6 +866,7 @@ void Achilles::Initialize()
     mainScene = std::make_shared<Scene>(L"Main Scene");
     AddScene(mainScene);
 
+    acceptingFiles = true;
     isInitialized = true;
 
     LoadInternalContent();
@@ -895,6 +903,8 @@ void Achilles::Run()
 
 void Achilles::Destroy()
 {
+    acceptingFiles = false;
+
     EmptyDrawQueue();
     UnloadContent();
 
@@ -920,6 +930,7 @@ void Achilles::Destroy()
 
     // Remove instance from instance mappings
     instanceMapping.erase(hWnd);
+    RevokeDragDrop(hWnd);
     DestroyWindow(hWnd);
     hWnd = nullptr;
 }
@@ -1164,17 +1175,17 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
         if (combinedLight.LightType == LightType::Point)
         {
             lightData.PointLights.push_back(combinedLight.PointLight);
-            lightInfo.LightIndex = lightData.PointLights.size() - 1;
+            lightInfo.LightIndex = (uint32_t)(lightData.PointLights.size() - 1);
         }
         else if (combinedLight.LightType == LightType::Spot)
         {
             lightData.SpotLights.push_back(combinedLight.SpotLight);
-            lightInfo.LightIndex = lightData.SpotLights.size() - 1;
+            lightInfo.LightIndex = (uint32_t)(lightData.SpotLights.size() - 1);
         }
         else if (combinedLight.LightType == LightType::Directional)
         {
             lightData.DirectionalLights.push_back(combinedLight.DirectionalLight);
-            lightInfo.LightIndex = lightData.DirectionalLights.size() - 1;
+            lightInfo.LightIndex = (uint32_t)(lightData.DirectionalLights.size() - 1);
         }
 
         lightData.SortedLightInfo.push_back(lightInfo);
@@ -1191,6 +1202,13 @@ void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
     scenes.erase(scene);
 }
 
+void Achilles::AddObjectToScene(std::shared_ptr<Object> object)
+{
+    if (object != nullptr && GetMainScene() != nullptr)
+    {
+        GetMainScene()->AddObjectToScene(object);
+    }
+}
 
 // Achilles drawing functions
 void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
@@ -1461,4 +1479,64 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 void Achilles::EmptyDrawQueue()
 {
     std::deque<DrawEvent>().swap(drawEventQueue);
+}
+
+Achilles* Achilles::GetAchillesInstance(HWND hWnd)
+{
+    auto iter = Achilles::instanceMapping.find(hWnd);
+    if (iter != Achilles::instanceMapping.end())
+    {
+        return iter->second;
+    }
+    return nullptr;
+}
+
+void Achilles::HandleDroppedFile(std::wstring file, std::shared_ptr<CommandList> commandList)
+{
+    std::filesystem::path path(file);
+    std::wstring extension = ToLowerWString(path.extension());
+    std::wstring filename = path.filename().replace_extension();
+
+    if (extension == L".fbx" || extension == L".obj" || extension == L".gltf" || extension == L".dae" || extension == L".blend")
+    {
+        OutputDebugStringWFormatted(L"Loading model %s\n", path.filename().wstring().c_str());
+        LoadObjectFromFile(path);
+    }
+    else if (extension == L".png" || extension == L".dds" || extension == L".hdr" || extension == L".bmp" || extension == L".jpg" || extension == L".jpeg" || extension == L".tiff" || extension == L".tif" || extension == L".tiff" || extension == L".exr")
+    {
+        OutputDebugStringWFormatted(L"Loading texture %s\n", path.filename().wstring().c_str());
+        LoadTextureFromFile(path, commandList);
+    }
+    else
+    {
+        OutputDebugStringWFormatted(L"Unhandled file extension %s for file %s\n", extension.c_str(), path.filename().wstring().c_str());
+    }
+}
+
+void Achilles::HandleDroppedFiles(std::vector<std::wstring> files)
+{
+    std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    std::shared_ptr<CommandList> commandList = directCommandQueue->GetCommandList();
+
+    for (std::wstring file : files)
+    {
+        HandleDroppedFile(file, commandList);
+    }
+
+    commandQueue->ExecuteCommandList(commandList);
+}
+
+void Achilles::LoadObjectFromFile(std::wstring path)
+{
+    std::shared_ptr<Object> object = Object::CreateObjectsFromFile(path, BlinnPhong::GetBlinnPhongShader(device));
+    AddObjectToScene(object);
+}
+
+void Achilles::LoadTextureFromFile(std::wstring path, std::shared_ptr<CommandList> commandList)
+{
+    std::wstring filename = std::filesystem::path(path).filename();
+
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Albedo, filename);
+    commandList->LoadTextureFromFile(*texture, path, TextureUsage::Albedo);
+    Texture::AddCachedTexture(filename, texture);
 }

@@ -221,6 +221,9 @@
     <ClCompile Include="shaders\PPGammaCorrection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AchillesDrop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imgui.h">
@@ -428,6 +431,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="shaders\PPGammaCorrection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AchillesDrop.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

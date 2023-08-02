@@ -61,6 +61,6 @@ namespace BlinnPhong
     inline static std::shared_ptr<Texture> whitePixelTexture = nullptr;
 
     bool BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData);
-    std::shared_ptr<Mesh> BlinnPhongMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material);
+    std::shared_ptr<Mesh> BlinnPhongMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material, std::wstring meshPath);
     std::shared_ptr<Shader> GetBlinnPhongShader(ComPtr<ID3D12Device2> device = nullptr);
 }

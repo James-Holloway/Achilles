@@ -708,7 +708,7 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
     return lightObject;
 }
 
-std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader)
+std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNode* node, std::shared_ptr<Object> parent, std::shared_ptr<Shader> shader, std::wstring filePath)
 {
     std::shared_ptr<Object> thisObject;
 
@@ -721,7 +721,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNod
             thisObject = std::dynamic_pointer_cast<Object>(CreateLightObjectFromSceneNode(scene, node, scene->mLights[i], parent));
             for (uint32_t i = 0; i < node->mNumChildren; i++)
             {
-                CreateObjectsFromSceneNode(scene, node->mChildren[i], thisObject, shader);
+                CreateObjectsFromSceneNode(scene, node->mChildren[i], thisObject, shader, filePath);
             }
             return thisObject;
         }
@@ -735,7 +735,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNod
     {
         aiMesh* inMesh = scene->mMeshes[node->mMeshes[i]];
         thisObject->SetKnit(i, Knit{}); // resize the knit vector so we can get the material directtly
-        std::shared_ptr<Mesh> mesh = createFunc(scene, node, inMesh, shader, thisObject->GetMaterial(i));
+        std::shared_ptr<Mesh> mesh = createFunc(scene, node, inMesh, shader, thisObject->GetMaterial(i), filePath);
         thisObject->SetMesh(i, mesh);
     }
 
@@ -758,16 +758,16 @@ std::shared_ptr<Object> Object::CreateObjectsFromSceneNode(aiScene* scene, aiNod
 
     for (uint32_t i = 0; i < node->mNumChildren; i++)
     {
-        CreateObjectsFromSceneNode(scene, node->mChildren[i], thisObject, shader);
+        CreateObjectsFromSceneNode(scene, node->mChildren[i], thisObject, shader, filePath);
     }
     return thisObject;
 }
 
-std::shared_ptr<Object> Object::CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader)
+std::shared_ptr<Object> Object::CreateObjectsFromScene(aiScene* scene, std::shared_ptr<Shader> shader, std::wstring filePath)
 {
     GetCreationCommandList(); // Create the command list that we will execute later
 
-    std::shared_ptr<Object> objectTree = CreateObjectsFromSceneNode(scene, scene->mRootNode, nullptr, shader);
+    std::shared_ptr<Object> objectTree = CreateObjectsFromSceneNode(scene, scene->mRootNode, nullptr, shader, filePath);
     if (objectTree->GetName() == L"RootNode")
     {
         if (scene->mName.length != 0 && scene->mName.C_Str() != "")
@@ -803,7 +803,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
 
     std::wstring fileName = std::filesystem::path(filePath).replace_extension().filename();
 
-    std::shared_ptr<Object> object = CreateObjectsFromScene(scene, shader);
+    std::shared_ptr<Object> object = CreateObjectsFromScene(scene, shader, filePath);
     if (object->GetName() == DefaultName)
         object->SetName(fileName);
 

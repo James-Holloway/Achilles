@@ -10,7 +10,7 @@
 
 using namespace DirectX;
 
-Texture::Texture(TextureUsage _textureUsage, const std::wstring& name) : Resource(name) , textureUsage(_textureUsage) {}
+Texture::Texture(TextureUsage _textureUsage, const std::wstring& name) : Resource(name), textureUsage(_textureUsage) {}
 
 Texture::Texture(const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue, TextureUsage _textureUsage, const std::wstring& name) : Resource(resourceDesc, clearValue, name), textureUsage(_textureUsage)
 {
@@ -555,4 +555,49 @@ std::shared_ptr<Texture> Texture::LoadTextureFromAssimp(std::shared_ptr<CommandL
         Texture::AddCachedTexture(textureFilename, texture);;
     }
     return texture;
+}
+
+std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList> commandList, std::wstring path, std::wstring basePath)
+{
+    std::filesystem::path file = std::filesystem::path(path);
+    std::wstring filename = file.filename();
+
+    std::shared_ptr<Texture> cachedTexture = GetCachedTexture(filename);
+    if (cachedTexture != nullptr && cachedTexture->IsValid())
+    {
+        return cachedTexture;
+    }
+
+    if (basePath == L"")
+        basePath = std::filesystem::current_path();
+
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Albedo, filename);
+
+    // Absolute Path
+    std::filesystem::path realPath = path;
+    if (std::filesystem::exists(realPath))
+    {
+        commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Albedo);
+
+        return texture;
+    }
+
+    // Relative path
+    realPath = std::filesystem::canonical(basePath + path);
+    if (std::filesystem::exists(realPath))
+    {
+        commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Albedo);
+
+        return texture;
+    }
+
+    // Content
+    commandList->LoadTextureFromContent(*texture, filename, TextureUsage::Albedo);
+
+    if (texture != nullptr && texture->IsValid())
+    {
+        return texture;
+    }
+
+    return nullptr;
 }

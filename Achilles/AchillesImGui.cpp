@@ -290,6 +290,9 @@ void AchillesImGui::Render(const std::shared_ptr<CommandList>& commandList, cons
             indexOffset += drawCmd.ElemCount;
         }
     }
+
+    // Textures are no longer in use (referenced through drawCmd.TextureId) so we can clear the shared pointer we have
+    texturesInUse.clear();
 }
 
 void AchillesImGui::Destroy()
