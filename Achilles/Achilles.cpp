@@ -329,16 +329,16 @@ std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
 {
     DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
 
-    CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
-    D3D12_CLEAR_VALUE depthClearValue;
-    depthClearValue.Format = depthDesc.Format;
-    depthClearValue.DepthStencil = { 1.0f, 0 };
-    depthClearValue.Color[0] = 0;
-    depthClearValue.Color[1] = 0;
-    depthClearValue.Color[2] = 0;
-    depthClearValue.Color[3] = 0;
+    CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+    D3D12_CLEAR_VALUE clearValue;
+    clearValue.Format = resDesc.Format;
+    clearValue.DepthStencil = { 1.0f, 0 };
+    clearValue.Color[0] = 0;
+    clearValue.Color[1] = 0;
+    clearValue.Color[2] = 0;
+    clearValue.Color[3] = 0;
 
-    std::shared_ptr<Texture> rtTexture = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Albedo, name);
+    std::shared_ptr<Texture> rtTexture = std::make_shared<Texture>(resDesc, &clearValue, TextureUsage::Albedo, name);
     rtTexture->CreateViews();
     ResourceStateTracker::AddGlobalResourceState(rtTexture->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
 
@@ -349,10 +349,23 @@ std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
 void Achilles::UpdateMainRenderTarget()
 {
     renderTarget->Reset();
-    std::shared_ptr<Texture> rtTexture = Achilles::CreateRenderTargetTexture(L"Main Render Target");
+    std::shared_ptr<Texture> rtTexture = CreateRenderTargetTexture(L"Main Render Target");
     renderTarget->AttachTexture(AttachmentPoint::Color0, rtTexture);
     renderTarget->Resize(clientWidth, clientHeight);
     UpdateDepthStencilView();
+}
+
+std::shared_ptr<Texture> Achilles::CreateIntermediatePresentTexture()
+{
+    DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+    CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    std::shared_ptr<Texture> tex = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Intermediate Present Texture");
+    tex->CreateViews();
+
+    ResourceStateTracker::AddGlobalResourceState(tex->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
+
+    return tex;
 }
 
 ComPtr<ID3D12CommandAllocator> Achilles::CreateCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
@@ -378,6 +391,11 @@ std::shared_ptr<RenderTarget> Achilles::GetSwapChainRenderTarget() const
 {
     swapChainRenderTarget->AttachTexture(AttachmentPoint::Color0, backBuffers[currentBackBufferIndex]);
     return swapChainRenderTarget;
+}
+
+std::shared_ptr<Texture> Achilles::GetIntermediatePresentTexture() const
+{
+    return intermediatePresentTexture;
 }
 
 // Stall CPU while we signal and wait
@@ -499,24 +517,10 @@ void Achilles::HandleMouse(int& mouseX, int& mouseY, int& scroll, Mouse::State& 
 void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList)
 {
     ScopedTimer _prof(L"Present");
-    std::shared_ptr<Texture> backBuffer = backBuffers[currentBackBufferIndex];
+    std::shared_ptr<RenderTarget> presentRT = GetSwapChainRenderTarget();
+    std::shared_ptr<Texture> texture = presentRT->GetTexture(AttachmentPoint::Color0);
 
-    std::shared_ptr<RenderTarget> currentRT = GetCurrentRenderTarget();
-    std::shared_ptr<Texture> texture = currentRT->GetTexture(AttachmentPoint::Color0);
-
-    if (texture && texture->IsValid())
-    {
-        if (texture->GetD3D12ResourceDesc().SampleDesc.Count > 1)
-        {
-            commandList->ResolveSubresource(*backBuffer, *texture);
-        }
-        else
-        {
-            commandList->CopyResource(*backBuffer, *texture);
-        }
-    }
-
-    commandList->TransitionBarrier(*backBuffer, D3D12_RESOURCE_STATE_PRESENT);
+    commandList->TransitionBarrier(*texture, D3D12_RESOURCE_STATE_PRESENT);
 
     fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
@@ -563,13 +567,10 @@ void Achilles::LoadInternalContent()
     commandQueue->ExecuteCommandList(commandList);
 }
 
-void Achilles::ApplyPostProcessing(std::shared_ptr<Texture> texture)
+void Achilles::ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture)
 {
-    ScopedTimer _prof(L"Apply Post Processing");
-    if (postProcessing != nullptr && postProcessingEnable)
-    {
-        postProcessing->ApplyPostProcessing(texture);
-    }
+    ScopedTimer _prof(L"Post Processing");
+    postProcessing->ApplyPostProcessing(texture, presentTexture, postProcessingEnable);
 }
 
 // Achilles functions
@@ -675,15 +676,20 @@ void Achilles::Render()
         directCommandQueue->Flush(); // Required else we crash when accessing rtTexture from compute (only when debugger is not present though)
     }
 
-    // Apply post processing effects to the RT
-    ApplyPostProcessing(rtTexture);
-
     std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();
 
-    // Transition back from post processing's compute command list
-    presentCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+    std::shared_ptr<Texture> intermediatePresentTexture = GetIntermediatePresentTexture();
+    ApplyPostProcessing(presentCommandList, rtTexture, intermediatePresentTexture);
 
-    achillesImGui->Render(presentCommandList, *GetCurrentRenderTarget());
+    std::shared_ptr<RenderTarget> presentRT = GetSwapChainRenderTarget();
+    std::shared_ptr<Texture> presentTexture = presentRT->GetTexture(AttachmentPoint::Color0);
+
+    presentCommandList->CopyResource(*presentTexture, *intermediatePresentTexture);
+
+    // Transition back from post processing's compute command list
+    presentCommandList->TransitionBarrier(*presentTexture, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+
+    achillesImGui->Render(presentCommandList, *presentRT);
 
     Present(directCommandQueue, presentCommandList);
     Flush();
@@ -723,6 +729,7 @@ void Achilles::Resize(uint32_t width, uint32_t height)
 
         UpdateMainRenderTarget();
         UpdateRenderTargetViews();
+        GetIntermediatePresentTexture()->Resize(clientWidth, clientHeight);
 
         Flush();
 
@@ -832,6 +839,8 @@ void Achilles::Initialize()
     currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
     UpdateRenderTargetViews();
+
+    intermediatePresentTexture = CreateIntermediatePresentTexture();
 
     for (int i = 0; i < BufferCount; ++i)
     {

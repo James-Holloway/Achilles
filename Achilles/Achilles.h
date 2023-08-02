@@ -52,6 +52,7 @@ protected:
     std::shared_ptr<Texture> backBuffers[BufferCount];
     std::shared_ptr<RenderTarget> renderTarget;
     std::shared_ptr<RenderTarget> swapChainRenderTarget;
+    std::shared_ptr<Texture> intermediatePresentTexture;
 
     std::shared_ptr<CommandQueue> directCommandQueue;
     std::shared_ptr<CommandQueue> computeCommandQueue;
@@ -134,12 +135,14 @@ protected:
     void UpdateDepthStencilView();
     std::shared_ptr<Texture> CreateRenderTargetTexture(std::wstring name = L"Render Target Texture");
     void UpdateMainRenderTarget();
+    std::shared_ptr<Texture> CreateIntermediatePresentTexture();
     ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
 
     // Get functions
     std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const;
     std::shared_ptr<RenderTarget> GetCurrentRenderTarget() const;
     std::shared_ptr<RenderTarget> GetSwapChainRenderTarget() const;
+    std::shared_ptr<Texture> GetIntermediatePresentTexture() const;
 
     // Resource, command queue and command list functions
     void Flush();
@@ -154,7 +157,7 @@ protected:
     void HandleMouse(int& mouseX, int& mouseY, int& scroll, DirectX::Mouse::State& state);
     void Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList);
     void LoadInternalContent();
-    virtual void ApplyPostProcessing(std::shared_ptr<Texture> texture);
+    virtual void ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture);
 
 public:
     // Achilles functions to run things

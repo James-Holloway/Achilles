@@ -147,6 +147,16 @@ float3 RemoveREC2084Curve(float3 N)
     return pow(max(Np - c1, 0) / (c2 - c3 * Np), 1 / m1);
 }
 
+float3 EncodeGamma(float3 col, float gamma)
+{
+    return pow(col, 1.0 / gamma);
+}
+
+float3 DecodeGamma(float3 col, float gamma)
+{
+    return pow(col, gamma);
+}
+
 //
 // Color space conversions
 //

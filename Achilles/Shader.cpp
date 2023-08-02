@@ -169,7 +169,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 1;
-    rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    rtvFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
     rasterizerDesc.CullMode = cullMode;
@@ -366,7 +366,7 @@ std::shared_ptr<Shader> Shader::ShaderSkyboxVSPS(ComPtr<ID3D12Device2> device, D
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 1;
-    rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    rtvFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
     rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;

@@ -17,7 +17,7 @@ DirectionalLight::DirectionalLight() : DirectionWorldSpace(0, 0, 0, 0), Rotation
 
 }
 
-AmbientLight::AmbientLight() : Color(1, 1, 1, 1), Strength(0.125), Padding{ 0 }
+AmbientLight::AmbientLight() : Color(1, 1, 1, 1), Strength(0.05), Padding{ 0 }
 {
 
 }

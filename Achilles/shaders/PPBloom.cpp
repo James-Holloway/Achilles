@@ -107,7 +107,7 @@ void PPBloom::CreateUAVs(float width, float height)
     uint32_t bloomHeight = height > 1440 ? 768 : 384;
 
     CD3DX12_RESOURCE_DESC resDesc{};
-    resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, bloomWidth, bloomHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, bloomWidth, bloomHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     bloomBuffer1[0] = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Bloom Buffer 1a");
     bloomBuffer1[1] = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Bloom Buffer 1b");
@@ -137,7 +137,7 @@ void PPBloom::CreateUAVs(float width, float height)
     bloomLumaBuffer = std::make_shared<Texture>(lumaDesc, nullptr, TextureUsage::Linear, L"Bloom Luma Buffer");
 
     CD3DX12_RESOURCE_DESC intermediaryDesc{};
-    intermediaryDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, (UINT64)width, (UINT)height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    intermediaryDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, (UINT64)width, (UINT)height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     bloomIntermediaryTexture = std::make_shared<Texture>(intermediaryDesc, nullptr, TextureUsage::Albedo, L"Bloom Intermediary Texture");
 
     hasCreatedUAVs = true;

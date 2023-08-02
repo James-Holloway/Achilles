@@ -215,6 +215,12 @@
     <ClCompile Include="shaders\Skybox.cpp">
       <Filter>Shaders</Filter>
     </ClCompile>
+    <ClCompile Include="shaders\PPToneMapping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\PPGammaCorrection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imgui.h">
@@ -418,6 +424,12 @@
     <ClInclude Include="shaders\Skybox.h">
       <Filter>Shaders</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\PPToneMapping.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\PPGammaCorrection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -464,6 +476,15 @@
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\shaders\Lighting.hlsli">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\ToneMappers.hlsli">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPToneMapping.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\PPGammaCorrection.hlsl">
       <Filter>content\shaders</Filter>
     </None>
   </ItemGroup>

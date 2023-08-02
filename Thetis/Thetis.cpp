@@ -854,6 +854,35 @@ void Thetis::DrawImGuiPostProcessing()
             ImGui::DragFloat("Bloom Strength", &postProcessing->BloomStrength, 0.01f, 0.0f, 2.0f, "%.2f");
             ImGui::DragFloat("Bloom Threshold", &postProcessing->BloomThreshold, 0.1f, 0.0f, 8.0f, "%.2f");
             ImGui::DragFloat("Bloom Upsample Factor", &postProcessing->BloomUpsampleFactor, 0.01f, 0.0f, 2.0f, "%.2f");
+
+            ImGui::Separator();
+
+            ImGui::Checkbox("Enable Tone Mapping", &postProcessing->EnableToneMapping);
+            if (ImGui::BeginCombo("Tone Mapper", PPToneMapping::ToneMappers::GetToneMapperName(postProcessing->ToneMapper).c_str()))
+            {
+#define THETIS_TONEMAPPER_COMBO(Name) \
+                if (ImGui::Selectable(PPToneMapping::ToneMappers::GetToneMapperName(PPToneMapping::ToneMappers:: Name).c_str(), postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name)) \
+                { \
+                    postProcessing->ToneMapper = PPToneMapping::ToneMappers:: Name; \
+                } \
+                if (postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name) \
+                { \
+                    ImGui::SetItemDefaultFocus(); \
+                }
+
+                THETIS_TONEMAPPER_COMBO(Clamp);
+                THETIS_TONEMAPPER_COMBO(ExtendedReinhard);
+                THETIS_TONEMAPPER_COMBO(Filmic);
+
+#undef THETIS_TONEMAPPER_COMBO
+
+                ImGui::EndCombo();
+            }
+
+            ImGui::Separator();
+
+            ImGui::Checkbox("Enable Gamma Correction", &postProcessing->EnableGammaCorrection);
+            ImGui::DragFloat("Gamma Correction", &postProcessing->GammaCorrection, 0.05f, 0.0f, 10.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
         }
     }
     ImGui::End();
@@ -1282,7 +1311,7 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
 {
     if (mt.rightButton)
     {
-        float cameraRotationSpeed = toRad(45) * 0.01 * mouseSensitivity;
+        float cameraRotationSpeed = toRad(45) * 0.01f * mouseSensitivity;
         camera->RotateEuler(Vector3(cameraRotationSpeed * md.mouseYDelta, cameraRotationSpeed * md.mouseXDelta, 0));
     }
     if (md.scrollDelta < 0)
