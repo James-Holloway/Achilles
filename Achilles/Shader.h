@@ -31,6 +31,8 @@ typedef bool (CALLBACK* ShaderRender)(std::shared_ptr<CommandList> commandList, 
 
 typedef std::shared_ptr<Mesh> (CALLBACK* MeshCreation)(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material, std::wstring meshPath);
 
+typedef bool (CALLBACK* IsKnitTransparent)(std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material);
+
 HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring profile, ComPtr<IDxcResult>& outShader);
 
 class Shader
@@ -50,6 +52,7 @@ public:
 
     ShaderRender renderCallback = nullptr;
     MeshCreation meshCreateCallback = nullptr;
+    IsKnitTransparent knitTransparencyCallback = nullptr;
 
     Shader(std::wstring _name);
     Shader(std::wstring _name, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, size_t _vertexSize);

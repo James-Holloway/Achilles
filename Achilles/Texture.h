@@ -30,10 +30,18 @@ public:
     {
         return textureUsage;
     }
-
     void SetTextureUsage(TextureUsage _textureUsage)
     {
         textureUsage = textureUsage;
+    }
+
+    virtual bool IsTransparent()
+    {
+        return isTransparent;
+    }
+    virtual void SetTransparent(bool _isTransparent)
+    {
+        isTransparent = _isTransparent;
     }
 
     // Resize the texture.
@@ -100,6 +108,7 @@ protected:
     DescriptorAllocation depthStencilView;
 
     TextureUsage textureUsage;
+    bool isTransparent = false;
 
 protected:
     inline static std::map<std::wstring, std::shared_ptr<Texture>> textureCache{};

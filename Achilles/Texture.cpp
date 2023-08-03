@@ -535,6 +535,7 @@ std::shared_ptr<Texture> Texture::LoadTextureFromAssimp(std::shared_ptr<CommandL
         texture->SetD3D12Resource(textureResource);
         texture->CreateViews();
         texture->SetName(textureFilename);
+        texture->SetTransparent(!scratchImage.IsAlphaAllOpaque());
 
         std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
         const Image* pImages = scratchImage.GetImages();

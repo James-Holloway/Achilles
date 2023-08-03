@@ -24,6 +24,7 @@ struct MaterialProperties
     float SpecularPower;
     // 32 bytes
     float ReceivesShadows;
+    float IsTransparent;
     float2 Padding;
     // 48 bytes
 };

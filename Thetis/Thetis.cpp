@@ -396,10 +396,11 @@ void Thetis::DrawImGuiProperties()
                                     color.x,
                                     color.y,
                                     color.z,
+                                    color.w
                                 };
-                                if (ImGui::ColorEdit3("Color", col))
+                                if (ImGui::ColorEdit4("Color", col))
                                 {
-                                    knit.material.SetVector(L"Color", Vector4(col[0], col[1], col[2], 1.0f));
+                                    knit.material.SetVector(L"Color", Vector4(col[0], col[1], col[2], col[3]));
                                 }
                             }
 

@@ -205,7 +205,8 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
     if (iter != textureCache.end())
     {
         texture.SetTextureUsage(textureUsage);
-        texture.SetD3D12Resource(iter->second);
+        texture.SetD3D12Resource(iter->second.Resource);
+        texture.SetTransparent(iter->second.IsTransparent);
         texture.CreateViews();
         texture.SetName(fileName);
     }
@@ -270,6 +271,7 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
         texture.SetD3D12Resource(textureResource);
         texture.CreateViews();
         texture.SetName(fileName);
+        texture.SetTransparent(!scratchImage.IsAlphaAllOpaque());
 
         std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
         const Image* pImages = scratchImage.GetImages();
@@ -290,7 +292,11 @@ void CommandList::LoadTextureFromFile(Texture& texture, const std::wstring& file
 
         // Add the texture resource to the texture cache.
         std::lock_guard<std::mutex> lock(textureCacheMutex);
-        textureCache[fileName] = textureResource.Get();
+        textureCache[fileName] = CachedTexture
+        {
+            .Resource = textureResource.Get(),
+            .IsTransparent = texture.IsTransparent()
+        };
     }
 }
 
@@ -320,15 +326,16 @@ bool CommandList::GetTextureFromCache(Texture& texture, std::wstring identifierN
     if (iter != textureCache.end())
     {
         texture.SetTextureUsage(textureUsage);
-        texture.SetD3D12Resource(iter->second);
+        texture.SetD3D12Resource(iter->second.Resource);
         texture.CreateViews();
         texture.SetName(identifierName);
+        texture.SetTransparent(iter->second.IsTransparent);
         return true;
     }
     return false;
 }
 
-void CommandList::CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage, bool createMipmaps)
+void CommandList::CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage, bool createMipmaps, bool isTransparent)
 {
     auto device = Application::GetD3D12Device();
 
@@ -336,9 +343,10 @@ void CommandList::CreateTextureFromMemory(Texture& texture, std::wstring identif
     if (iter != textureCache.end())
     {
         texture.SetTextureUsage(textureUsage);
-        texture.SetD3D12Resource(iter->second);
+        texture.SetD3D12Resource(iter->second.Resource);
         texture.CreateViews();
         texture.SetName(identifierName);
+        texture.SetTransparent(iter->second.IsTransparent);
     }
     else
     {
@@ -360,6 +368,7 @@ void CommandList::CreateTextureFromMemory(Texture& texture, std::wstring identif
         texture.SetD3D12Resource(textureResource);
         texture.CreateViews();
         texture.SetName(identifierName);
+        texture.SetTransparent(isTransparent);
 
         std::vector<D3D12_SUBRESOURCE_DATA> subresources(1);
         auto& subresource = subresources[0];
@@ -376,7 +385,11 @@ void CommandList::CreateTextureFromMemory(Texture& texture, std::wstring identif
 
         // Add the texture resource to the texture cache.
         std::lock_guard<std::mutex> lock(textureCacheMutex);
-        textureCache[identifierName] = textureResource.Get();
+        textureCache[identifierName] = CachedTexture
+        {
+            .Resource = textureResource.Get(),
+            .IsTransparent = isTransparent
+        };
     }
 }
 

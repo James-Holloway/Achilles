@@ -24,7 +24,7 @@ namespace ShadowMapping
         RootParameterMatrices,  // ConstantBuffer<Matricies> MatricesCB : register(b0)
 
         //// Pixel shader parameters ////
-        // Possible TODO: Sample diffuse texture to clip out alpha < 0.1
+        RootParameterTextures, // Texture2D AlphaTexture : register(t0);
 
         RootParameterCount
     };

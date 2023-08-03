@@ -670,8 +670,8 @@ void Achilles::Render()
     OnRender(dt);
     DrawActiveScenes(); // Deferred
     DrawShadowScenes(directCommandList); // Immediate
-    DrawQueuedEvents(directCommandList); // Rendering deferred
     DrawSkybox(directCommandList, lightData); // Draw skybox last
+    DrawQueuedEvents(directCommandList); // Rendering deferred
     OnPostRender(dt);
 
     // Transition ready for post processing's compute command list
@@ -1228,7 +1228,23 @@ void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
         de.camera = Camera::debugShadowCamera;
 
     de.eventType = DrawEventType::DrawIndexed;
-    drawEventQueue.push_back(de);
+    for (uint32_t i = 0; i < object->GetKnitCount(); i++)
+    {
+        de.knitIndex = i;
+        Knit knit = object->GetKnit(i);
+        std::shared_ptr<Shader> shader = knit.material.shader;
+
+        if (shader->knitTransparencyCallback != nullptr)
+        {
+            bool isTransparent = shader->knitTransparencyCallback(de.object, i, knit.mesh, knit.material);
+            if (isTransparent)
+                drawEventQueueTransparent.push_back(de);
+            else
+                drawEventQueue.push_back(de);
+        }
+        else // default to opaque queue if no callback
+            drawEventQueue.push_back(de);
+    }
 }
 
 void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
@@ -1241,8 +1257,13 @@ void Achilles::QueueSpriteObjectDraw(std::shared_ptr<Object> object)
     DrawEvent de{};
     de.object = object;
     de.camera = Camera::mainCamera;
+    de.knitIndex = 0;
+
+    if (Camera::debugShadowCamera)
+        de.camera = Camera::debugShadowCamera;
+
     de.eventType = DrawEventType::DrawSprite;
-    drawEventQueue.push_back(de);
+    drawEventQueueTransparent.push_back(de);
 }
 
 void Achilles::QueueSceneDraw(std::shared_ptr<Scene> scene)
@@ -1327,7 +1348,7 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
 
     commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
 }
-#pragma optimize("s", on)
+
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
 {
     ScopedTimer _prof(L"DrawObjectKnitIndexed");
@@ -1365,12 +1386,6 @@ void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::
 
     ScopedTimer _prof(L"DrawObjectIndexed");
 
-    commandList->SetViewport(camera->viewport);
-    commandList->SetScissorRect(camera->scissorRect);
-
-    std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
-    commandList->SetRenderTarget(*rt);
-
     // Draw each knit
     for (uint32_t i = 0; i < object->GetKnitCount(); i++)
     {
@@ -1392,12 +1407,6 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
     std::shared_ptr<Mesh> mesh = spriteObject->GetSpriteMesh(commandList);
     if (mesh == nullptr)
         return;
-
-    commandList->SetViewport(camera->viewport);
-    commandList->SetScissorRect(camera->scissorRect);
-
-    std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
-    commandList->SetRenderTarget(*rt);
 
     std::shared_ptr<Shader> shader = SpriteUnlit::GetSpriteUnlitShader(device);
 
@@ -1429,9 +1438,16 @@ void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandL
     {
         Knit knit = object->GetKnit(i);
         std::shared_ptr<Mesh> mesh = knit.mesh;
+        Material material = knit.material;
         commandList->SetPrimitiveTopology(mesh->topology);
         commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
         commandList->SetIndexBuffer(*mesh->indexBuffer);
+
+        std::shared_ptr<Texture> mainTexture = material.GetTexture(L"MainTexture");
+        if (mainTexture == nullptr || !mainTexture->IsValid())
+            mainTexture = Texture::GetCachedTexture(L"White");
+
+        commandList->SetShaderResourceView(ShadowMapping::RootParameters::RootParameterTextures, 0, *mainTexture);
 
         commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
     }
@@ -1448,9 +1464,15 @@ void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, st
     {
         Knit knit = object->GetKnit(i);
         std::shared_ptr<Mesh> mesh = knit.mesh;
+        Material material = knit.material;
         commandList->SetPrimitiveTopology(mesh->topology);
         commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
         commandList->SetIndexBuffer(*mesh->indexBuffer);
+
+        std::shared_ptr<Texture> mainTexture = material.GetTexture(L"MainTexture");
+        if (mainTexture == nullptr || !mainTexture->IsValid())
+            mainTexture = Texture::GetCachedTexture(L"White");
+        commandList->SetShaderResourceView(ShadowMapping::RootParameters::RootParameterTextures, 0, *mainTexture);
 
         commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
     }
@@ -1459,26 +1481,66 @@ void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, st
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
     ScopedTimer _prof(L"DrawQueuedEvents");
-    for (DrawEvent de : drawEventQueue)
+    std::shared_ptr<Camera> lastCamera = nullptr;
+
+    std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
+    commandList->SetRenderTarget(*rt);
+
     {
-        switch (de.eventType)
+        ScopedTimer _prof2(L"Opaque");
+        for (DrawEvent de : drawEventQueue)
         {
-        case DrawEventType::Ignore:
-            break;
-        case DrawEventType::DrawIndexed:
-            DrawObjectIndexed(commandList, de.object, de.camera);
-            break;
-        case DrawEventType::DrawSprite:
-            DrawSpriteIndexed(commandList, de.object, de.camera);
-            break;
+            if (de.camera != lastCamera)
+            {
+                commandList->SetViewport(de.camera->viewport);
+                commandList->SetScissorRect(de.camera->scissorRect);
+                lastCamera = de.camera;
+            }
+
+            switch (de.eventType)
+            {
+            case DrawEventType::Ignore:
+            case DrawEventType::DrawSprite: // Sprites should never be in the opaque queue
+                break;
+            case DrawEventType::DrawIndexed:
+                DrawObjectKnitIndexed(commandList, de.object, de.knitIndex, de.camera);
+                break;
+            }
         }
     }
-    drawEventQueue.clear();
+
+    {
+        ScopedTimer _prof2(L"Transparent");
+        for (DrawEvent de : drawEventQueueTransparent)
+        {
+            if (de.camera != lastCamera)
+            {
+                commandList->SetViewport(de.camera->viewport);
+                commandList->SetScissorRect(de.camera->scissorRect);
+                lastCamera = de.camera;
+            }
+
+            switch (de.eventType)
+            {
+            case DrawEventType::Ignore:
+                break;
+            case DrawEventType::DrawIndexed:
+                DrawObjectKnitIndexed(commandList, de.object, de.knitIndex, de.camera);
+                break;
+            case DrawEventType::DrawSprite:
+                DrawSpriteIndexed(commandList, de.object, de.camera);
+                break;
+            }
+        }
+    }
+
+    EmptyDrawQueue();
 }
-#pragma optimize("", on)
+
 void Achilles::EmptyDrawQueue()
 {
-    std::deque<DrawEvent>().swap(drawEventQueue);
+    drawEventQueue.clear();
+    drawEventQueueTransparent.clear();
 }
 
 Achilles* Achilles::GetAchillesInstance(HWND hWnd)
@@ -1502,7 +1564,7 @@ void Achilles::HandleDroppedFile(std::wstring file, std::shared_ptr<CommandList>
         OutputDebugStringWFormatted(L"Loading model %s\n", path.filename().wstring().c_str());
         LoadObjectFromFile(path);
     }
-    else if (extension == L".png" || extension == L".dds" || extension == L".hdr" || extension == L".bmp" || extension == L".jpg" || extension == L".jpeg" || extension == L".tiff" || extension == L".tif" || extension == L".tiff" || extension == L".exr")
+    else if (extension == L".png" || extension == L".dds" || extension == L".hdr" || extension == L".tga" || extension == L".bmp" || extension == L".jpg" || extension == L".jpeg" || extension == L".tiff" || extension == L".tif" || extension == L".tiff" || extension == L".exr")
     {
         OutputDebugStringWFormatted(L"Loading texture %s\n", path.filename().wstring().c_str());
         LoadTextureFromFile(path, commandList);

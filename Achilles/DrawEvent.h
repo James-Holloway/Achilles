@@ -16,5 +16,6 @@ struct DrawEvent
 {
     std::shared_ptr<Object> object;
     std::shared_ptr<Camera> camera;
+    uint32_t knitIndex;
     DrawEventType eventType;
 };

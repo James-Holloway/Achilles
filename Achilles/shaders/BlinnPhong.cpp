@@ -9,7 +9,7 @@ using namespace BlinnPhong;
 using namespace CommonShader;
 using namespace DirectX;
 
-BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), Padding{ 0 }
+BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), IsTransparent(0), Padding{ 0 }
 {
 
 }
@@ -120,6 +120,7 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
         ai_real a;
         mat->Get(AI_MATKEY_COLOR_DIFFUSE, rgb);
         mat->Get(AI_MATKEY_OPACITY, a);
+
         Vector4 color(rgb.r, rgb.g, rgb.b, (float)a);
         material.SetVector(L"Color", color);
 
@@ -157,6 +158,17 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
     material.SetFloat(L"ShadingType", 1);
 
     return mesh;
+}
+
+bool BlinnPhong::BlinnPhongIsKnitTransparent(std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material)
+{
+    std::shared_ptr<Texture> texture = material.GetTexture(L"MainTexture");
+    if (texture == nullptr || !texture->IsValid())
+        return false;
+
+    Color color = material.GetVector(L"Color");
+
+    return texture->IsTransparent() || color.w < 1.0f;
 }
 
 static std::shared_ptr<Shader> BlinnPhongShader{};
@@ -212,8 +224,9 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
     BlinnPhongRootSignature.Init_1_1(_countof(rootParameters), rootParameters, (UINT)samplers.size(), samplers.data(), rootSignatureFlags);
     std::shared_ptr rootSignature = std::make_shared<RootSignature>(BlinnPhongRootSignature.Desc_1_1, D3D_ROOT_SIGNATURE_VERSION_1_1);
 
-    BlinnPhongShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, BlinnPhongShaderRender, L"BlinnPhong", D3D12_CULL_MODE_BACK, false);
+    BlinnPhongShader = Shader::ShaderVSPS(device, CommonShaderInputLayout, _countof(CommonShaderInputLayout), sizeof(CommonShaderVertex), rootSignature, BlinnPhongShaderRender, L"BlinnPhong", D3D12_CULL_MODE_BACK, true);
     BlinnPhongShader->meshCreateCallback = BlinnPhongMeshCreation;
+    BlinnPhongShader->knitTransparencyCallback = BlinnPhongIsKnitTransparent;
 
     whitePixelTexture = Texture::GetCachedTexture(L"White");
 

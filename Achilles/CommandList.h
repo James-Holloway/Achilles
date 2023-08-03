@@ -139,7 +139,7 @@ public:
     bool GetTextureFromCache(Texture& texture, std::wstring identifierName, TextureUsage textureUsage = TextureUsage::Albedo);
 
     // Create a texture from the provided pixels
-    void CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage = TextureUsage::Albedo, bool createMipmaps = false);
+    void CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage = TextureUsage::Albedo, bool createMipmaps = false, bool isTransparent = false);
 
     // Clear a texture
     void ClearTexture(const Texture& texture, const float clearColor[4]);
@@ -361,7 +361,13 @@ private:
 
     std::vector<std::function<void(void)>> onExecutedFunctions{};
 
+    struct CachedTexture
+    {
+        ID3D12Resource* Resource;
+        bool IsTransparent;
+    };
+
     // Keep track of loaded textures to avoid loading the same texture multiple times.
-    inline static std::map<std::wstring, ID3D12Resource*> textureCache{};
+    inline static std::map<std::wstring, CachedTexture> textureCache{};
     inline static std::mutex textureCacheMutex{};
 };
