@@ -650,6 +650,8 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
     bool directChildOfRoot = node->mParent != nullptr && node->mParent == scene->mRootNode;
     std::shared_ptr<LightObject> lightObject = Object::CreateLightObject(StringToWString(node->mName.C_Str()), parent);
 
+    Vector3 lightDirection = Vector3(light->mDirection.x, light->mDirection.y, light->mDirection.z);
+
     switch (light->mType)
     {
     case aiLightSource_POINT:
@@ -696,6 +698,10 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
         transform.c1, transform.c2, transform.c3, transform.c4,
         transform.d1, transform.d2, transform.d3, transform.d4,
     };
+    Vector3 scale, position;
+    Quaternion rotation;
+
+    transformMatrix.Transpose().Decompose(scale, rotation, position);
 
     // If we are a direct child of the root node then scale down into meters
     if (directChildOfRoot)
@@ -703,7 +709,18 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
         transformMatrix /= 100.0f;
     }
 
-    lightObject->SetLocalMatrix(transformMatrix.Transpose());
+    transformMatrix.Transpose().Decompose(scale, rotation, position);
+
+    lightObject->SetLocalScale(scale);
+    lightObject->SetLocalPosition(position);
+
+    Quaternion swizzledRotation;
+    swizzledRotation.x = rotation.z;
+    swizzledRotation.y = -rotation.x;
+    swizzledRotation.z = rotation.w;
+    swizzledRotation.w = rotation.y;
+
+    lightObject->SetLocalRotation(swizzledRotation);
 
     return lightObject;
 }
@@ -767,6 +784,57 @@ std::shared_ptr<Object> Object::CreateObjectsFromScene(aiScene* scene, std::shar
 {
     GetCreationCommandList(); // Create the command list that we will execute later
 
+    // https://github.com/assimp/assimp/issues/849#issuecomment-875475292
+    // Rotates the mesh based on import direction
+    if (scene->mMetaData)
+    {
+        int32_t UpAxis = 1, UpAxisSign = 1, FrontAxis = 2, FrontAxisSign = 1, CoordAxis = 0, CoordAxisSign = 1;
+        double UnitScaleFactor = 1.0;
+        for (unsigned MetadataIndex = 0; MetadataIndex < scene->mMetaData->mNumProperties; ++MetadataIndex)
+        {
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "UpAxis") == 0)
+            {
+                scene->mMetaData->Get<int32_t>(MetadataIndex, UpAxis);
+            }
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "UpAxisSign") == 0)
+            {
+                scene->mMetaData->Get<int32_t>(MetadataIndex, UpAxisSign);
+            }
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "FrontAxis") == 0)
+            {
+                scene->mMetaData->Get<int32_t>(MetadataIndex, FrontAxis);
+            }
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "FrontAxisSign") == 0)
+            {
+                scene->mMetaData->Get<int32_t>(MetadataIndex, FrontAxisSign);
+            }
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "CoordAxis") == 0)
+            {
+                scene->mMetaData->Get<int32_t>(MetadataIndex, CoordAxis);
+            }
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "CoordAxisSign") == 0)
+            {
+                scene->mMetaData->Get<int32_t>(MetadataIndex, CoordAxisSign);
+            }
+            if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "UnitScaleFactor") == 0)
+            {
+                scene->mMetaData->Get<double>(MetadataIndex, UnitScaleFactor);
+            }
+        }
+
+        aiVector3D upVec, forwardVec, rightVec;
+
+        upVec[UpAxis] = UpAxisSign * (float)UnitScaleFactor;
+        forwardVec[FrontAxis] = FrontAxisSign * (float)UnitScaleFactor;
+        rightVec[CoordAxis] = CoordAxisSign * (float)UnitScaleFactor;
+
+        aiMatrix4x4 mat(rightVec.x, rightVec.y, rightVec.z, 0.0f,
+            upVec.x, upVec.y, upVec.z, 0.0f,
+            forwardVec.x, forwardVec.y, forwardVec.z, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f);
+        scene->mRootNode->mTransformation = mat;
+    }
+
     std::shared_ptr<Object> objectTree = CreateObjectsFromSceneNode(scene, scene->mRootNode, nullptr, shader, filePath);
     if (objectTree->GetName() == L"RootNode")
     {
@@ -779,7 +847,9 @@ std::shared_ptr<Object> Object::CreateObjectsFromScene(aiScene* scene, std::shar
     // If there is only one child then remove the RootNode
     if (objectTree->GetChildren().size() == 1)
     {
-        objectTree = objectTree->GetChildren()[0];
+        std::shared_ptr<Object> child = objectTree->GetChildren()[0];
+        child->SetLocalMatrix(child->GetWorldMatrix()); // apply root transformation
+        objectTree = child;
         objectTree->SetParent(nullptr);
     }
 

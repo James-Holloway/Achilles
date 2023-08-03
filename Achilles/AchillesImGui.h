@@ -67,4 +67,8 @@ public:
         texturesInUse.push_back(texture);
         return ImGui::ImageButton((ImTextureID)(size_t)texture.get(), size, uv0, uv1, frame_padding, bg_col, tint_col);
     }
+
+public:
+    inline static ImVec4 Color_Text = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+    inline static ImVec4 Color_TextDisabled = ImVec4(1.0f, 1.0f, 1.0f, 0.6f);
 };

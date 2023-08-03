@@ -191,7 +191,7 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
         return nullptr;
 
     Vector3 shadowCenter = Vector3::Zero;
-    BoundingSphere shadowBounds{ shadowCenter, 10.0f };
+    BoundingSphere shadowBounds{ shadowCenter, 25.0f };
 
     switch (lightType)
     {

@@ -26,3 +26,10 @@ protected:
     std::shared_ptr<Object> objectTree;
     std::wstring name;
 };
+
+struct {
+    bool operator()(std::shared_ptr<Scene>& a, std::shared_ptr<Scene>& b) const
+    {
+        return a->GetName() < b->GetName();
+    }
+} SceneSharedPtrNameSort;

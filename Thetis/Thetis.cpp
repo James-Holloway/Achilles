@@ -22,13 +22,23 @@ static int radioIndex = 0;
 static bool DrawImGuiObjectTree(std::shared_ptr<Object> object)
 {
     ImGui::Indent(8);
-    if (ImGui::RadioButton(WStringToString(object->GetName() + L"##" + std::to_wstring(radioIndex++)).c_str(), Thetis::selectedPropertiesObject == object))
+
+    bool isActive = object->IsActive();
+    if (!isActive)
+        ImGui::PushStyleColor(ImGuiCol_Text, AchillesImGui::Color_TextDisabled);
+
+    std::string id = WStringToString(object->GetName() + L"##" + std::to_wstring(radioIndex++));
+    if (ImGui::RadioButton(id.c_str(), Thetis::selectedPropertiesObject == object))
     {
         if (Thetis::selectedPropertiesObject != object)
             Thetis::selectedPropertiesObject = object;
         else
             Thetis::selectedPropertiesObject = nullptr;
     }
+
+    if (!isActive)
+        ImGui::PopStyleColor();
+
     return true;
 }
 static void DrawImGuiObjectTreeUp(std::shared_ptr<Object> object)
@@ -95,38 +105,128 @@ void Thetis::DrawImGuiPerformance()
 
 void Thetis::DrawImGuiScenes()
 {
+    static bool shouldSetSceneTab = false;
     if (ImGui::Begin("Scenes", &showObjectTree, ImGuiWindowFlags_NoResize))
     {
         ImGui::SetWindowPos(ImVec2(0, 235), ImGuiCond_Always);
         ImGui::SetWindowSize(ImVec2(300, (float)(clientHeight - 235)), ImGuiCond_Always);
 
         ImGui::BeginChild("padding", ImVec2(0, -(ImGui::GetTextLineHeightWithSpacing() * 3)));
-        if (ImGui::BeginTabBar("SceneTabBar"))
         {
-            for (std::shared_ptr<Scene> scene : scenes)
-            {
-                std::string sceneName = WStringToString(scene->GetName());
-                if (ImGui::BeginTabItem(sceneName.c_str()))
-                {
-                    selectedPropertiesScene = scene;
+            if (selectedPropertiesScene == nullptr)
+                selectedPropertiesScene = mainScene;
 
+            // Selected Scene Combo
+            std::string selectedSceneName = "[None]";
+            if (selectedPropertiesScene != nullptr)
+                selectedSceneName = WStringToString(selectedPropertiesScene->GetName());
+
+            // Scene Properties + Operations
+            if (selectedPropertiesScene != nullptr)
+            {
+                std::shared_ptr<Scene> scene = selectedPropertiesScene;
+                // Scene Active + Name
+                {
+                    // Scene Active
                     bool sceneActive = scene->IsActive();
-                    if (ImGui::Checkbox("Scene Active", &sceneActive))
+                    if (ImGui::Checkbox("##SceneActive", &sceneActive))
                         scene->SetActive(sceneActive);
 
-                    ImGui::Separator();
+                    // Input Name Text
+                    std::string strName = WStringToString(scene->GetName());
+                    char name[64];
+                    strcpy_s(name, strName.c_str());
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(-1);
 
-                    ImGui::Unindent(8);
-                    radioIndex = 0;
-                    scene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
-                    ImGui::Indent(8);
-                    ImGui::EndTabItem();
+                    if (ImGui::InputText("##SceneName", name, 64))
+                    {
+                        scene->SetName(StringToWString(std::string(name)));
+                        shouldSetSceneTab = true;
+                    }
+                }
+
+                // Scene Operation Buttons
+                {
+                    if (ImGui::Button("New"))
+                    {
+                        std::shared_ptr<Scene> newScene = std::make_shared<Scene>();
+                        newScene->SetActive(true);
+                        AddScene(newScene);
+                        selectedPropertiesScene = newScene;
+                    }
+                    ImGui::SameLine();
+
+                    // Disable Delete when it is the Main Scene
+                    ImGui::BeginDisabled(scene == mainScene);
+                    if (ImGui::Button("Delete"))
+                    {
+                        RemoveScene(scene);
+                        scene = nullptr;
+                    }
+                    ImGui::EndDisabled();
                 }
             }
-            ImGui::EndTabBar();
+
+            if (ImGui::BeginTabBar("SceneTabBar", ImGuiTabBarFlags_FittingPolicyScroll))
+            {
+                uint32_t i = 0;
+                std::deque<std::shared_ptr<Scene>> orderedScenes;
+                for (std::shared_ptr<Scene> scene : scenes)
+                {
+                    if (scene == mainScene)
+                        continue;
+                    if (scene == nullptr)
+                        continue;
+                    orderedScenes.push_back(scene);
+                }
+
+                std::sort(orderedScenes.begin(), orderedScenes.end(), SceneSharedPtrNameSort);
+
+                if (mainScene != nullptr) // shouldn't be nullptr but we'll do the check anyway
+                    orderedScenes.push_front(mainScene);
+
+                for (std::shared_ptr<Scene> scene : orderedScenes)
+                {
+                    std::string sceneName = WStringToString(scene->GetName());
+                    ImGuiTabItemFlags flags = ImGuiTabItemFlags_NoPushId;
+                    if (shouldSetSceneTab && scene == selectedPropertiesScene)
+                    {
+                        flags |= ImGuiTabItemFlags_SetSelected;
+                        shouldSetSceneTab = false;
+                    }
+
+                    bool isActive = scene->IsActive();
+                    if (!isActive)
+                        ImGui::PushStyleColor(ImGuiCol_Text, AchillesImGui::Color_TextDisabled);
+
+                    if (ImGui::BeginTabItem((sceneName + "##" + std::to_string(i++)).c_str(), (bool*)0, flags))
+                    {
+                        ImGui::PopStyleColor();
+                        // If the scene has just changed
+                        if (selectedPropertiesScene != scene)
+                        {
+                            selectedPropertiesObject = nullptr; // deselect properties object
+                        }
+                        selectedPropertiesScene = scene;
+
+                        // Draw Object Tree
+                        ImGui::Unindent(8);
+                        radioIndex = 0;
+                        selectedPropertiesScene->GetObjectTree()->Traverse(DrawImGuiObjectTree, DrawImGuiObjectTreeUp, 8, 0);
+                        ImGui::Indent(8);
+
+                        ImGui::EndTabItem();
+                    }
+                    else
+                    {
+                        ImGui::PopStyleColor();
+                    }
+                }
+                ImGui::EndTabBar();
+            }
         }
         ImGui::EndChild();
-
 
         const char* meshNamePreview = meshNames[selectedMeshName].c_str();
         if (ImGui::BeginCombo("##meshNameCombo", meshNamePreview, ImGuiComboFlags_HeightRegular))
@@ -178,8 +278,10 @@ void Thetis::DrawImGuiProperties()
             strcpy_s(name, strName.c_str());
             ImGui::SameLine();
             ImGui::SetNextItemWidth(-1);
-            ImGui::InputText("##PropertyName", name, 64);
-            object->SetName(StringToWString(std::string(name)));
+            if (ImGui::InputText("##PropertyName", name, 64))
+            {
+                object->SetName(StringToWString(std::string(name)));
+            }
 
             ImGui::Separator();
             // Position, rotation and scale
@@ -398,7 +500,7 @@ void Thetis::DrawImGuiProperties()
                                     color.z,
                                     color.w
                                 };
-                                if (ImGui::ColorEdit4("Color", col))
+                                if (ImGui::ColorEdit4("Color", col, ImGuiColorEditFlags_AlphaBar))
                                 {
                                     knit.material.SetVector(L"Color", Vector4(col[0], col[1], col[2], col[3]));
                                 }
@@ -1035,8 +1137,8 @@ void Thetis::LoadContent()
     camera = std::make_shared<Camera>(L"Thetis Camera", clientWidth, clientHeight);
     Camera::mainCamera = camera;
     camera->SetFOV(60);
-    camera->SetPosition(Vector3(0, 0, 5));
-    camera->SetRotation(EulerToRadians(Vector3(0, -180, 0)));
+    camera->SetPosition(Vector3(0, 0, -5));
+    // camera->SetRotation(EulerToRadians(Vector3(0, 0, 0)));
 
     // Create shaders
     std::shared_ptr<Shader> posColShader = GetPosColShader(device);

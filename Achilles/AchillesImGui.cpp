@@ -31,6 +31,7 @@ void AchillesImGui::SetupStyle()
     ImGuiStyle& style = ImGui::GetStyle();
     // Set background window alpha
     style.Colors[ImGuiCol_WindowBg].w = 0.8f;
+    style.Colors[ImGuiCol_Text] = Color_Text;
 }
 
 AchillesImGui::AchillesImGui(ComPtr<ID3D12Device2> _device, HWND _hWnd, const RenderTarget& renderTarget) : device(_device), hWnd(_hWnd), imGuiContext()

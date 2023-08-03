@@ -863,7 +863,7 @@ void Achilles::Initialize()
     mouse = std::make_unique<Mouse>();
     mouse->SetWindow(hWnd);
 
-    mainScene = std::make_shared<Scene>(L"Main Scene");
+    mainScene = std::make_shared<Scene>(L"Main");
     AddScene(mainScene);
 
     acceptingFiles = true;
