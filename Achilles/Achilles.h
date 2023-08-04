@@ -106,6 +106,7 @@ protected:
     std::deque<double> historicalFrameTimes{};
 
     // Achilles drawing internals
+    bool frustumCulling = true;
     std::deque<DrawEvent> drawEventQueue{}; // Opaque Draw Queue
     std::deque<DrawEvent> drawEventQueueTransparent{}; // Transparent Draw Queue
     std::shared_ptr<AchillesImGui> achillesImGui;

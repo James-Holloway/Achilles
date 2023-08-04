@@ -562,6 +562,7 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
 {
     std::filesystem::path file = std::filesystem::path(path);
     std::wstring filename = file.filename();
+    std::error_code ec;
 
     std::shared_ptr<Texture> cachedTexture = GetCachedTexture(filename);
     if (cachedTexture != nullptr && cachedTexture->IsValid())
@@ -575,7 +576,7 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
     std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Albedo, filename);
 
     // Absolute Path
-    std::filesystem::path realPath = path;
+    std::filesystem::path realPath = file;
     if (std::filesystem::exists(realPath))
     {
         commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Albedo);
@@ -584,7 +585,7 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
     }
 
     // Relative path
-    realPath = std::filesystem::canonical(basePath + path);
+    realPath = std::filesystem::canonical(basePath + path, ec);
     if (std::filesystem::exists(realPath))
     {
         commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Albedo);

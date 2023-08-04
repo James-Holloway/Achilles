@@ -228,6 +228,11 @@
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PanoToCubemapPSO.cpp" />
     <ClCompile Include="PostProcessing.cpp" />
+    <None Include="content\shaders\DebugWireframe.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Unoptimized|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <ClCompile Include="shaders\DebugWireframe.cpp" />
     <ClCompile Include="shaders\PPGammaCorrection.cpp" />
     <ClCompile Include="shaders\PPToneMapping.cpp" />
     <ClCompile Include="Profiling.cpp" />
@@ -297,6 +302,7 @@
     <ClInclude Include="ObjectTag.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PostProcessing.h" />
+    <ClInclude Include="shaders\DebugWireframe.h" />
     <ClInclude Include="shaders\PPGammaCorrection.h" />
     <ClInclude Include="shaders\PPToneMapping.h" />
     <ClInclude Include="Profiling.h" />

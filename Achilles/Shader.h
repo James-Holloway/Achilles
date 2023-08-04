@@ -66,6 +66,8 @@ public:
     static std::shared_ptr<Shader> ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName, D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK, bool enableTransparency = false);
     static std::shared_ptr<Shader> ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName, uint32_t depthBias = 100);
     static std::shared_ptr<Shader> ShaderSkyboxVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName);
+    static std::shared_ptr<Shader> ShaderWireframeVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName);
+
     static std::shared_ptr<Shader> ShaderCS(ComPtr<ID3D12Device2> device, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName);
 };
 

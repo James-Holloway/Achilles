@@ -583,8 +583,8 @@ DirectX::BoundingOrientedBox Object::GetWorldBoundingBox()
 {
     BoundingOrientedBox obb = GetBoundingBox();
     obb.Extents = obb.Extents * GetWorldScale();
-    obb.Center = obb.Center + GetWorldPosition();
     obb.Orientation = GetWorldRotation();
+    obb.Center = GetWorldPosition() + Multiply(Quaternion(obb.Orientation), obb.Center * GetWorldScale());
     return obb;
 }
 
@@ -910,9 +910,22 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
 {
     static Assimp::Importer importer;
 
+    // Resolve smybolic link
+    std::error_code ec;
+    if (std::filesystem::is_symlink(filePath, ec))
+    {
+        std::filesystem::path newPath = std::filesystem::read_symlink(filePath, ec);
+        if (!ec)
+        {
+            filePath = std::filesystem::canonical(std::filesystem::path(filePath).remove_filename().wstring() + newPath.wstring());
+        }
+    }
+
     std::string filePathA = WStringToString(filePath);
 
-    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_MakeLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder | aiProcess_GenBoundingBoxes));
+    importer.SetPropertyInteger(AI_CONFIG_PP_SLM_TRIANGLE_LIMIT, 65535);
+    importer.SetPropertyInteger(AI_CONFIG_PP_SLM_VERTEX_LIMIT, 65535);
+    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_MakeLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder));
     if (scene == nullptr)
     {
         OutputDebugStringAFormatted("Model importing (%s) failed: %s\n", filePathA, importer.GetErrorString());

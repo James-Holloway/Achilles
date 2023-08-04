@@ -5,7 +5,6 @@
 #include "imgui.h"
 #include "implot.h"
 #pragma warning (pop)
-#include "Achilles/AchillesShaders.h"
 
 class Thetis : public Achilles
 {
@@ -28,6 +27,11 @@ protected:
     std::vector<std::string> meshNames;
     std::vector<std::wstring> meshNamesWide;
     int selectedMeshName = 0;
+
+    std::shared_ptr<Object> debugBoundingBox;
+    std::shared_ptr<Object> debugBoundingBoxCenter;
+    bool drawDebugBoundingBox = false;
+
 public:
     inline static std::shared_ptr<Object> selectedPropertiesObject = nullptr;
     inline static std::shared_ptr<Scene> selectedPropertiesScene = nullptr;

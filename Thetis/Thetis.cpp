@@ -1,4 +1,5 @@
 #include "Thetis.h"
+#include "Achilles/AchillesShaders.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -35,7 +36,19 @@ void Thetis::OnUpdate(float deltaTime)
 
 void Thetis::OnRender(float deltaTime)
 {
+    if (drawDebugBoundingBox && selectedPropertiesObject != nullptr)
+    {
+        BoundingOrientedBox obb = selectedPropertiesObject->GetWorldBoundingBox();
+        debugBoundingBox->SetLocalPosition(obb.Center);
+        debugBoundingBox->SetLocalRotation(obb.Orientation);
+        debugBoundingBox->SetLocalScale(obb.Extents);
+        QueueObjectDraw(debugBoundingBox);
 
+        debugBoundingBoxCenter->SetLocalPosition(obb.Center);
+        debugBoundingBoxCenter->SetLocalRotation(Quaternion::Identity);
+        debugBoundingBoxCenter->SetLocalScale(Vector3(0.05f));
+        QueueObjectDraw(debugBoundingBoxCenter);
+    }
 }
 
 static int radioIndex = 0;
@@ -478,10 +491,13 @@ void Thetis::DrawImGuiProperties()
                         object->SetBoundingBox(obb);
                     }
 
+                    ImGui::Checkbox("Frustum Culling", &frustumCulling);
+                    ImGui::Checkbox("Draw Debug Bounding Box", &drawDebugBoundingBox);
+
                     std::shared_ptr<Camera> camera = Camera::debugShadowCamera == nullptr ? Camera::mainCamera : Camera::debugShadowCamera;
                     if (camera != nullptr)
                     {
-                        ImGui::Text(object->ShouldDraw(camera->GetFrustum()) ? "Drawing" : "Culled");
+                        ImGui::Text(object->ShouldDraw(camera->GetFrustum()) ? "Drawing" : (frustumCulling ? "Culled" : "Would be culled"));
                     }
 
                     ImGui::EndTabItem();
@@ -494,6 +510,9 @@ void Thetis::DrawImGuiProperties()
                     ImGui::InputFloat3("Extents", &obb.Extents.x);
                     ImGui::InputFloat4("Orientation", &obb.Orientation.x);
                     ImGui::EndDisabled();
+
+                    ImGui::Checkbox("Frustum Culling", &frustumCulling);
+                    ImGui::Checkbox("Draw Debug Bounding Box", &drawDebugBoundingBox);
 
                     std::shared_ptr<Camera> camera = Camera::debugShadowCamera == nullptr ? Camera::mainCamera : Camera::debugShadowCamera;
                     if (camera != nullptr)
@@ -1340,6 +1359,14 @@ void Thetis::LoadContent()
 
     // Create post processing class
     postProcessing = std::make_shared<PostProcessing>((float)clientWidth, (float)clientHeight);
+
+
+    // Create debug wireframe bounding box
+    debugBoundingBox = Object::CreateObjectsFromContentFile(L"cube.fbx", DebugWireframe::GetDebugWireframeShader(device));
+    debugBoundingBox->GetMaterial(0).SetVector(L"Color", Color(1.0f, 0.0f, 0.0f, 1.0f));
+
+    debugBoundingBoxCenter = Object::CreateObjectsFromContentFile(L"icosphere.fbx", DebugWireframe::GetDebugWireframeShader(device));
+    debugBoundingBoxCenter->GetMaterial(0).SetVector(L"Color", Color(0.0f, 1.0f, 0.0f, 1.0f));
 
     // Execute direct command list
     uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);

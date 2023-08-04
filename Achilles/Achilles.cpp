@@ -1364,7 +1364,7 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
 
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
 {
-    if (!object->ShouldDraw(camera->GetFrustum()))
+    if (!object->ShouldDraw(camera->GetFrustum()) && frustumCulling)
         return;
 
     ScopedTimer _prof(L"DrawObjectKnitIndexed");
@@ -1400,7 +1400,7 @@ void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::
     if (camera.use_count() <= 0)
         throw std::exception("Rendered camera was not available");
 
-    if (!object->ShouldDraw(camera->GetFrustum()))
+    if (!object->ShouldDraw(camera->GetFrustum()) && frustumCulling)
         return;
 
     ScopedTimer _prof(L"DrawObjectIndexed");
@@ -1450,7 +1450,7 @@ void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandL
 {
     ScopedTimer _prof(L"DrawObjectShadowDirectional");
 
-    if (!object->ShouldDraw(shadowCamera->GetFrustum()))
+    if (!object->ShouldDraw(shadowCamera->GetFrustum()) && frustumCulling)
         return;
 
     ShadowMapping::ShadowMatrices shadowMatrices{};
@@ -1480,7 +1480,7 @@ void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, st
 {
     ScopedTimer _prof(L"DrawObjectShadowSpot");
 
-    if (!object->ShouldDraw(shadowCamera->GetFrustum()))
+    if (!object->ShouldDraw(shadowCamera->GetFrustum()) && frustumCulling)
         return;
 
     ShadowMapping::ShadowMatrices shadowMatrices{};

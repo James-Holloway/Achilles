@@ -224,6 +224,9 @@
     <ClCompile Include="AchillesDrop.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="shaders\DebugWireframe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imgui.h">
@@ -436,6 +439,9 @@
     <ClInclude Include="AchillesDrop.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\DebugWireframe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -491,6 +497,9 @@
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\shaders\PPGammaCorrection.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\DebugWireframe.hlsl">
       <Filter>content\shaders</Filter>
     </None>
   </ItemGroup>

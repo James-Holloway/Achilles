@@ -10,10 +10,10 @@ CommonShader::CommonShaderVertex::CommonShaderVertex() : Position(0,0,0), Normal
     
 }
 
-std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material)
+std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiNode* node, aiMesh* inMesh, std::shared_ptr<Shader> shader, Material& material, std::wstring meshPath)
 {
     uint32_t vertCount = inMesh->mNumVertices;
-    std::vector<CommonShader::CommonShaderVertex> verts{};
+    std::vector<CommonShaderVertex> verts{};
     verts.resize(vertCount);
 
     bool hasUVs = inMesh->HasTextureCoords(0);
@@ -64,15 +64,11 @@ std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiN
         return nullptr;
     std::shared_ptr<Mesh> mesh = SHADER_MESH_MAKE_SHARED_VECTORS(StringToWString(inMesh->mName.C_Str()), verts, tris, CommonShaderVertex, shader);
 
-    // Get the DirectX bounding box from the assimp bounding box;
-    aiAABB AABB = inMesh->mAABB;
-    Vector3 min = Vector3(AABB.mMin.x, AABB.mMin.y, AABB.mMin.y);
-    Vector3 max = Vector3(AABB.mMax.x, AABB.mMax.y, AABB.mMax.y);
-
-    Vector3 extents = max - min;
-    Vector3 center = min + (extents / 2.0f);
-
-    mesh->SetBoundingBox(DirectX::BoundingBox(center, extents));
+    // Get the DirectX bounding box from points
+    DirectX::BoundingBox aabb;
+    DirectX::BoundingBox::CreateFromPoints(aabb, verts.size(), (DirectX::XMFLOAT3*)verts.data(), sizeof(CommonShaderVertex));
+    aabb.Extents = Vector3::Max(aabb.Extents, Vector3(0.05f)) * 1.05f; // avoid tiny numbers for objects like planes and scale it up a little bit
+    mesh->SetBoundingBox(aabb);
 
     return mesh;
 }
