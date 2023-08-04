@@ -15,7 +15,7 @@ namespace PPToneMapping {
     struct ToneMappingCB0
     {
         Vector2 RcpBufferDim;
-        uint32_t ToneMapper;
+        uint32_t ToneMapper = 0;
     };
 
     namespace ToneMappers

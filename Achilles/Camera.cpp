@@ -79,12 +79,21 @@ bool Camera::IsPerspective()
 void Camera::SetProj(Matrix _proj)
 {
     proj = _proj;
+    DirectX::BoundingFrustum::CreateFromMatrix(frustum, proj, false);
     dirtyProjMatrix = false;
 }
 
 void Camera::SetView(Matrix _view)
 {
     view = _view;
+    inverseView = view.Invert().Transpose();
+    
+    Vector3 scale, pos;
+    Quaternion rot;
+    view.Invert().Decompose(scale, rot, pos);
+    SetPosition(pos);
+    SetRotation(rot.ToEuler());
+
     dirtyViewMatrix = false;
 }
 
@@ -117,6 +126,14 @@ void Camera::SetOrthographic(bool _orthographic)
 void Camera::SetPerspective(bool _perspective)
 {
     SetOrthographic(!_perspective);
+}
+
+DirectX::BoundingFrustum Camera::GetFrustum()
+{
+    DirectX::BoundingFrustum f = frustum;
+    f.Origin = GetPosition();
+    f.Orientation = Quaternion::CreateFromYawPitchRoll(GetRotation());
+    return f;
 }
 
 Vector3 Camera::WorldToScreen(Vector3 worldPosition, bool& visible)
@@ -165,6 +182,8 @@ void Camera::ConstructProjection()
         proj = OrthographicProjection(orthographicSize * (viewport.Width / viewport.Height), orthographicSize, nearZ, farZ);
     else
         proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
+
+    DirectX::BoundingFrustum::CreateFromMatrix(frustum, proj, false);
     dirtyProjMatrix = false;
 }
 
@@ -176,8 +195,8 @@ void Camera::RotateEuler(Vector3 euler, bool unlockPitch, bool unlockRoll)
     rot = EulerVectorModulo(rot);
     if (!unlockPitch)
     {
-        rot.x = fmin(AchillesHalfPi - 0.005, rot.x);
-        rot.x = fmax(-AchillesHalfPi + 0.005, rot.x);
+        rot.x = fmin(AchillesHalfPi - 0.005f, rot.x);
+        rot.x = fmax(-AchillesHalfPi + 0.005f, rot.x);
     }
     if (!unlockRoll)
         rot = Vector3(rot.x, rot.y, 0);

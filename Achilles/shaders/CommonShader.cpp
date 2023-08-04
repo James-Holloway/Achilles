@@ -63,5 +63,16 @@ std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiN
     if (verts.size() <= 0 || tris.size() <= 0)
         return nullptr;
     std::shared_ptr<Mesh> mesh = SHADER_MESH_MAKE_SHARED_VECTORS(StringToWString(inMesh->mName.C_Str()), verts, tris, CommonShaderVertex, shader);
+
+    // Get the DirectX bounding box from the assimp bounding box;
+    aiAABB AABB = inMesh->mAABB;
+    Vector3 min = Vector3(AABB.mMin.x, AABB.mMin.y, AABB.mMin.y);
+    Vector3 max = Vector3(AABB.mMax.x, AABB.mMax.y, AABB.mMax.y);
+
+    Vector3 extents = max - min;
+    Vector3 center = min + (extents / 2.0f);
+
+    mesh->SetBoundingBox(DirectX::BoundingBox(center, extents));
+
     return mesh;
 }

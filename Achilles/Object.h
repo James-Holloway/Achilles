@@ -153,11 +153,26 @@ public:
     void SetWorldScale(DirectX::SimpleMath::Vector3 _scale);
     void SetWorldMatrix(DirectX::SimpleMath::Matrix _matrix);
 
+    //// Bounding box functions ////
+
+    virtual DirectX::BoundingOrientedBox GetBoundingBox();
+    virtual DirectX::BoundingOrientedBox GetWorldBoundingBox();
+    virtual void SetBoundingBox(DirectX::BoundingOrientedBox box);
+    virtual void SetBoundingBoxDirty();
+    virtual bool ShouldDraw(DirectX::BoundingFrustum frustum);
+
 protected:
+    //// Internal matrix functions ////
+
     void ConstructMatrix();
     void ConstructWorldMatrix();
     // Called by a parent when its world matrix changes. Recursive
     void SetWorldMatrixDirty();
+
+
+    //// Internal bounding box functions ////
+
+    virtual void CalculateBoundingBox();
 
 protected:
     //// Member variables ////
@@ -185,6 +200,9 @@ protected:
     DirectX::SimpleMath::Matrix inverseWorldMatrix;
     bool dirtyMatrix = true;
     bool dirtyWorldMatrix = true;
+
+    DirectX::BoundingOrientedBox boundingBox;
+    bool dirtyBoundingBox = true;
 
 public:
     //// Static Object creation functions ////

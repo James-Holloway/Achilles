@@ -33,6 +33,16 @@ void Mesh::SetName(std::wstring newName)
         indexBuffer->SetName(name + L" Index Buffer");
 }
 
+DirectX::BoundingBox Mesh::GetBoundingBox()
+{
+    return boundingBox;
+}
+
+void Mesh::SetBoundingBox(DirectX::BoundingBox box)
+{
+    boundingBox = box;
+}
+
 bool Mesh::HasBeenCopied()
 {
     if (vertexBuffer == nullptr || indexBuffer == nullptr)

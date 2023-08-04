@@ -39,6 +39,8 @@ protected:
     Matrix inverseView;
     Matrix proj;
 
+    DirectX::BoundingFrustum frustum;
+
     bool orthographic = false;
 
     bool dirtyViewMatrix = true;
@@ -73,6 +75,7 @@ public:
     void SetOrthographic(bool _orthographic);
     void SetPerspective(bool _perspective);
 
+    virtual DirectX::BoundingFrustum GetFrustum();
 
     Vector3 WorldToScreen(Vector3 worldPosition, bool& visible);
     // Unfortunately returns a backface billboard. Need to cull front or flip normals

@@ -571,6 +571,39 @@ void Object::SetWorldMatrix(Matrix _matrix)
     SetLocalMatrix(GetParent()->GetWorldMatrix().Invert() * _matrix);
 }
 
+DirectX::BoundingOrientedBox Object::GetBoundingBox()
+{
+    if (dirtyBoundingBox)
+        CalculateBoundingBox();
+
+    return boundingBox;
+}
+
+DirectX::BoundingOrientedBox Object::GetWorldBoundingBox()
+{
+    BoundingOrientedBox obb = GetBoundingBox();
+    obb.Extents = obb.Extents * GetWorldScale();
+    obb.Center = obb.Center + GetWorldPosition();
+    obb.Orientation = GetWorldRotation();
+    return obb;
+}
+
+void Object::SetBoundingBox(DirectX::BoundingOrientedBox box)
+{
+    boundingBox = box;
+    dirtyBoundingBox = false;
+}
+
+void Object::SetBoundingBoxDirty()
+{
+    dirtyBoundingBox = true;
+}
+
+bool Object::ShouldDraw(DirectX::BoundingFrustum frustum)
+{
+    return frustum.Contains(GetWorldBoundingBox()) != DirectX::ContainmentType::DISJOINT;
+}
+
 void Object::ConstructMatrix()
 {
     // SRT
@@ -599,6 +632,21 @@ void Object::SetWorldMatrixDirty()
         if (child != nullptr)
             child->SetWorldMatrixDirty();
     }
+}
+
+void Object::CalculateBoundingBox()
+{
+    BoundingBox newBB;
+    newBB.Extents = Vector3(0.1f, 0.1f, 0.1f);
+
+    for (uint32_t i = 0; i < GetKnitCount(); i++)
+    {
+        BoundingBox bb = GetMesh(i)->GetBoundingBox();
+        BoundingBox::CreateMerged(newBB, newBB, bb);
+    }
+
+    BoundingOrientedBox::CreateFromBoundingBox(boundingBox, newBB);
+    dirtyBoundingBox = false;
 }
 
 
@@ -864,7 +912,7 @@ std::shared_ptr<Object> Object::CreateObjectsFromFile(std::wstring filePath, std
 
     std::string filePathA = WStringToString(filePath);
 
-    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_MakeLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder));
+    aiScene* scene = const_cast<aiScene*>(importer.ReadFile(filePathA, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_SplitLargeMeshes | aiProcess_MakeLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder | aiProcess_GenBoundingBoxes));
     if (scene == nullptr)
     {
         OutputDebugStringAFormatted("Model importing (%s) failed: %s\n", filePathA, importer.GetErrorString());

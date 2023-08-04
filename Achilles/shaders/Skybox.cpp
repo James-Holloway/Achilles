@@ -3,7 +3,7 @@
 using namespace Skybox;
 using namespace CommonShader;
 
-Skybox::SkyboxInfo::SkyboxInfo() : HasTexture(0), LookDirection(0, 0, -1), PrimarySunEnable(0), PrimarySunDirection(0, 0, 0), PrimarySunSize(1.0), PrimarySunColor(1, 1, 1, 1), PrimarySunShineExponent(32), HideSunBehindHorizon(1), Debug(0), SkyColor(0.165, 0.451, 0.706, 1), UpSkyColor(0.157, 0.337, 0.643), HorizonColor(0.459, 0.745, 0.910, 1), GroundColor(0.294, 0.255, 0.224, 1)
+Skybox::SkyboxInfo::SkyboxInfo() : HasTexture(0), LookDirection(0, 0, -1), PrimarySunEnable(0), PrimarySunDirection(0, 0, 0), PrimarySunSize(1.0), PrimarySunColor(1, 1, 1, 1), PrimarySunShineExponent(32), HideSunBehindHorizon(1), Debug(0), SkyColor(0.165f, 0.451f, 0.706f, 1.0f), UpSkyColor(0.157f, 0.337f, 0.643f, 1.0f), HorizonColor(0.459f, 0.745f, 0.910f, 1.0f), GroundColor(0.294f, 0.255f, 0.224f, 1.0f)
 {
 
 }
@@ -13,7 +13,7 @@ bool Skybox::SkyboxShaderRender(std::shared_ptr<CommandList> commandList, std::s
     SkyboxInfo skyboxInfo{};
 
     skyboxInfo.Model = object->GetLocalMatrix();
-    skyboxInfo.MVP = skyboxInfo.Model * Matrix::CreateScale(camera->farZ * 1.999) * Matrix::CreateFromYawPitchRoll(camera->GetRotation()).Invert() * camera->GetProj();
+    skyboxInfo.MVP = skyboxInfo.Model * Matrix::CreateScale(camera->farZ * 1.999f) * Matrix::CreateFromYawPitchRoll(camera->GetRotation()).Invert() * camera->GetProj();
 
     skyboxInfo.LookDirection = camera->GetInverseView().Backward();
     skyboxInfo.LookDirection.Normalize();

@@ -343,7 +343,7 @@ void Thetis::DrawImGuiProperties()
 
             ImGui::Separator();
             // Position, rotation and scale
-            if (ImGui::BeginTabBar("localOrWorld"))
+            if (ImGui::BeginTabBar("localOrWorld", ImGuiTabBarFlags_FittingPolicyScroll))
             {
                 if (ImGui::BeginTabItem("Local"))
                 {
@@ -465,6 +465,45 @@ void Thetis::DrawImGuiProperties()
                     }
                     ImGui::EndTabItem();
                 }
+
+                if (ImGui::BeginTabItem("Local OBB"))
+                {
+                    BoundingOrientedBox obb = object->GetBoundingBox();
+                    bool obbChanged = ImGui::InputFloat3("Center", &obb.Center.x);
+                    obbChanged |= ImGui::InputFloat3("Extents", &obb.Extents.x);
+                    obbChanged |= ImGui::InputFloat4("Orientation", &obb.Orientation.x);
+
+                    if (obbChanged)
+                    {
+                        object->SetBoundingBox(obb);
+                    }
+
+                    std::shared_ptr<Camera> camera = Camera::debugShadowCamera == nullptr ? Camera::mainCamera : Camera::debugShadowCamera;
+                    if (camera != nullptr)
+                    {
+                        ImGui::Text(object->ShouldDraw(camera->GetFrustum()) ? "Drawing" : "Culled");
+                    }
+
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("World OBB"))
+                {
+                    BoundingOrientedBox obb = object->GetWorldBoundingBox();
+                    ImGui::BeginDisabled(true);
+                    ImGui::InputFloat3("Center", &obb.Center.x);
+                    ImGui::InputFloat3("Extents", &obb.Extents.x);
+                    ImGui::InputFloat4("Orientation", &obb.Orientation.x);
+                    ImGui::EndDisabled();
+
+                    std::shared_ptr<Camera> camera = Camera::debugShadowCamera == nullptr ? Camera::mainCamera : Camera::debugShadowCamera;
+                    if (camera != nullptr)
+                    {
+                        ImGui::Text(object->ShouldDraw(camera->GetFrustum()) ? "Drawing" : "Culled");
+                    }
+
+                    ImGui::EndTabItem();
+                }
+
                 ImGui::EndTabBar();
             }
 
@@ -907,12 +946,14 @@ void Thetis::DrawImGuiCameraProperties()
 
             Matrix view = camera->GetView();
             ImGui::Text("View Matrix");
-            ImGui::BeginDisabled(true);
-            ImGui::InputFloat4("##View1", view.m[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
-            ImGui::InputFloat4("##View2", view.m[1], "%.3f", ImGuiInputTextFlags_ReadOnly);
-            ImGui::InputFloat4("##View3", view.m[2], "%.3f", ImGuiInputTextFlags_ReadOnly);
-            ImGui::InputFloat4("##View4", view.m[3], "%.3f", ImGuiInputTextFlags_ReadOnly);
-            ImGui::EndDisabled();
+            bool viewChanged = ImGui::InputFloat4("##View1", view.m[0], "%.3f");
+            viewChanged |= ImGui::InputFloat4("##View2", view.m[1], "%.3f");
+            viewChanged |= ImGui::InputFloat4("##View3", view.m[2], "%.3f");
+            viewChanged |= ImGui::InputFloat4("##View4", view.m[3], "%.3f");
+            if (viewChanged)
+            {
+                camera->SetView(view);
+            }
 
             Matrix proj = camera->GetProj();
             ImGui::Text("Projection Matrix");

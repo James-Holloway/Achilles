@@ -41,7 +41,7 @@ void PPGammaCorrection::ApplyGammaCorrection(std::shared_ptr<CommandList> comman
     uint32_t height = (uint32_t)h;
 
     GammaCorrectionCB0 gammaCorrectionCB0;
-    gammaCorrectionCB0.RcpBufferDim = Vector2(1 / width, 1 / height);
+    gammaCorrectionCB0.RcpBufferDim = Vector2(1 / (float)width, 1 / (float)height);
     gammaCorrectionCB0.GammaCorrection = GammaCorrection;
 
     commandList->SetPipelineState(gammaCorrectionShader->pipelineState);

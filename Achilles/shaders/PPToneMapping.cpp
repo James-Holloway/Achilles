@@ -43,7 +43,7 @@ void PPToneMapping::ApplyToneMapping(std::shared_ptr<CommandList> commandList, s
     uint32_t height = (uint32_t)h;
 
     ToneMappingCB0 toneMappingCB0;
-    toneMappingCB0.RcpBufferDim = Vector2(1 / width, 1 / height);
+    toneMappingCB0.RcpBufferDim = Vector2(1 / (float)width, 1 / (float)height);
     toneMappingCB0.ToneMapper = ToneMapper;
 
     commandList->SetPipelineState(toneMappingShader->pipelineState);

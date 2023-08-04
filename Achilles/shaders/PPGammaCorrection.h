@@ -15,7 +15,7 @@ namespace PPGammaCorrection
     struct GammaCorrectionCB0
     {
         Vector2 RcpBufferDim;
-        float GammaCorrection;
+        float GammaCorrection = 2.2f;
     };
 
     std::shared_ptr<Shader> GetPPGammaCorrectionShader(ComPtr<ID3D12Device2> device);

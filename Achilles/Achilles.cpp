@@ -1364,6 +1364,9 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
 
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
 {
+    if (!object->ShouldDraw(camera->GetFrustum()))
+        return;
+
     ScopedTimer _prof(L"DrawObjectKnitIndexed");
 
     std::shared_ptr<Mesh> mesh = object->GetMesh(knitIndex);
@@ -1396,6 +1399,9 @@ void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::
 
     if (camera.use_count() <= 0)
         throw std::exception("Rendered camera was not available");
+
+    if (!object->ShouldDraw(camera->GetFrustum()))
+        return;
 
     ScopedTimer _prof(L"DrawObjectIndexed");
 
@@ -1443,6 +1449,10 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader)
 {
     ScopedTimer _prof(L"DrawObjectShadowDirectional");
+
+    if (!object->ShouldDraw(shadowCamera->GetFrustum()))
+        return;
+
     ShadowMapping::ShadowMatrices shadowMatrices{};
     shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
     commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
@@ -1469,6 +1479,10 @@ void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandL
 void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, SpotLight spotLight, std::shared_ptr<Shader> shader)
 {
     ScopedTimer _prof(L"DrawObjectShadowSpot");
+
+    if (!object->ShouldDraw(shadowCamera->GetFrustum()))
+        return;
+
     ShadowMapping::ShadowMatrices shadowMatrices{};
     shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
     commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
