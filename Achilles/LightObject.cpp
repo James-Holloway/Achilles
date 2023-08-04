@@ -1,6 +1,7 @@
 #include "LightObject.h"
 #include <DirectXMath.h>
 #include <directxtk12/SimpleMath.h>
+#include "Scene.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -192,6 +193,11 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
 
     Vector3 shadowCenter = Vector3::Zero;
     BoundingSphere shadowBounds{ shadowCenter, 25.0f };
+    std::shared_ptr<Scene> scene = GetScene();
+    if (scene != nullptr)
+    {
+        shadowBounds = scene->GetBoundingSphere();
+    }
 
     switch (lightType)
     {

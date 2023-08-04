@@ -13,6 +13,7 @@
 class Mesh;
 class Object;
 class LightObject;
+class Scene;
 struct aiNode;
 struct aiScene;
 struct aiMesh;
@@ -126,8 +127,10 @@ public:
     std::shared_ptr<Object> FindFirstObjectByName(std::wstring name);
     // Returns the first active object that matches the name, searched depth-first, excluding inactive objects
     std::shared_ptr<Object> FindFirstActiveObjectByName(std::wstring name);
-    // Verifies if this object belongs to a scene
+    // Verifies if this object belongs to a scene. Calls recursively upwards in tree
     bool IsOrphaned();
+    // Gets the related scene unless we're orphaned. Calls recursively upwards in tree
+    std::shared_ptr<Scene> GetScene();
 
 
     //// Position, rotation, scale and matrix functions ////
@@ -157,6 +160,7 @@ public:
 
     virtual DirectX::BoundingOrientedBox GetBoundingBox();
     virtual DirectX::BoundingOrientedBox GetWorldBoundingBox();
+    DirectX::BoundingBox GetWorldAABB();
     virtual void SetBoundingBox(DirectX::BoundingOrientedBox box);
     virtual void SetBoundingBoxDirty();
     virtual bool ShouldDraw(DirectX::BoundingFrustum frustum);
@@ -168,7 +172,8 @@ protected:
     void ConstructWorldMatrix();
     // Called by a parent when its world matrix changes. Recursive
     void SetWorldMatrixDirty();
-
+    // Called by a parent when its parent changes. Recursive
+    void SetSceneParentDirty();
 
     //// Internal bounding box functions ////
 
@@ -188,6 +193,10 @@ protected:
 
     bool active = true;
     bool isScene = false;
+
+    std::weak_ptr<Scene> sceneParent; // Cached on SetParent
+    std::weak_ptr<Scene> relatedScene; // Only used by Scene's objectTree object
+    bool dirtySceneParent = true;
 
     bool castShadows = true;
     bool receiveShadows = true;

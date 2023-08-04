@@ -788,6 +788,7 @@ void Thetis::DrawImGuiProperties()
                                     THETIS_SHADOWMAP_COMBO(2048);
                                     THETIS_SHADOWMAP_COMBO(4096);
                                     THETIS_SHADOWMAP_COMBO(8192);
+                                    THETIS_SHADOWMAP_COMBO(16384);
 
                                     ImGui::EndCombo();
                                 }
@@ -864,6 +865,7 @@ void Thetis::DrawImGuiProperties()
                                     THETIS_SHADOWMAP_COMBO(2048);
                                     THETIS_SHADOWMAP_COMBO(4096);
                                     THETIS_SHADOWMAP_COMBO(8192);
+                                    THETIS_SHADOWMAP_COMBO(16384);
 
                                     ImGui::EndCombo();
                                 }
@@ -1632,5 +1634,9 @@ void Thetis::ClearSelectedParent()
     if (selectedPropertiesObject == nullptr)
         return;
 
-    selectedPropertiesObject->SetParentKeepTransform(mainScene->GetObjectTree());
+    std::shared_ptr<Scene> currentScene = mainScene;
+    if (selectedPropertiesObject->GetScene() != nullptr)
+        currentScene = selectedPropertiesObject->GetScene();
+
+    selectedPropertiesObject->SetParentKeepTransform(currentScene->GetObjectTree());
 }

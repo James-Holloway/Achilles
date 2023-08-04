@@ -9,6 +9,7 @@
 #include "CommandQueue.h"
 #include "CommandList.h"
 #include "LightObject.h"
+#include "Scene.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -266,6 +267,8 @@ bool Object::SetParent(std::shared_ptr<Object> newParent)
     }
     SetWorldMatrixDirty();
 
+    SetSceneParentDirty();
+
     return true;
 }
 
@@ -433,6 +436,23 @@ bool Object::IsOrphaned()
     return _parent->IsOrphaned();
 }
 
+std::shared_ptr<Scene> Object::GetScene()
+{
+    if (isScene)
+        return relatedScene.lock();
+    if (!dirtySceneParent)
+        return sceneParent.lock();
+
+    std::shared_ptr<Object> _parent = GetParent();
+    if (_parent == nullptr)
+        return nullptr;
+
+    std::shared_ptr<Scene> scene = _parent->GetScene();
+    dirtySceneParent = false;
+    sceneParent = scene;
+    return scene;
+}
+
 
 //// Position, rotation, scale and matrix functions ////
 
@@ -588,6 +608,15 @@ DirectX::BoundingOrientedBox Object::GetWorldBoundingBox()
     return obb;
 }
 
+DirectX::BoundingBox Object::GetWorldAABB()
+{
+    Vector3 corners[BoundingOrientedBox::CORNER_COUNT];
+    GetWorldBoundingBox().GetCorners(corners);
+    BoundingBox aabb;
+    BoundingBox::CreateFromPoints(aabb, BoundingOrientedBox::CORNER_COUNT, corners, sizeof(Vector3));
+    return aabb;
+}
+
 void Object::SetBoundingBox(DirectX::BoundingOrientedBox box)
 {
     boundingBox = box;
@@ -631,6 +660,17 @@ void Object::SetWorldMatrixDirty()
     {
         if (child != nullptr)
             child->SetWorldMatrixDirty();
+    }
+}
+
+void Object::SetSceneParentDirty()
+{
+    dirtySceneParent = true;
+
+    for (std::shared_ptr<Object> child : children)
+    {
+        if (child != nullptr)
+            child->SetSceneParentDirty();
     }
 }
 

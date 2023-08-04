@@ -2,7 +2,7 @@
 
 #include "Object.h"
 
-class Scene
+class Scene : public std::enable_shared_from_this<Scene>
 {
 public:
     Scene(std::wstring _name = L"Scene");
@@ -21,10 +21,15 @@ public:
     std::wstring GetName();
     void SetName(std::wstring _name);
 
+    DirectX::BoundingSphere GetBoundingSphere();
+
 protected:
     bool isActive = false;
     std::shared_ptr<Object> objectTree;
     std::wstring name;
+
+    // Used because we can't used shared_from_this inside constructor
+    bool hasSetObjectTreeScene = false;
 };
 
 struct {
