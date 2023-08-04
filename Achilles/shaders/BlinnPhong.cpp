@@ -9,7 +9,7 @@ using namespace BlinnPhong;
 using namespace CommonShader;
 using namespace DirectX;
 
-BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), IsTransparent(0), Padding{ 0 }
+BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), IsTransparent(0), TextureFlags(0), Padding{ 0 }
 {
 
 }
@@ -22,6 +22,7 @@ BlinnPhong::PixelInfo::PixelInfo() : CameraPosition(0, 0, 0), ShadingType(1)
 
 bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material, std::shared_ptr<Camera> camera, LightData& lightData)
 {
+    ScopedTimer _prof(L"BlinnPhongShaderRender");
     CommonShaderMatrices matrices{};
     matrices.Model = object->GetWorldMatrix();
     matrices.View = camera->GetView();
@@ -52,8 +53,6 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
         materialProperties.SpecularPower = material.GetFloat(L"SpecularPower");
     materialProperties.ReceivesShadows = object->ReceivesShadows();
 
-    commandList->SetGraphicsDynamicConstantBuffer<MaterialProperties>(RootParameters::RootParameterMaterialProperties, materialProperties);
-
     commandList->SetGraphicsDynamicStructuredBuffer<PointLight>(RootParameters::RootParameterPointLights, lightData.PointLights);
     commandList->SetGraphicsDynamicStructuredBuffer<SpotLight>(RootParameters::RootParameterSpotLights, lightData.SpotLights);
     commandList->SetGraphicsDynamicStructuredBuffer<DirectionalLight>(RootParameters::RootParameterDirectionalLights, lightData.DirectionalLights);
@@ -61,10 +60,28 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
 
     std::shared_ptr<Texture> mainTexture = material.GetTexture(L"MainTexture");
     if (mainTexture != nullptr && mainTexture->IsValid())
+    {
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, mainTexture);
+        materialProperties.TextureFlags |= TextureFlags::Diffuse;
+    }
     else
+    {
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 0, whitePixelTexture);
+    }
 
+    std::shared_ptr<Texture> normalTexture = material.GetTexture(L"NormalTexture");
+    if (normalTexture != nullptr && normalTexture->IsValid())
+    {
+        material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 1, normalTexture);
+        materialProperties.TextureFlags |= TextureFlags::Normal;
+    }
+    else
+    {
+        material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 1, nullptr);
+    }
+
+    // Pass material properties now that we have the textue information
+    commandList->SetGraphicsDynamicConstantBuffer<MaterialProperties>(RootParameters::RootParameterMaterialProperties, materialProperties);
 
     // Pass shadow maps to the shader for Shadow Factor
     for (int i = 0; i < MAX_SHADOW_MAPS; i++)
@@ -115,11 +132,36 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
             }
         }
 
+        // NormalTexture
+        if (mat->GetTextureCount(aiTextureType_NORMALS) > 0)
+        {
+            aiString texturePath;
+            mat->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
+
+            std::filesystem::path path = std::filesystem::path(texturePath.C_Str());
+            std::wstring textureFilename = path.filename().replace_extension();
+
+            const aiTexture* tex = scene->GetEmbeddedTexture(texturePath.C_Str());
+            if (tex != nullptr) // Texture exists as embedded texture
+            {
+                std::shared_ptr<Texture> texture = Texture::LoadTextureFromAssimp(Object::GetCreationCommandList(), tex, textureFilename);
+                material.SetTexture(L"NormalTexture", texture);
+            }
+            else // Texture is just a filename
+            {
+                std::wstring basePath = std::filesystem::path(meshPath).remove_filename();
+                std::shared_ptr<Texture> texture = Texture::GetTextureFromPath(Object::GetCreationCommandList(), std::filesystem::path(texturePath.C_Str()), basePath);
+                material.SetTexture(L"NormalTexture", texture);
+            }
+        }
+
         // Color
         aiColor3D rgb;
         ai_real a;
         mat->Get(AI_MATKEY_COLOR_DIFFUSE, rgb);
         mat->Get(AI_MATKEY_OPACITY, a);
+        if (a < 0)
+            a = (ai_real)1.0f;
 
         Vector4 color(rgb.r, rgb.g, rgb.b, (float)a);
         material.SetVector(L"Color", color);
@@ -189,7 +231,7 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     // Texture descriptor ranges
-    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0); // 1 texture, offset at 4, in space 0
+    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 4, 0); // 1 textures, offset at 4, in space 0
     CD3DX12_DESCRIPTOR_RANGE1 shadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 0, 1); // 8 textures, offset at 0, in space 1
 
     // Root parameters
@@ -213,6 +255,9 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
     std::vector<CD3DX12_STATIC_SAMPLER_DESC> samplers;
     CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0, 8U); // anisotropic sampler set to 8
     samplers.push_back(anisotropicSampler);
+
+    CD3DX12_STATIC_SAMPLER_DESC trilinearSampler = CD3DX12_STATIC_SAMPLER_DESC(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0, 8U); // trilinear sampler
+    samplers.push_back(trilinearSampler);
 
     CD3DX12_STATIC_SAMPLER_DESC shadowSampler = CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
     shadowSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;

@@ -48,6 +48,7 @@ public:
     virtual void AddObjectToScene(std::shared_ptr<Object> object) override;
 
 protected:
+    void DrawImGuiTextureProperty(std::shared_ptr<Object> object, uint32_t knitIndex, std::wstring name);
     void DrawImGuiPerformance();
     void DrawImGuiScenes();
     void DrawImGuiProperties();

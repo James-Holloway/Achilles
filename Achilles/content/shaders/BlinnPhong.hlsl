@@ -25,7 +25,8 @@ struct MaterialProperties
     // 32 bytes
     float ReceivesShadows;
     float IsTransparent;
-    float2 Padding;
+    uint TextureFlags;
+    float Padding;
     // 48 bytes
 };
 
@@ -49,8 +50,10 @@ StructuredBuffer<DirectionalLight> DirectionalLights : register(t2);
 StructuredBuffer<LightInfo> LightInfos : register(t3);
 
 Texture2D DiffuseTexture : register(t4);
+Texture2D NormalTexture : register(t5);
 
 SamplerState TextureSampler : register(s0);
+SamplerState TrilinearSampler : register(s1);
 
 Texture2D ShadowMap0 : register(t0, space1);
 Texture2D ShadowMap1 : register(t1, space1);
@@ -67,17 +70,18 @@ struct PS_IN
     float4 PositionWS : TEXCOORD1; // Position in worldspace
     float3 NormalWS : TEXCOORD2; // Normal in worldspace
     float3 TangentWS : TEXCOORD3; // Tangent in worldspace
+    float3 BitangentWS : TEXCOORD4; // Bitangent in worldspace
     float2 UV : TEXCOORD0;
     
     // Shadow pos in homegenous coordinates
-    float4 ShadowPosH0 : TEXCOORD4;
-    float4 ShadowPosH1 : TEXCOORD5;
-    float4 ShadowPosH2 : TEXCOORD6;
-    float4 ShadowPosH3 : TEXCOORD7;
-    float4 ShadowPosH4 : TEXCOORD8;
-    float4 ShadowPosH5 : TEXCOORD9;
-    float4 ShadowPosH6 : TEXCOORD10;
-    float4 ShadowPosH7 : TEXCOORD11;
+    float4 ShadowPosH0 : TEXCOORD5;
+    float4 ShadowPosH1 : TEXCOORD6;
+    float4 ShadowPosH2 : TEXCOORD7;
+    float4 ShadowPosH3 : TEXCOORD8;
+    float4 ShadowPosH4 : TEXCOORD9;
+    float4 ShadowPosH5 : TEXCOORD10;
+    float4 ShadowPosH6 : TEXCOORD11;
+    float4 ShadowPosH7 : TEXCOORD12;
 };
 
 PS_IN VS(CommonShaderVertex v)
@@ -87,6 +91,7 @@ PS_IN VS(CommonShaderVertex v)
     o.PositionWS = mul(MatricesCB.Model, float4(v.Position, 1));
     o.NormalWS = mul(MatricesCB.Model, float4(v.Normal, 0)).xyz;
     o.TangentWS = mul(MatricesCB.Model, float4(v.Tangent, 0)).xyz;
+    o.BitangentWS = mul(MatricesCB.Model, float4(v.Bitangent, 0)).xyz;
     o.UV = v.UV;
     
     int shadowCount = LightPropertiesCB.ShadowCount;
@@ -163,6 +168,16 @@ float4 PS(PS_IN i) : SV_Target
     col *= MaterialPropertiesCB.Color;
     
     float3 normal = normalize(i.NormalWS);
+    
+    if ((MaterialPropertiesCB.TextureFlags & TEXTUREFLAGS_NORMAL) != 0)
+    {
+        float3 tangent = normalize(i.TangentWS);
+        float3 bitangent = normalize(i.BitangentWS);
+        
+        float3x3 TBN = float3x3(tangent, bitangent, normal);
+        normal = DoNormalMapping(TBN, i.UV, NormalTexture, TrilinearSampler);
+    }
+    
     if (PixelInfoCB.ShadingType >= 0.5) // shading type of 1 means enabled
     {
         float shadowFactors[MAX_SHADOW_MAPS];

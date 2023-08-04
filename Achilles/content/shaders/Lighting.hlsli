@@ -1,3 +1,4 @@
+// Structs
 struct PointLight
 {
     // 0 bytes
@@ -81,6 +82,7 @@ struct LightResult
     float3 Ambient;
 };
 
+// Lighting
 float DoDiffuse(float3 normal, float3 lightDir)
 {
     return max(0, dot(normal, lightDir));
@@ -100,8 +102,8 @@ float DoAttenuation(float cnst, float linr, float quad, float dist)
 float DoSpotCone(float3 spotDir, float3 lightDir, float innerSpotAngle, float outerSpotAngle)
 {
     float theta = dot(lightDir, normalize(-spotDir));
-    float epsilon = innerSpotAngle - outerSpotAngle;
-    return clamp(1.0f - ((theta - outerSpotAngle) / epsilon), 0.0f, 1.0f);
+    float epsilon = max(outerSpotAngle - innerSpotAngle, 0.0f);
+    return saturate((theta - cos(outerSpotAngle)) / epsilon);
 }
 
 LightResult DoPointLighting(PointLight light, float3 worldPos, float3 normal, float3 viewDir, float specularPower)
@@ -152,6 +154,7 @@ LightResult DoDirectionalLighting(DirectionalLight light, float3 normal, float3 
     return lightResult;
 }
 
+// Shadows
 #if SHADOWS
 SamplerComparisonState ShadowSampler : register(s0, space1);
 
@@ -208,3 +211,18 @@ void CalcShadowFactors(in uint shadowCount, in float4 ShadowPos[MAX_SHADOW_MAPS]
     return;
 }
 #endif
+
+// Normals
+float3 ExpandNormal(float3 n)
+{
+    return n * 2.0f - 1.0f;
+}
+
+float3 DoNormalMapping(float3x3 TBN, float2 uv, Texture2D tex, SamplerState s)
+{
+    float3 N = tex.Sample(s, uv).xyz;
+    
+    N = ExpandNormal(N);
+    N = mul(N, TBN);
+    return normalize(N);
+}

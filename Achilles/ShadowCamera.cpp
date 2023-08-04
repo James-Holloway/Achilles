@@ -60,7 +60,7 @@ void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, Boun
         if (lightObject != nullptr)
         {
             SpotLight spot = lightObject->GetSpotLight();
-            SetFOV((90.0f - toDeg(spot.InnerSpotAngle)) * 2.0f);
+            SetFOV((90.0f - toDeg(cosf(spot.OuterSpotAngle))) * 2.0f);
             nearZ = 0.005f;
             farZ = spot.Light.MaxDistance;
         }

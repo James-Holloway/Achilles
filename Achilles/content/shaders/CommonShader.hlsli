@@ -7,3 +7,7 @@ struct CommonShaderVertex
     float3 Bitangent : BITANGENT;
     float2 UV : TEXCOORD0;
 };
+
+#define TEXTUREFLAGS_NONE 1
+#define TEXTUREFLAGS_DIFFUSE 1
+#define TEXTUREFLAGS_NORMAL 2

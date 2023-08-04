@@ -363,7 +363,7 @@ private:
 
     struct CachedTexture
     {
-        ID3D12Resource* Resource;
+        ComPtr<ID3D12Resource> Resource;
         bool IsTransparent;
     };
 

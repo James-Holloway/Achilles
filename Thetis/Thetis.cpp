@@ -66,6 +66,42 @@ static void DrawImGuiObjectTreeUp(std::shared_ptr<Object> object)
     ImGui::Unindent(8);
 }
 
+void Thetis::DrawImGuiTextureProperty(std::shared_ptr<Object> object, uint32_t knitIndex, std::wstring name)
+{
+    std::string id = WStringToString(name);
+    ImGui::PushID(id.c_str());
+
+    ImGui::Text(id.c_str());
+    std::shared_ptr<Texture> texture = object->GetMaterial(knitIndex).GetTexture(name);
+
+    ImVec2 size(192, 192);
+
+    if (texture == nullptr)
+    {
+        if (ImGui::Button("No Texture", size))
+        {
+            SelectTexture([=](std::shared_ptr<Texture> newTexture) { object->GetMaterial(knitIndex).SetTexture(name, newTexture); });
+        }
+    }
+    else
+    {
+        float width = 0.0f;
+        float height = 0.0f;
+        texture->GetSize(width, height);
+
+        if (width > height)
+            size.y = (height / width) * size.y;
+        else if (height > width)
+            size.x = (width / height) * size.x;
+
+        if (AchillesImGui::ImageButton(texture, size, ImVec2(0, 0), ImVec2(1, 1), 2))
+        {
+            SelectTexture([=](std::shared_ptr<Texture> newTexture) { object->GetMaterial(knitIndex).SetTexture(name, newTexture); });
+        }
+    }
+    ImGui::PopID();
+}
+
 void Thetis::DrawImGuiPerformance()
 {
     if (ImGui::Begin("Performance", &showPerformance, ImGuiWindowFlags_NoResize))
@@ -533,34 +569,11 @@ void Thetis::DrawImGuiProperties()
                             {
                                 ImGui::Indent(4.0f);
 
-                                // MainTexture
-                                ImGui::Text("MainTexture");
-                                std::shared_ptr<Texture> mainTexture = knit.material.GetTexture(L"MainTexture");
+                                // Diffuse
+                                DrawImGuiTextureProperty(object, i, L"MainTexture");
 
-                                if (mainTexture == nullptr)
-                                {
-                                    if (ImGui::Button("No Texture", ImVec2(256, 256)))
-                                    {
-                                        SelectTexture([&](std::shared_ptr<Texture> newTexture) { knit.material.SetTexture(L"MainTexture", newTexture); });
-                                    }
-                                }
-                                else
-                                {
-                                    float width = 0.0f;
-                                    float height = 0.0f;
-                                    mainTexture->GetSize(width, height);
-
-                                    ImVec2 size(256, 256);
-                                    if (width > height)
-                                        size.y = (height / width) * size.y;
-                                    else if (height > width)
-                                        size.x = (width / height) * size.x;
-
-                                    if (AchillesImGui::ImageButton(mainTexture, size, ImVec2(0, 0), ImVec2(1, 1), 2))
-                                    {
-                                        SelectTexture([&](std::shared_ptr<Texture> newTexture) { knit.material.SetTexture(L"MainTexture", newTexture); });
-                                    }
-                                }
+                                // Normal
+                                DrawImGuiTextureProperty(object, i, L"NormalTexture");
 
                                 ImGui::Unindent(4.0f);
                             }

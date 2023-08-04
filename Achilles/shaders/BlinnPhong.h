@@ -23,7 +23,8 @@ namespace BlinnPhong
         // 32 bytes
         float ReceivesShadows;
         float IsTransparent;
-        float Padding[2];
+        uint32_t TextureFlags;
+        float Padding;
         // 48 bytes
 
         MaterialProperties();
