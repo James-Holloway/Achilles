@@ -135,3 +135,14 @@ void ShadowCamera::SetRank(float rank)
     if (shadowMap)
         shadowMap->SetRank(rank);
 }
+
+void ShadowCamera::ResizeShadowMap(uint32_t width, uint32_t height)
+{
+    if (shadowMap == nullptr)
+        return;
+
+    cameraWidth = width;
+    cameraHeight = height;
+    shadowMap->Resize(cameraWidth, cameraHeight);
+    UpdateViewport(width, height);
+}

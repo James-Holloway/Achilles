@@ -3,6 +3,26 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
+#define THETIS_TONEMAPPER_COMBO(Name) \
+if (ImGui::Selectable(PPToneMapping::ToneMappers::GetToneMapperName(PPToneMapping::ToneMappers:: Name).c_str(), postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name)) \
+{ \
+    postProcessing->ToneMapper = PPToneMapping::ToneMappers:: Name; \
+} \
+if (postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name) \
+{ \
+    ImGui::SetItemDefaultFocus(); \
+}
+
+#define THETIS_SHADOWMAP_COMBO(Size) \
+if (ImGui::Selectable(std::to_string(Size).c_str(), shadowMapSize == Size)) \
+{ \
+    postPresentFunctions.push_back([=]() { shadowCamera->ResizeShadowMap(Size, Size); }); \
+} \
+if (shadowMapSize == Size) \
+{ \
+    ImGui::SetItemDefaultFocus(); \
+}
+
 Thetis::Thetis(std::wstring name) : Achilles(name)
 {
 
@@ -202,7 +222,8 @@ void Thetis::DrawImGuiScenes()
 
                     if (ImGui::BeginTabItem((sceneName + "##" + std::to_string(i++)).c_str(), (bool*)0, flags))
                     {
-                        ImGui::PopStyleColor();
+                        if (!isActive)
+                            ImGui::PopStyleColor();
                         // If the scene has just changed
                         if (selectedPropertiesScene != scene)
                         {
@@ -220,7 +241,8 @@ void Thetis::DrawImGuiScenes()
                     }
                     else
                     {
-                        ImGui::PopStyleColor();
+                        if (!isActive)
+                            ImGui::PopStyleColor();
                     }
                 }
                 ImGui::EndTabBar();
@@ -680,9 +702,26 @@ void Thetis::DrawImGuiProperties()
 
                             ImGui::Separator();
                             std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Spot);
-                            if (shadowCamera && shadowCamera->GetShadowMap())
+                            if (shadowCamera && shadowCamera->GetShadowMap() != nullptr)
                             {
-                                std::shared_ptr<Texture> texture = shadowCamera->GetShadowMap()->GetReadableDepthTexture();
+                                std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap();
+
+                                uint32_t shadowMapSize = shadowCamera->cameraWidth;
+                                std::string shadowMapSizeStr = std::to_string(shadowMapSize);
+                                if (ImGui::BeginCombo("Shadow Map Size", shadowMapSizeStr.c_str()))
+                                {
+                                    THETIS_SHADOWMAP_COMBO(128);
+                                    THETIS_SHADOWMAP_COMBO(256);
+                                    THETIS_SHADOWMAP_COMBO(512);
+                                    THETIS_SHADOWMAP_COMBO(1024);
+                                    THETIS_SHADOWMAP_COMBO(2048);
+                                    THETIS_SHADOWMAP_COMBO(4096);
+                                    THETIS_SHADOWMAP_COMBO(8192);
+
+                                    ImGui::EndCombo();
+                                }
+
+                                std::shared_ptr<Texture> texture = shadowMap->GetReadableDepthTexture();
                                 AchillesImGui::Image(texture, ImVec2(256.0f, 256.0f));
                             }
 
@@ -741,7 +780,24 @@ void Thetis::DrawImGuiProperties()
                             std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Directional);
                             if (shadowCamera && shadowCamera->GetShadowMap())
                             {
-                                std::shared_ptr<Texture> texture = shadowCamera->GetShadowMap()->GetReadableDepthTexture();
+                                std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap();
+
+                                uint32_t shadowMapSize = shadowCamera->cameraWidth;
+                                std::string shadowMapSizeStr = std::to_string(shadowMapSize);
+                                if (ImGui::BeginCombo("Shadow Map Size", shadowMapSizeStr.c_str()))
+                                {
+                                    THETIS_SHADOWMAP_COMBO(128);
+                                    THETIS_SHADOWMAP_COMBO(256);
+                                    THETIS_SHADOWMAP_COMBO(512);
+                                    THETIS_SHADOWMAP_COMBO(1024);
+                                    THETIS_SHADOWMAP_COMBO(2048);
+                                    THETIS_SHADOWMAP_COMBO(4096);
+                                    THETIS_SHADOWMAP_COMBO(8192);
+
+                                    ImGui::EndCombo();
+                                }
+
+                                std::shared_ptr<Texture> texture = shadowMap->GetReadableDepthTexture();
                                 AchillesImGui::Image(texture, ImVec2(256.0f, 256.0f));
                             }
 
@@ -963,21 +1019,9 @@ void Thetis::DrawImGuiPostProcessing()
             ImGui::Checkbox("Enable Tone Mapping", &postProcessing->EnableToneMapping);
             if (ImGui::BeginCombo("Tone Mapper", PPToneMapping::ToneMappers::GetToneMapperName(postProcessing->ToneMapper).c_str()))
             {
-#define THETIS_TONEMAPPER_COMBO(Name) \
-                if (ImGui::Selectable(PPToneMapping::ToneMappers::GetToneMapperName(PPToneMapping::ToneMappers:: Name).c_str(), postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name)) \
-                { \
-                    postProcessing->ToneMapper = PPToneMapping::ToneMappers:: Name; \
-                } \
-                if (postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name) \
-                { \
-                    ImGui::SetItemDefaultFocus(); \
-                }
-
                 THETIS_TONEMAPPER_COMBO(Clamp);
                 THETIS_TONEMAPPER_COMBO(ExtendedReinhard);
                 THETIS_TONEMAPPER_COMBO(Filmic);
-
-#undef THETIS_TONEMAPPER_COMBO
 
                 ImGui::EndCombo();
             }

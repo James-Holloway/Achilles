@@ -544,6 +544,8 @@ void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_p
     commandQueue->WaitForFenceValue(fenceValues[currentBackBufferIndex]);
 
     Application::ReleaseStaleDescriptors(frameValues[currentBackBufferIndex]);
+
+    CallPostPresentFunctions();
 }
 
 void Achilles::LoadInternalContent()
@@ -578,6 +580,17 @@ void Achilles::ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std
 {
     ScopedTimer _prof(L"Post Processing");
     postProcessing->ApplyPostProcessing(texture, presentTexture, postProcessingEnable);
+}
+
+void Achilles::CallPostPresentFunctions()
+{
+    std::vector<std::function<void(void)>> previousPostPresentFunctions{};
+    postPresentFunctions.swap(previousPostPresentFunctions); // by swapping rather than clearing afterwards we can add  to postPresentFunctions inside a post present function
+
+    for (auto func : previousPostPresentFunctions)
+    {
+        func();
+    }
 }
 
 // Achilles functions

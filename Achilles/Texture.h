@@ -26,11 +26,11 @@ public:
 
     virtual ~Texture();
 
-    TextureUsage GetTextureUsage() const
+    virtual TextureUsage GetTextureUsage() const
     {
         return textureUsage;
     }
-    void SetTextureUsage(TextureUsage _textureUsage)
+    virtual void SetTextureUsage(TextureUsage _textureUsage)
     {
         textureUsage = textureUsage;
     }
@@ -45,10 +45,10 @@ public:
     }
 
     // Resize the texture.
-    void Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize = 1);
+    virtual void Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize = 1);
 
     // Get the size of the current texture resource. Returns whether the resource was valid
-    bool GetSize(float& width, float& height);
+    virtual bool GetSize(float& width, float& height);
 
     // Create SRV and UAVs for the resource
     virtual void CreateViews();

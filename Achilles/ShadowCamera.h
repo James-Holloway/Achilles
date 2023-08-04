@@ -12,8 +12,8 @@ using DirectX::SimpleMath::Vector4;
 using DirectX::SimpleMath::Quaternion;
 using DirectX::BoundingSphere;
 
-constexpr uint32_t ShadowCameraWidth = 1024;
-constexpr uint32_t ShadowCameraHeight = 1024;
+constexpr uint32_t ShadowCameraWidth = 2048;
+constexpr uint32_t ShadowCameraHeight = 2048;
 
 class LightObject;
 
@@ -41,6 +41,8 @@ public:
 
     float GetRank();
     void SetRank(float rank);
+
+    void ResizeShadowMap(uint32_t width, uint32_t height);
 
     uint32_t cameraWidth = ShadowCameraWidth;
     uint32_t cameraHeight = ShadowCameraHeight;

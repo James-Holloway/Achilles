@@ -1,4 +1,6 @@
 #pragma once
+
+#include <functional>
 #include <d3d12.h>
 #include <directxtk12/Keyboard.h>
 #include <directxtk12/Mouse.h>
@@ -89,6 +91,7 @@ public:
     double lastFPS = 0.0;
     bool postProcessingEnable = true;
     bool acceptingFiles = false;
+    std::vector<std::function<void(void)>> postPresentFunctions;
 
 protected:
     // Protected variables for internal use
@@ -161,6 +164,7 @@ protected:
     void Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList);
     void LoadInternalContent();
     virtual void ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture);
+    virtual void CallPostPresentFunctions();
 
 public:
     // Achilles functions to run things

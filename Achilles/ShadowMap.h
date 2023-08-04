@@ -17,6 +17,8 @@ public:
     float GetRank();
     void SetRank(float _rank);
 
+    virtual void Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize = 1) override;
+
     std::shared_ptr<Texture> GetReadableDepthTexture();
     void SetReadableDepthTexture(std::shared_ptr<Texture> _readableDepthTexture);
     void CopyDepthToReadableDepthTexture(std::shared_ptr<CommandList> commandList);
