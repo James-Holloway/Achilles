@@ -38,6 +38,7 @@ namespace CommonShader
             None = 0,
             Diffuse = 1,
             Normal = 2,
+            Emission = 4,
         };
     }
 

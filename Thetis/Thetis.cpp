@@ -609,6 +609,14 @@ void Thetis::DrawImGuiProperties()
                                     knit.material.SetFloat(L"SpecularPower", value);
                                 }
                             }
+                            if (knit.material.HasFloat(L"EmissionStrength"))
+                            {
+                                float value = knit.material.GetFloat(L"EmissionStrength");
+                                if (ImGui::DragFloat("EmissionStrength", &value, 0.025f, 0.0f, 1.0f, "%.2f"))
+                                {
+                                    knit.material.SetFloat(L"EmissionStrength", value);
+                                }
+                            }
                             if (knit.material.HasFloat(L"ShadingType"))
                             {
                                 int value = (int)knit.material.GetFloat(L"ShadingType");
@@ -644,6 +652,9 @@ void Thetis::DrawImGuiProperties()
 
                                 // Normal
                                 DrawImGuiTextureProperty(object, i, L"NormalTexture");
+
+                                // Emission
+                                DrawImGuiTextureProperty(object, i, L"EmissionTexture");
 
                                 ImGui::Unindent(4.0f);
                             }
@@ -1020,6 +1031,11 @@ void Thetis::DrawTextureSelection()
 
         auto textureNames = Texture::GetCachedTextureNames();
 
+        static char textureSelectFilter[64];
+        ImGui::SetNextItemWidth(-1);
+        ImGui::InputTextWithHint("##Filter", "Filter", textureSelectFilter, 64);
+        std::wstring filter = StringToWString(textureSelectFilter);
+
         if (ImGui::BeginTable("textureTable", 3, ImGuiTableFlags_BordersOuter))
         {
             ImGui::TableNextColumn();
@@ -1039,6 +1055,13 @@ void Thetis::DrawTextureSelection()
 
                 if (texture == nullptr)
                     continue;
+
+                // If a filter is applied, check for the substring filter. If not found then continue
+                if (filter != L"")
+                {
+                    if (texture->GetName().find(filter) == std::string::npos)
+                        continue;
+                }
 
                 float width = 0.0f;
                 float height = 0.0f;

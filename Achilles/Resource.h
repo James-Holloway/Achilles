@@ -63,6 +63,8 @@ public:
     // The name of the resource will persist if the underlying D3D12 resource is replaced with SetD3D12Resource.
     void SetName(const std::wstring& name);
 
+    std::wstring GetName();
+
     // Release the underlying resource. This is useful for swap chain resizing.
     virtual void Reset();
 

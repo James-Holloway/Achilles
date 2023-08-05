@@ -23,10 +23,10 @@ struct MaterialProperties
     float Specular;
     float SpecularPower;
     // 32 bytes
+    float EmissionStrength;
     float ReceivesShadows;
     float IsTransparent;
     uint TextureFlags;
-    float Padding;
     // 48 bytes
 };
 
@@ -51,6 +51,7 @@ StructuredBuffer<LightInfo> LightInfos : register(t3);
 
 Texture2D DiffuseTexture : register(t4);
 Texture2D NormalTexture : register(t5);
+Texture2D EmissionTexture : register(t6);
 
 SamplerState TextureSampler : register(s0);
 SamplerState TrilinearSampler : register(s1);
@@ -164,7 +165,8 @@ LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 
 
 float4 PS(PS_IN i) : SV_Target
 {
-    float4 col = DiffuseTexture.Sample(TextureSampler, i.UV);
+    float2 uv = i.UV;
+    float4 col = DiffuseTexture.Sample(TextureSampler, uv);
     col *= MaterialPropertiesCB.Color;
     
     float3 normal = normalize(i.NormalWS);
@@ -175,7 +177,7 @@ float4 PS(PS_IN i) : SV_Target
         float3 bitangent = normalize(i.BitangentWS);
         
         float3x3 TBN = float3x3(tangent, bitangent, normal);
-        normal = DoNormalMapping(TBN, i.UV, NormalTexture, TrilinearSampler);
+        normal = DoNormalMapping(TBN, uv, NormalTexture, TrilinearSampler);
     }
     
     if (PixelInfoCB.ShadingType >= 0.5) // shading type of 1 means enabled
@@ -214,6 +216,13 @@ float4 PS(PS_IN i) : SV_Target
         {
             col = float4(light, 1);
         }
+    }
+    
+    if ((MaterialPropertiesCB.TextureFlags & TEXTUREFLAGS_EMISSION) != 0)
+    {
+        float4 emission = EmissionTexture.Sample(TextureSampler, uv);
+        float emissionStrength = MaterialPropertiesCB.EmissionStrength * emission.a;
+        col.rgb = lerp(col.rgb, float3(1, 1, 1), max(float3(0, 0, 0), emission.rgb * emissionStrength));
     }
     
     return col;

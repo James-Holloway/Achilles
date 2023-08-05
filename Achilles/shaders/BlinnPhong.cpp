@@ -9,7 +9,7 @@ using namespace BlinnPhong;
 using namespace CommonShader;
 using namespace DirectX;
 
-BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), ReceivesShadows(1), IsTransparent(0), TextureFlags(0), Padding{ 0 }
+BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), EmissionStrength(1), ReceivesShadows(1), IsTransparent(0), TextureFlags(0)
 {
 
 }
@@ -51,6 +51,8 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
         materialProperties.Specular = material.GetFloat(L"Specular");
     if (material.HasFloat(L"SpecularPower"))
         materialProperties.SpecularPower = material.GetFloat(L"SpecularPower");
+    if (material.HasFloat(L"EmissionStrength"))
+        materialProperties.EmissionStrength = material.GetFloat(L"EmissionStrength");
     materialProperties.ReceivesShadows = object->ReceivesShadows();
 
     commandList->SetGraphicsDynamicStructuredBuffer<PointLight>(RootParameters::RootParameterPointLights, lightData.PointLights);
@@ -78,6 +80,17 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
     else
     {
         material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 1, nullptr);
+    }
+
+    std::shared_ptr<Texture> emissionTexture = material.GetTexture(L"EmissionTexture");
+    if (emissionTexture != nullptr && emissionTexture->IsValid())
+    {
+        material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 2, emissionTexture);
+        materialProperties.TextureFlags |= TextureFlags::Emission;
+    }
+    else
+    {
+        material.shader->BindTexture(*commandList, RootParameters::RootParameterTextures, 2, nullptr);
     }
 
     // Pass material properties now that we have the textue information
@@ -161,6 +174,29 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
             }
         }
 
+        // EmissionTexture
+        if (mat->GetTextureCount(aiTextureType_EMISSIVE) > 0)
+        {
+            aiString texturePath;
+            mat->GetTexture(aiTextureType_EMISSIVE, 0, &texturePath);
+
+            std::filesystem::path path = std::filesystem::path(texturePath.C_Str());
+            std::wstring textureFilename = path.filename().replace_extension();
+
+            const aiTexture* tex = scene->GetEmbeddedTexture(texturePath.C_Str());
+            if (tex != nullptr) // Texture exists as embedded texture
+            {
+                std::shared_ptr<Texture> texture = Texture::LoadTextureFromAssimp(Object::GetCreationCommandList(), tex, textureFilename);
+                material.SetTexture(L"EmissionTexture", texture);
+            }
+            else // Texture is just a filename
+            {
+                std::wstring basePath = std::filesystem::path(meshPath).remove_filename();
+                std::shared_ptr<Texture> texture = Texture::GetTextureFromPath(Object::GetCreationCommandList(), std::filesystem::path(texturePath.C_Str()), basePath);
+                material.SetTexture(L"EmissionTexture", texture);
+            }
+        }
+
         // Color
         aiColor3D rgb;
         ai_real a;
@@ -203,6 +239,7 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
         material.SetFloat(L"SpecularPower", 32.0f);
     }
 
+    material.SetFloat(L"EmissionStrength", 1.0f);
     material.SetFloat(L"ShadingType", 1);
 
     return mesh;
@@ -237,7 +274,7 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     // Texture descriptor ranges
-    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 4, 0); // 1 textures, offset at 4, in space 0
+    CD3DX12_DESCRIPTOR_RANGE1 textureDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 4, 0); // 3 textures, offset at 4, in space 0
     CD3DX12_DESCRIPTOR_RANGE1 shadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 0, 1); // 8 textures, offset at 0, in space 1
 
     // Root parameters
@@ -254,7 +291,7 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
     rootParameters[RootParameters::RootParameterDirectionalLights].InitAsShaderResourceView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[RootParameters::RootParameterLightInfos].InitAsShaderResourceView(3, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
 
-    rootParameters[RootParameters::RootParameterTextures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[RootParameters::RootParameterTextures].InitAsDescriptorTable(1, &textureDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[RootParameters::RootParameterShadowMaps].InitAsDescriptorTable(1, &shadowDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // Sampler(s)

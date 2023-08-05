@@ -580,6 +580,7 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
     if (std::filesystem::exists(realPath))
     {
         commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Generic);
+        Texture::AddCachedTexture(filename, texture);
 
         return texture;
     }
@@ -589,6 +590,7 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
     if (std::filesystem::exists(realPath))
     {
         commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Generic);
+        Texture::AddCachedTexture(filename, texture);
 
         return texture;
     }
@@ -598,6 +600,7 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
 
     if (texture != nullptr && texture->IsValid())
     {
+        Texture::AddCachedTexture(filename, texture);
         return texture;
     }
 

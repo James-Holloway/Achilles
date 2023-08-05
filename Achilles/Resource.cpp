@@ -99,6 +99,11 @@ void Resource::SetName(const std::wstring& name)
     }
 }
 
+std::wstring Resource::GetName()
+{
+    return resourceName;
+}
+
 void Resource::Reset()
 {
     d3d12Resource.Reset();

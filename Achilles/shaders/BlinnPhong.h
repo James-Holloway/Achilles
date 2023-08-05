@@ -21,10 +21,10 @@ namespace BlinnPhong
         float Specular;
         float SpecularPower;
         // 32 bytes
+        float EmissionStrength;
         float ReceivesShadows;
         float IsTransparent;
         uint32_t TextureFlags;
-        float Padding;
         // 48 bytes
 
         MaterialProperties();
