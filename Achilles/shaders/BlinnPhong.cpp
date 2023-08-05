@@ -84,13 +84,19 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
     commandList->SetGraphicsDynamicConstantBuffer<MaterialProperties>(RootParameters::RootParameterMaterialProperties, materialProperties);
 
     // Pass shadow maps to the shader for Shadow Factor
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = ShadowMap::GetShadowMapR32SRV();
+
     for (int i = 0; i < MAX_SHADOW_MAPS; i++)
     {
         std::shared_ptr<Texture> shadowMap = nullptr;
         if (i < lightData.SortedShadowMaps.size())
-            shadowMap = lightData.SortedShadowMaps[i]->GetReadableDepthTexture();
+            shadowMap = lightData.SortedShadowMaps[i];
 
-        material.shader->BindTexture(*commandList, RootParameters::RootParameterShadowMaps, i, shadowMap);
+        if (shadowMap == nullptr)
+            material.shader->BindTexture(*commandList, RootParameters::RootParameterShadowMaps, i, nullptr);
+        else
+            commandList->SetShaderResourceView(RootParameters::RootParameterShadowMaps, i, *shadowMap, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, 0, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, &srvDesc);
     }
 
     return true;

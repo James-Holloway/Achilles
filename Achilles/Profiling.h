@@ -17,6 +17,7 @@ class Profiling
         bool completed = false;
         uint32_t count = 0;
         std::wstring fullname;
+        bool topLevel = false;
 
         ProfilerBlock(const std::wstring& _name, std::wstring _fullname);
         void Stop();

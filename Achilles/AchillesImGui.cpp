@@ -14,6 +14,7 @@
 #include "RootSignature.h"
 #include "ShaderResourceView.h"
 #include "Texture.h"
+#include "ShadowMap.h"
 
 enum RootParameters
 {
@@ -274,7 +275,15 @@ void AchillesImGui::Render(const std::shared_ptr<CommandList>& commandList, cons
                     Texture* texture = (Texture*)(size_t)drawCmd.TextureId;
                     if (texture != nullptr && texture->IsValid())
                     {
-                        commandList->SetShaderResourceView(RootParameters::RootParameterFontTexture, 0, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                        if (texture->GetTextureUsage() == TextureUsage::Depth)
+                        {
+                            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = ShadowMap::GetShadowMapR32SRV();
+                            commandList->SetShaderResourceView(RootParameters::RootParameterFontTexture, 0, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, &srvDesc);
+                        }
+                        else
+                        {
+                            commandList->SetShaderResourceView(RootParameters::RootParameterFontTexture, 0, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                        }
                     }
                     else
                     {

@@ -339,7 +339,7 @@ std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
     clearValue.Color[2] = 0;
     clearValue.Color[3] = 0;
 
-    std::shared_ptr<Texture> rtTexture = std::make_shared<Texture>(resDesc, &clearValue, TextureUsage::Albedo, name);
+    std::shared_ptr<Texture> rtTexture = std::make_shared<Texture>(resDesc, &clearValue, TextureUsage::Generic, name);
     rtTexture->CreateViews();
     ResourceStateTracker::AddGlobalResourceState(rtTexture->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
 
@@ -361,7 +361,7 @@ std::shared_ptr<Texture> Achilles::CreateIntermediatePresentTexture()
     DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
     CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
-    std::shared_ptr<Texture> tex = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Intermediate Present Texture");
+    std::shared_ptr<Texture> tex = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Generic, L"Intermediate Present Texture");
     tex->CreateViews();
 
     ResourceStateTracker::AddGlobalResourceState(tex->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
@@ -580,7 +580,7 @@ void Achilles::LoadInternalContent()
 
     std::shared_ptr<Texture> whitePixelTexture = std::make_shared<Texture>();
     std::vector<uint32_t> pixels = { 0xFFFFFFFF };
-    commandList->CreateTextureFromMemory(*whitePixelTexture, L"White", pixels, 1, 1, TextureUsage::Albedo, false);
+    commandList->CreateTextureFromMemory(*whitePixelTexture, L"White", pixels, 1, 1, TextureUsage::Generic, false);
     Texture::AddCachedTexture(L"White", whitePixelTexture);
 
     Texture::AddCachedTextureFromContent(commandList, L"lightbulb");
@@ -1144,7 +1144,7 @@ std::shared_ptr<Texture> Achilles::CreateCubemap(uint32_t width, uint32_t height
 {
     CD3DX12_RESOURCE_DESC cubemapResourceDesc;
     cubemapResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 6, 0, 1U, 0U, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    std::shared_ptr<Texture> cubemap = std::make_shared<Texture>(cubemapResourceDesc, nullptr, TextureUsage::Albedo, L"Unnamed Cubemap");
+    std::shared_ptr<Texture> cubemap = std::make_shared<Texture>(cubemapResourceDesc, nullptr, TextureUsage::Cubemap, L"Unnamed Cubemap");
     return cubemap;
 }
 
@@ -1337,8 +1337,6 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 
             }*/
         }
-
-        shadowMap->CopyDepthToReadableDepthTexture(commandList);
     }
 #pragma endregion
 
@@ -1806,7 +1804,7 @@ void Achilles::LoadTextureFromFile(std::wstring path, std::shared_ptr<CommandLis
 {
     std::wstring filename = std::filesystem::path(path).filename();
 
-    std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Albedo, filename);
-    commandList->LoadTextureFromFile(*texture, path, TextureUsage::Albedo);
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Generic, filename);
+    commandList->LoadTextureFromFile(*texture, path, TextureUsage::Generic);
     Texture::AddCachedTexture(filename, texture);
 }

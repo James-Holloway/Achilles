@@ -130,16 +130,16 @@ public:
 
 
     // Load a texture by a filename.
-    void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage = TextureUsage::Albedo);
+    void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage = TextureUsage::Generic);
 
     // Load a texture by filename (no extension) from content directory. Automatically deducts the file extension
-    void LoadTextureFromContent(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage = TextureUsage::Albedo);
+    void LoadTextureFromContent(Texture& texture, const std::wstring& fileName, TextureUsage _textureUsage = TextureUsage::Generic);
 
     // Loads a texture from the texture cache. Ensure it is already created/loaded. Returns whether the texture was in cache or not
-    bool GetTextureFromCache(Texture& texture, std::wstring identifierName, TextureUsage textureUsage = TextureUsage::Albedo);
+    bool GetTextureFromCache(Texture& texture, std::wstring identifierName, TextureUsage textureUsage = TextureUsage::Generic);
 
     // Create a texture from the provided pixels
-    void CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage = TextureUsage::Albedo, bool createMipmaps = false, bool isTransparent = false);
+    void CreateTextureFromMemory(Texture& texture, std::wstring identifierName, std::vector<uint32_t> pixels, UINT64 width, UINT64 height, TextureUsage textureUsage = TextureUsage::Generic, bool createMipmaps = false, bool isTransparent = false);
 
     // Clear a texture
     void ClearTexture(const Texture& texture, const float clearColor[4]);

@@ -3,14 +3,19 @@
 enum class TextureUsage
 {
     // Treat Diffuse and Albedo textures the same
-    Albedo,
+    Generic,
+    Albedo = Generic,
     Diffuse = Albedo,
-    // Treat height and depth textures the same
+    // Depth Textures
+    Depth,
+    // Linear Textures
+    Linear,
     Heightmap,
-    Depth = Heightmap,
-    Linear = Depth,
     Normalmap,
     // Texture is used as a render target
     RenderTarget,
+    // Texture is used as a cubemap
+    Cubemap,
+    // Is sRGB
     sRGB,
 };

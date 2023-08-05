@@ -45,31 +45,6 @@ void ShadowMap::SetRank(float _rank)
 void ShadowMap::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
 {
     Texture::Resize(width, height, depthOrArraySize);
-
-    if (readableDepthTexture != nullptr)
-    {
-        readableDepthTexture->Resize(width, height, depthOrArraySize);
-    }
-}
-
-std::shared_ptr<Texture> ShadowMap::GetReadableDepthTexture()
-{
-    return readableDepthTexture;
-}
-
-void ShadowMap::SetReadableDepthTexture(std::shared_ptr<Texture> _readableDepthTexture)
-{
-    readableDepthTexture = _readableDepthTexture;
-}
-
-void ShadowMap::CopyDepthToReadableDepthTexture(std::shared_ptr<CommandList> commandList)
-{
-    if (readableDepthTexture == nullptr)
-        throw std::exception("Readable Depth Texture was not set, you probably didn't use ShadowMap::CreateShadowMap");
-
-    commandList->CopyResource(*readableDepthTexture, *this);
-    commandList->TransitionBarrier(*readableDepthTexture, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, false);
-    commandList->TransitionBarrier(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
 }
 
 std::shared_ptr<ShadowMap> ShadowMap::CreateShadowMap(uint32_t width, uint32_t height)
@@ -89,12 +64,20 @@ std::shared_ptr<ShadowMap> ShadowMap::CreateShadowMap(uint32_t width, uint32_t h
 
     shadowMap->d3d12ClearValue = std::make_unique<D3D12_CLEAR_VALUE>(optClear);
 
-    CD3DX12_RESOURCE_DESC readableTextureDesc{};
-    readableTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, depthTextureDesc.Width, depthTextureDesc.Height, 1U, 1U, 1U, 0U, D3D12_RESOURCE_FLAG_NONE);
-    std::shared_ptr<Texture> readableTexture = std::make_shared<Texture>(readableTextureDesc, nullptr, TextureUsage::Depth);
-    readableTexture->SetName(L"Readable Depth Texture");
-
-    shadowMap->SetReadableDepthTexture(readableTexture);
-
     return shadowMap;
+}
+
+D3D12_SHADER_RESOURCE_VIEW_DESC ShadowMap::GetShadowMapR32SRV()
+{
+    // Use a srvDesc to convert D32 to R32
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.PlaneSlice = 0;
+    srvDesc.Texture2D.ResourceMinLODClamp = 0;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    return srvDesc;
 }

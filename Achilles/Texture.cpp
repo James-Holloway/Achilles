@@ -482,7 +482,7 @@ std::shared_ptr<Texture> Texture::LoadTextureFromAssimp(std::shared_ptr<CommandL
             aiTexel texel = tex->pcData[i];
             pixels.push_back(ColorPack(texel.r, texel.g, texel.b, texel.a));
         }
-        commandList->CreateTextureFromMemory(*texture, textureFilename, pixels, tex->mWidth, tex->mHeight, TextureUsage::Albedo, true);
+        commandList->CreateTextureFromMemory(*texture, textureFilename, pixels, tex->mWidth, tex->mHeight, TextureUsage::Generic, true);
     }
     else
     {
@@ -531,7 +531,7 @@ std::shared_ptr<Texture> Texture::LoadTextureFromAssimp(std::shared_ptr<CommandL
         // Update the global state tracker.
         ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
 
-        texture->SetTextureUsage(TextureUsage::Albedo);
+        texture->SetTextureUsage(TextureUsage::Generic);
         texture->SetD3D12Resource(textureResource);
         texture->CreateViews();
         texture->SetName(textureFilename);
@@ -573,13 +573,13 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
     if (basePath == L"")
         basePath = std::filesystem::current_path();
 
-    std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Albedo, filename);
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Generic, filename);
 
     // Absolute Path
     std::filesystem::path realPath = file;
     if (std::filesystem::exists(realPath))
     {
-        commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Albedo);
+        commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Generic);
 
         return texture;
     }
@@ -588,13 +588,13 @@ std::shared_ptr<Texture> Texture::GetTextureFromPath(std::shared_ptr<CommandList
     realPath = std::filesystem::canonical(basePath + path, ec);
     if (std::filesystem::exists(realPath))
     {
-        commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Albedo);
+        commandList->LoadTextureFromFile(*texture, realPath, TextureUsage::Generic);
 
         return texture;
     }
 
     // Content
-    commandList->LoadTextureFromContent(*texture, filename, TextureUsage::Albedo);
+    commandList->LoadTextureFromContent(*texture, filename, TextureUsage::Generic);
 
     if (texture != nullptr && texture->IsValid())
     {

@@ -191,10 +191,13 @@ void Thetis::DrawImGuiScenes()
             if (selectedPropertiesScene == nullptr)
                 selectedPropertiesScene = mainScene;
 
-            // Selected Scene Combo
+            // Selected Scene Tabs
             std::string selectedSceneName = "[None]";
             if (selectedPropertiesScene != nullptr)
                 selectedSceneName = WStringToString(selectedPropertiesScene->GetName());
+
+            // Prevent scene switch this frame (i.e. when input name changed)
+            bool preventSceneSwitch = false;
 
             // Scene Properties + Operations
             if (selectedPropertiesScene != nullptr)
@@ -218,6 +221,7 @@ void Thetis::DrawImGuiScenes()
                     {
                         scene->SetName(StringToWString(std::string(name)));
                         shouldSetSceneTab = true;
+                        preventSceneSwitch = true;
                     }
                 }
 
@@ -279,12 +283,14 @@ void Thetis::DrawImGuiScenes()
                     {
                         if (!isActive)
                             ImGui::PopStyleColor();
+
                         // If the scene has just changed
                         if (selectedPropertiesScene != scene)
                         {
                             selectedPropertiesObject = nullptr; // deselect properties object
                         }
-                        selectedPropertiesScene = scene;
+                        if (!preventSceneSwitch)
+                            selectedPropertiesScene = scene;
 
                         // Draw Object Tree
                         ImGui::Unindent(8);
@@ -799,8 +805,7 @@ void Thetis::DrawImGuiProperties()
                                     ImGui::EndCombo();
                                 }
 
-                                std::shared_ptr<Texture> texture = shadowMap->GetReadableDepthTexture();
-                                AchillesImGui::Image(texture, ImVec2(256.0f, 256.0f));
+                                AchillesImGui::Image(shadowMap, ImVec2(256.0f, 256.0f));
                             }
 
                             ImGui::TreePop();
@@ -876,8 +881,7 @@ void Thetis::DrawImGuiProperties()
                                     ImGui::EndCombo();
                                 }
 
-                                std::shared_ptr<Texture> texture = shadowMap->GetReadableDepthTexture();
-                                AchillesImGui::Image(texture, ImVec2(256.0f, 256.0f));
+                                AchillesImGui::Image(shadowMap, ImVec2(256.0f, 256.0f));
                             }
 
                             ImGui::TreePop();

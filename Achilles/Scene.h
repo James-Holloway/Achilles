@@ -4,6 +4,7 @@
 
 class Scene : public std::enable_shared_from_this<Scene>
 {
+    friend struct SceneSharedPtrNameSort;
 public:
     Scene(std::wstring _name = L"Scene");
     ~Scene();
@@ -23,10 +24,14 @@ public:
 
     DirectX::BoundingSphere GetBoundingSphere();
 
+    uint32_t GetSceneIndex();
+
 protected:
     bool isActive = false;
     std::shared_ptr<Object> objectTree;
     std::wstring name;
+
+    uint32_t sceneIndex;
 
     // Used because we can't used shared_from_this inside constructor
     bool hasSetObjectTreeScene = false;
@@ -35,6 +40,11 @@ protected:
 struct {
     bool operator()(std::shared_ptr<Scene>& a, std::shared_ptr<Scene>& b) const
     {
+        // Order by name unless they are the same, in which case order by creation order
+        if (a->GetName() == b->GetName())
+        {
+            return a->GetSceneIndex() < b->GetSceneIndex();
+        }
         return a->GetName() < b->GetName();
     }
 } SceneSharedPtrNameSort;

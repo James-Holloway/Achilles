@@ -3,10 +3,12 @@
 
 using namespace DirectX;
 
+static uint32_t globalSceneIndex = 0;
 Scene::Scene(std::wstring _name) : name(_name)
 {
     objectTree = std::make_shared<Object>(name);
     objectTree->isScene = true;
+    sceneIndex = globalSceneIndex++;
 }
 Scene::~Scene()
 {
@@ -70,4 +72,9 @@ BoundingSphere Scene::GetBoundingSphere()
     BoundingSphere::CreateFromBoundingBox(bs, aabb);
 
     return bs;
+}
+
+uint32_t Scene::GetSceneIndex()
+{
+    return sceneIndex;
 }
