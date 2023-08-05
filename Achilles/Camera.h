@@ -24,7 +24,7 @@ public:
     // Members
     std::wstring name;
 
-    float fov = 60.0f; // vertical FOV - 60deg vertical ~= 90deg horizontal
+    float fov = 90.0f;
     float nearZ = 0.1f;
     float farZ = 100.0f;
     CD3DX12_RECT scissorRect{ 0, 0, LONG_MAX, LONG_MAX };
@@ -70,7 +70,7 @@ public:
     void SetPosition(Vector3 _position);
     void SetRotation(Vector3 _rotation);
 
-    // FOV is vertical in degrees
+    // FOV is horizontal in degrees
     void SetFOV(float _fov);
     void SetOrthographic(bool _orthographic);
     void SetPerspective(bool _perspective);

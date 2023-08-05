@@ -181,7 +181,10 @@ void Camera::ConstructProjection()
     if (orthographic)
         proj = OrthographicProjection(orthographicSize * (viewport.Width / viewport.Height), orthographicSize, nearZ, farZ);
     else
-        proj = PerspectiveFovProjection(viewport.Width, viewport.Height, fov, nearZ, farZ);
+    {
+        float verticalFOV = 2 * atanf(tanf(toRad(fov) / 2) * (viewport.Height / viewport.Width));
+        proj = PerspectiveFovProjection(viewport.Width, viewport.Height, toDeg(verticalFOV), nearZ, farZ);
+    }
 
     DirectX::BoundingFrustum::CreateFromMatrix(frustum, proj, false);
     dirtyProjMatrix = false;

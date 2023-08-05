@@ -978,7 +978,7 @@ void Thetis::DrawImGuiCameraProperties()
                 }
 
                 float fov = camera->GetFOV();
-                if (ImGui::DragFloat("Vertical FOV", &fov, 0.5f, 1.0f, 90.0f, "%.1f"))
+                if (ImGui::DragFloat("Horizontal FOV", &fov, 0.5f, 0.5f, 125.0f, "%.1f"))
                 {
                     camera->SetFOV(fov);
                 }
@@ -1291,7 +1291,7 @@ void Thetis::LoadContent()
     // Create camera
     camera = std::make_shared<Camera>(L"Thetis Camera", clientWidth, clientHeight);
     Camera::mainCamera = camera;
-    camera->SetFOV(60);
+    camera->SetFOV(90.0f);
     camera->SetPosition(Vector3(0, 0, -5));
     // camera->SetRotation(EulerToRadians(Vector3(0, 0, 0)));
 
@@ -1319,8 +1319,8 @@ void Thetis::LoadContent()
 
     std::shared_ptr<LightObject> spotLightObject = std::make_shared<LightObject>(L"Spotlight");
     SpotLight spotLight = SpotLight();
-    spotLight.InnerSpotAngle = toRad(42.5);
-    spotLight.OuterSpotAngle = toRad(47.5);
+    spotLight.InnerSpotAngle = toRad(35.0f);
+    spotLight.OuterSpotAngle = toRad(40.0f);
     spotLightObject->AddLight(spotLight);
     spotLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
     spotLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
