@@ -37,7 +37,7 @@ public:
     inline static std::shared_ptr<Scene> selectedPropertiesScene = nullptr;
 
 public:
-    Thetis(std::wstring name);
+    Thetis(std::wstring _name = L"Thetis", uint32_t width = 1600, uint32_t height = 900);
 public:
     virtual void OnUpdate(float deltaTime) override; // Post internal Update
     virtual void OnRender(float deltaTime) override;

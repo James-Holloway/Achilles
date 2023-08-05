@@ -227,6 +227,9 @@
     <ClCompile Include="shaders\DebugWireframe.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="shaders\StartupScreen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imgui.h">
@@ -442,6 +445,9 @@
     <ClInclude Include="shaders\DebugWireframe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\StartupScreen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -452,9 +458,6 @@
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\shaders\PosTextured.hlsl">
-      <Filter>content\shaders</Filter>
-    </None>
-    <None Include="content\shaders\SpriteUnlit.hlsl">
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\shaders\ShadowMapping.hlsl">
@@ -502,9 +505,18 @@
     <None Include="content\shaders\DebugWireframe.hlsl">
       <Filter>content\shaders</Filter>
     </None>
+    <None Include="content\shaders\StartupScreen.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\SpriteUnlit.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\lightbulb.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\achillesstartup.png">
       <Filter>content\textures</Filter>
     </Image>
   </ItemGroup>

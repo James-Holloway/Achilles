@@ -24,7 +24,7 @@ if (shadowMapSize == Size) \
     ImGui::SetItemDefaultFocus(); \
 }
 
-Thetis::Thetis(std::wstring name) : Achilles(name)
+Thetis::Thetis(std::wstring _name, uint32_t width, uint32_t height) : Achilles(_name, width, height)
 {
 
 }
@@ -134,14 +134,17 @@ void Thetis::DrawImGuiPerformance()
                     ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, 150.0, ImPlotCond_Always); // 150 points of data, locked
                     ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 35, ImPlotCond_Always); // 35 ms max plot size, initial only
 
-                    std::vector<double> frameTimes{};
-                    frameTimes.reserve(historicalFrameTimes.size() - 1);
-                    for (double ft : historicalFrameTimes)
+                    if (historicalFrameTimes.size() > 0)
                     {
-                        frameTimes.push_back(ft * 1e3); // seconds to ms
-                    }
+                        std::vector<double> frameTimes{};
+                        frameTimes.reserve(historicalFrameTimes.size() - 1);
+                        for (double ft : historicalFrameTimes)
+                        {
+                            frameTimes.push_back(ft * 1e3); // seconds to ms
+                        }
 
-                    ImPlot::PlotShaded<double>("", frameTimes.data(), (int)frameTimes.size());
+                        ImPlot::PlotShaded<double>("", frameTimes.data(), (int)frameTimes.size());
+                    }
                     ImPlot::EndPlot();
                 }
                 ImGui::EndTabItem();
@@ -154,14 +157,17 @@ void Thetis::DrawImGuiPerformance()
                     ImPlot::SetupAxisLimits(ImAxis_X1, 0.0, 150.0, ImPlotCond_Always); // 150 points of data, locked
                     ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 1000, ImPlotCond_Always); // 1000 fps max plot size, initial only
 
-                    std::vector<double> frames{};
-                    frames.reserve(historicalFrameTimes.size() - 1);
-                    for (double ft : historicalFrameTimes)
+                    if (historicalFrameTimes.size() > 0)
                     {
-                        frames.push_back(1.0 / ft); // seconds to fps
-                    }
+                        std::vector<double> frames{};
+                        frames.reserve(historicalFrameTimes.size() - 1);
+                        for (double ft : historicalFrameTimes)
+                        {
+                            frames.push_back(1.0 / ft); // seconds to fps
+                        }
 
-                    ImPlot::PlotShaded<double>("", frames.data(), (int)frames.size());
+                        ImPlot::PlotShaded<double>("", frames.data(), (int)frames.size());
+                    }
                     ImPlot::EndPlot();
                 }
                 ImGui::EndTabItem();
@@ -1237,11 +1243,14 @@ void Thetis::OnPostRender(float deltaTime)
 
 void Thetis::OnResize(int newWidth, int newHeight)
 {
-    camera->UpdateViewport(newWidth, newHeight);
+    if (camera != nullptr)
+        camera->UpdateViewport(newWidth, newHeight);
 }
 
 void Thetis::LoadContent()
 {
+    ACHILLES_IF_DESTROYING_RETURN();
+
     // Set editor to true so we draw editor sprites
     Application::SetIsEditor(true);
 
@@ -1278,6 +1287,8 @@ void Thetis::LoadContent()
     if (testLight)
         testLight->SetActive(false);
     mainScene->AddObjectToScene(achillesTest2);
+
+    ACHILLES_IF_DESTROYING_RETURN();
 
     std::shared_ptr<LightObject> spotLightObject = std::make_shared<LightObject>(L"Spotlight");
     SpotLight spotLight = SpotLight();
@@ -1369,6 +1380,8 @@ void Thetis::LoadContent()
 
     debugBoundingBoxCenter = Object::CreateObjectsFromContentFile(L"icosphere.fbx", DebugWireframe::GetDebugWireframeShader(device));
     debugBoundingBoxCenter->GetMaterial(0).SetVector(L"Color", Color(0.0f, 1.0f, 0.0f, 1.0f));
+
+    ACHILLES_IF_DESTROYING_RETURN();
 
     // Execute direct command list
     uint64_t fenceValue = commandQueue->ExecuteCommandList(commandList);

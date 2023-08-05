@@ -26,7 +26,14 @@ HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring 
 #endif
 
     ComPtr<IDxcBlobEncoding> source = nullptr;
-    utils->LoadFile(shaderPath.c_str(), nullptr, &source);
+
+    std::error_code ec;
+    if (!std::filesystem::exists(shaderPath, ec))
+    {
+        throw std::exception("File does not exist");
+    }
+
+    ThrowIfFailed(utils->LoadFile(shaderPath.c_str(), nullptr, &source));
 
     DxcBuffer sourceBuffer
     {
@@ -118,7 +125,7 @@ void Shader::BindTexture(CommandList& commandList, uint32_t rootParamIndex, uint
     }
 }
 
-std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName, D3D12_CULL_MODE cullMode, bool enableTransparency)
+std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName, D3D12_CULL_MODE cullMode, bool enableTransparency, DXGI_FORMAT rtvFormat)
 {
     std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize, _renderCallback);
     shader->rootSignature = rootSignature;
@@ -169,7 +176,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 1;
-    rtvFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    rtvFormats.RTFormats[0] = rtvFormat;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
     rasterizerDesc.CullMode = cullMode;

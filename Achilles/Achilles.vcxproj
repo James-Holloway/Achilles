@@ -231,6 +231,7 @@
     <None Include="content\shaders\DebugWireframe.hlsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Unoptimized|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <ClCompile Include="shaders\DebugWireframe.cpp" />
     <ClCompile Include="shaders\PPGammaCorrection.cpp" />
@@ -255,6 +256,7 @@
     <ClCompile Include="shaders\ShadowMapping.cpp" />
     <ClCompile Include="shaders\Skybox.cpp" />
     <ClCompile Include="SpriteObject.cpp" />
+    <ClCompile Include="shaders\StartupScreen.cpp" />
     <ClCompile Include="StructuredBuffer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="ThreadSafeQueue.cpp" />
@@ -327,6 +329,7 @@
     <ClInclude Include="shaders\Skybox.h" />
     <ClInclude Include="SpriteCommon.h" />
     <ClInclude Include="SpriteObject.h" />
+    <ClInclude Include="shaders\StartupScreen.h" />
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureUsage.h" />
@@ -359,13 +362,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="content\shaders\SpriteUnlit.hlsl">
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="content\textures\lightbulb.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\achillesstartup.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
   </ItemGroup>
@@ -411,6 +411,19 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="content\shaders\PPGammaCorrection.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\StartupScreen.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Unoptimized|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\SpriteUnlit.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>

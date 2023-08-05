@@ -2,6 +2,7 @@
 #include "shaders/BlinnPhong.h"
 #include "shaders/ShadowMapping.h"
 #include "shaders/Skybox.h"
+#include "shaders/StartupScreen.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -32,17 +33,10 @@ static LRESULT CALLBACK AchillesWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
     return 0;
 }
 
-Achilles::Achilles()
+Achilles::Achilles(std::wstring _name, uint32_t width, uint32_t height) : name(_name), clientWidth(width), clientHeight(height)
 {
     prevUpdateClock = clock.now();
     prevRenderClock = clock.now();
-}
-
-Achilles::Achilles(std::wstring _name)
-{
-    prevUpdateClock = clock.now();
-    prevRenderClock = clock.now();
-    name = _name;
 }
 
 Achilles::~Achilles()
@@ -424,9 +418,12 @@ LRESULT Achilles::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (message)
             {
             case WM_PAINT:
-                Update();
-                Render();
-                break;
+            {
+                PAINTSTRUCT ps;
+                HDC hdc = BeginPaint(hWnd, &ps);
+                EndPaint(hWnd, &ps);
+            }
+            break;
             case WM_SIZE:
             {
                 RECT clientRect = {};
@@ -512,13 +509,21 @@ void Achilles::HandleKeyboard()
     }
 }
 
-void Achilles::HandleMouse(int& mouseX, int& mouseY, int& scroll, Mouse::State& state)
+void Achilles::HandleMouse(int& mouseX, int& mouseY, int& scroll, Mouse::State& state, MouseData& mouseData)
 {
     state = mouse->GetState();
     mouseTracker.Update(state);
     mouseX = state.x;
     mouseY = state.y;
     scroll = state.scrollWheelValue;
+
+    mouseData.mouseX = mouseX;
+    mouseData.mouseY = mouseY;
+    mouseData.scroll = scroll;
+    mouseData.mouseXDelta = mouseData.mouseX - prevMouseData.mouseX;
+    mouseData.mouseYDelta = mouseData.mouseY - prevMouseData.mouseY;
+    mouseData.scrollDelta = mouseData.scroll - prevMouseData.scroll;
+    prevMouseData = mouseData;
 }
 
 void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList)
@@ -546,6 +551,26 @@ void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_p
     Application::ReleaseStaleDescriptors(frameValues[currentBackBufferIndex]);
 
     CallPostPresentFunctions();
+}
+
+void Achilles::LoadVitalContent()
+{
+    std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+    std::shared_ptr<CommandList> commandList = commandQueue->GetCommandList();
+
+    startupTexture = Texture::AddCachedTextureFromContent(commandList, GetStartupTexture());
+
+    commandQueue->ExecuteCommandList(commandList);
+}
+
+std::wstring Achilles::GetStartupTexture() const
+{
+    return L"achillesstartup";
+}
+
+Color Achilles::GetStartupColor() const
+{
+    return Color(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
 void Achilles::LoadInternalContent()
@@ -627,15 +652,8 @@ void Achilles::Update()
 
     int mouseX = 0, mouseY = 0, scroll = 0;
     Mouse::State mouseState;
-    HandleMouse(mouseX, mouseY, scroll, mouseState);
     MouseData mouseData{};
-    mouseData.mouseX = mouseX;
-    mouseData.mouseY = mouseY;
-    mouseData.scroll = scroll;
-    mouseData.mouseXDelta = mouseData.mouseX - prevMouseData.mouseX;
-    mouseData.mouseYDelta = mouseData.mouseY - prevMouseData.mouseY;
-    mouseData.scrollDelta = mouseData.scroll - prevMouseData.scroll;
-    prevMouseData = mouseData;
+    HandleMouse(mouseX, mouseY, scroll, mouseState, mouseData);
 
     if (!ImGui::GetIO().WantCaptureKeyboard)
         OnKeyboard(keyboardTracker, keyboard->GetState(), dt);
@@ -712,6 +730,116 @@ void Achilles::Render()
     achillesImGui->Render(presentCommandList, *presentRT);
 
     Present(directCommandQueue, presentCommandList);
+    Flush();
+
+    totalFrameCount++;
+    Application::IncrementGlobalFrameCounter();
+}
+
+void Achilles::PreLoadedUpdate()
+{
+    prevUpdateClock = clock.now();
+
+    HandleKeyboard();
+
+    int mouseX = 0, mouseY = 0, scroll = 0;
+    Mouse::State mouseState;
+    MouseData mouseData{};
+    HandleMouse(mouseX, mouseY, scroll, mouseState, mouseData);
+
+    if (keyboardTracker.pressed.Escape)
+    {
+        OutputDebugStringW(L"Exiting\n");
+        ::PostQuitMessage(0);
+    }
+}
+
+void Achilles::PreLoadedRender()
+{
+    ScopedTimer _prof(L"PreLoadedRender");
+
+    prevRenderClock = clock.now();
+
+    ComPtr<ID3D12CommandAllocator> commandAllocator = commandAllocators[currentBackBufferIndex];
+    commandAllocator->Reset();
+
+    std::shared_ptr<CommandList> commandList = directCommandQueue->GetCommandList();
+
+    std::shared_ptr<RenderTarget> presentRT = GetSwapChainRenderTarget();
+    std::shared_ptr<Texture> presentTexture = presentRT->GetTexture(AttachmentPoint::Color0);
+
+    std::shared_ptr<RenderTarget> realRT = GetCurrentRenderTarget();
+    std::shared_ptr<Texture> depthTexture = realRT->GetTexture(AttachmentPoint::DepthStencil);
+
+    std::shared_ptr<RenderTarget> tempRT = std::make_shared<RenderTarget>();
+    tempRT->AttachTexture(AttachmentPoint::Color0, presentTexture);
+    tempRT->AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+
+    // Clear Render Texture
+    {
+        ScopedTimer _prof(L"Clear RT");
+
+        // Clear the render target
+        if (presentTexture)
+        {
+            // Transition into a state from which we can clear the RT
+            commandList->TransitionBarrier(*presentTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            commandList->ClearTexture(*presentTexture, clearColor);
+        }
+
+        // Clear the render depth
+        if (depthTexture)
+            commandList->ClearDepthStencilTexture(*depthTexture, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
+    }
+
+    // Setup RT and viewport
+    commandList->SetRenderTarget(*tempRT);
+    commandList->SetViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (FLOAT)clientWidth, (FLOAT)clientHeight));
+    commandList->SetScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX));
+
+    // Draw the screen triangle
+    std::shared_ptr<Shader> startupShader = StartupScreen::GetStartupScreenShader(device);
+    if (startupShader != nullptr)
+    {
+        // Setup shader
+        commandList->SetPipelineState(startupShader->pipelineState);
+        commandList->SetGraphicsRootSignature(*startupShader->rootSignature);
+
+        startupShader->BindTexture(*commandList, StartupScreen::RootParameters::RootParameterTextures, 0, startupTexture);
+
+        StartupScreen::Data data;
+
+        Color bgColor = GetStartupColor();
+        data.BackgroundColor = bgColor;
+
+        // Center startup icon in the middle of screen, no matter the resolution
+        if (clientWidth == 0 || clientHeight == 0) // should never happen, but just in case
+        {
+            data.UVScale = Vector2(1.0f, 1.0f);
+            data.UVOffset = Vector2(0.0f, 0.0f);
+        }
+        else if (clientWidth > clientHeight)
+        {
+            data.UVScale = Vector2(clientWidth / (float)clientHeight, 1.0f);
+            data.UVOffset = Vector2(0.5f - (data.UVScale.x) / 2.0f, 0.0f);
+        }
+        else if (clientHeight > clientWidth)
+        {
+            data.UVScale = Vector2(1.0f, clientHeight / (float)clientWidth);
+            data.UVOffset = Vector2(0.0f, 0.5f - (data.UVScale.y) / 2.0f);
+        }
+        else // clientWidth == clientHeight
+        {
+            data.UVScale = Vector2(1.0f, 1.0f);
+            data.UVOffset = Vector2(0.0f, 0.0f);
+        }
+
+        commandList->SetGraphics32BitConstants<StartupScreen::Data>(StartupScreen::RootParameters::RootParameterData, data);
+        commandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        commandList->Draw(3);
+    }
+
+    Present(directCommandQueue, commandList);
     Flush();
 
     totalFrameCount++;
@@ -879,21 +1007,41 @@ void Achilles::Initialize()
     mainScene = std::make_shared<Scene>(L"Main");
     AddScene(mainScene);
 
-    acceptingFiles = true;
+    LoadVitalContent();
     isInitialized = true;
+    isLoading = true;
 
-    LoadInternalContent();
+    loadContentThread = std::thread([&]()
+        {
+            LoadInternalContent();
 
-    LoadContent();
+            if (isDestroying)
+                return;
+
+            LoadContent();
+
+            if (isDestroying)
+                return;
+
+            // Done so we don't load too fast and cause flashes
+            size_t milliseconds = 250;
+            for (size_t i = 0; i < (milliseconds / 50); i++)
+            {
+                if (isDestroying)
+                    return;
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+
+            hasLoaded = true;
+            acceptingFiles = true;
+        }
+    );
 
     mainScene->SetActive(true);
 }
 
 void Achilles::Run()
 {
-    if (!isInitialized || hWnd == NULL)
-        throw std::exception();
-
     // Show window
     ::ShowWindow(hWnd, SW_SHOW);
 
@@ -906,6 +1054,34 @@ void Achilles::Run()
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
         }
+        else
+        {
+            if (!isInitialized || hWnd == NULL)
+                continue;
+
+            if (!hasLoaded)
+            {
+                PreLoadedUpdate();
+                PreLoadedRender();
+                continue;
+            }
+            if (isLoading)
+            {
+                if (loadContentThread.joinable())
+                    loadContentThread.join();
+                isLoading = false;
+            }
+
+            try
+            {
+                Update();
+                Render();
+            }
+            catch (const std::exception& e)
+            {
+                OutputDebugStringWFormatted(L"Exception occurred: %S", e.what());
+            }
+        }
     }
 
     // Make sure the command queue has finished all commands before closing.
@@ -917,9 +1093,14 @@ void Achilles::Run()
 void Achilles::Destroy()
 {
     acceptingFiles = false;
+    isDestroying = true;
+
+    if (isInitialized && isLoading && loadContentThread.joinable())
+        loadContentThread.join();
 
     EmptyDrawQueue();
     UnloadContent();
+    achillesImGui.reset();
 
     for (int i = 0; i < BufferCount; ++i)
     {

@@ -1003,5 +1003,6 @@ void Object::ExecuteCreationCommandList()
         return; //throw std::exception("Command queue or list was null, cannot execute");
 
     currentCreationCommandQueue->ExecuteCommandList(currentCreationCommandList);
+    currentCreationCommandQueue->Flush();
     currentCreationCommandList = nullptr;
 }

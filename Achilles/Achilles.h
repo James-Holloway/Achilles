@@ -67,9 +67,14 @@ protected:
     uint64_t fenceValues[BufferCount] = { 0 };
     uint64_t frameValues[BufferCount] = { 0 };
 
-    bool isInitialized = false; // Stores init state
-
 private:
+    // Initialization properties
+    bool isInitialized = false; // Stores init state
+    std::atomic<bool> hasLoaded = false; // Stores whether content has been loaded
+    std::thread loadContentThread; // Loads content in this thread
+    bool isLoading = false; // Set to true at the end of Initialize, set to false once loadContentThread has been joined
+    std::shared_ptr<Texture> startupTexture;
+
     // Update variables
     uint64_t frameCounter = 0;
     double elapsedSeconds = 0.0;
@@ -81,6 +86,8 @@ protected:
     uint64_t totalFrameCount = 0;
     double totalElapsedSeconds = 0;
 
+    std::atomic<bool> isDestroying = false; // For use in LoadContent when the application is closed early. To check use the ACHILLES_IF_DESTROYING_RETURN() macro
+
 public:
     // Public statics for internal use
     inline static std::map<HWND, Achilles*> instanceMapping = std::map<HWND, Achilles*>();
@@ -90,7 +97,7 @@ public:
     FLOAT clearColor[4] = { 0.4f, 0.58f, 0.93f, 1.0f }; // Cornflower Blue
     double lastFPS = 0.0;
     bool postProcessingEnable = true;
-    bool acceptingFiles = false;
+    std::atomic<bool> acceptingFiles = false;
     std::vector<std::function<void(void)>> postPresentFunctions;
 
 protected:
@@ -122,8 +129,7 @@ protected:
 
 public:
     // Constructor and destructor functions
-    Achilles();
-    Achilles(std::wstring name);
+    Achilles(std::wstring _name = L"Achilles", uint32_t width = 1600, uint32_t height = 900);
     ~Achilles();
 
 protected:
@@ -161,8 +167,11 @@ public:
 protected:
     // Protected Achilles functions
     void HandleKeyboard();
-    void HandleMouse(int& mouseX, int& mouseY, int& scroll, DirectX::Mouse::State& state);
+    void HandleMouse(int& mouseX, int& mouseY, int& scroll, DirectX::Mouse::State& state, MouseData& mouseData);
     void Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_ptr<CommandList> commandList);
+    void LoadVitalContent(); // Loads content required for the startup screen
+    virtual std::wstring GetStartupTexture() const; // Returns the content name for the startup texture
+    virtual DirectX::SimpleMath::Color GetStartupColor() const; // Returns the background color for the startup loading screen
     void LoadInternalContent();
     virtual void ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture);
     virtual void CallPostPresentFunctions();
@@ -171,6 +180,8 @@ public:
     // Achilles functions to run things
     void Update(); // Optional (call Run otherwise)
     void Render(); // Optional (call Run otherwise)
+    virtual void PreLoadedUpdate(); // Used during the startup splash screen before content has loaded
+    virtual void PreLoadedRender(); // Shows startup splash screen before content has loaded
     void Resize(uint32_t width, uint32_t height); // Optional (call Run otherwise)
     void SetFullscreen(bool fs);
     void Initialize();
@@ -232,3 +243,5 @@ public:
     virtual void LoadObjectFromFile(std::wstring path);
     virtual void LoadTextureFromFile(std::wstring path, std::shared_ptr<CommandList> commandList);
 };
+
+#define ACHILLES_IF_DESTROYING_RETURN() if (isDestroying) return;

@@ -298,7 +298,7 @@ void AchillesImGui::Render(const std::shared_ptr<CommandList>& commandList, cons
 
 void AchillesImGui::Destroy()
 {
-    ImGui::EndFrame();
+    // ImGui::EndFrame();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext(imGuiContext);
     imGuiContext = nullptr;

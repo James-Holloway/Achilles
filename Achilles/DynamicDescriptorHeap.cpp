@@ -60,7 +60,7 @@ void DynamicDescriptorHeap::StageDescriptors(uint32_t rootParameterIndex, uint32
     // Check that the number of descriptors to copy does not exceed the number of descriptors expected in the descriptor table
     if ((offset + numDescriptors) > DTC.NumDescriptors)
     {
-        throw std::length_error("Number of descriptors exceeds the number of descriptors in the descriptor table.");
+        throw std::length_error("Number of descriptors exceeds the number of descriptors in the descriptor table. Potential cause is using the wrong root parameter index when binding textures");
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = (DTC.BaseDescriptor + offset);
