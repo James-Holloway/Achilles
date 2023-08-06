@@ -9,7 +9,7 @@ using namespace BlinnPhong;
 using namespace CommonShader;
 using namespace DirectX;
 
-BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), EmissionStrength(1), ReceivesShadows(1), IsTransparent(0), TextureFlags(0)
+BlinnPhong::MaterialProperties::MaterialProperties() : Color(1, 1, 1, 1), UVScaleOffset(1, 1, 0, 0), Opacity(1), Diffuse(0.5f), Specular(0.5f), SpecularPower(1), EmissionStrength(1), ReceivesShadows(1), IsTransparent(0), TextureFlags(0)
 {
 
 }
@@ -53,6 +53,8 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
         materialProperties.SpecularPower = material.GetFloat(L"SpecularPower");
     if (material.HasFloat(L"EmissionStrength"))
         materialProperties.EmissionStrength = material.GetFloat(L"EmissionStrength");
+    if (material.HasVector(L"UVScaleOffset"))
+        materialProperties.UVScaleOffset = material.GetVector(L"UVScaleOffset");
     materialProperties.ReceivesShadows = object->ReceivesShadows();
 
     commandList->SetGraphicsDynamicStructuredBuffer<PointLight>(RootParameters::RootParameterPointLights, lightData.PointLights);
@@ -133,7 +135,7 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
                 mat->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &texturePath);
             if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) // If we have both then use diffuse
                 mat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
-            
+
             std::filesystem::path path = std::filesystem::path(texturePath.C_Str());
             std::wstring textureFilename = path.filename().replace_extension();
 

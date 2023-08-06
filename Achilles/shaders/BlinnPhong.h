@@ -16,16 +16,18 @@ namespace BlinnPhong
         // 0 bytes
         Color Color;
         // 16 bytes
+        Vector4 UVScaleOffset;
+        // 32 bytes
         float Opacity;
         float Diffuse;
         float Specular;
         float SpecularPower;
-        // 32 bytes
+        // 48 bytes
         float EmissionStrength;
         float ReceivesShadows;
         float IsTransparent;
         uint32_t TextureFlags;
-        // 48 bytes
+        // 64 bytes
 
         MaterialProperties();
     };

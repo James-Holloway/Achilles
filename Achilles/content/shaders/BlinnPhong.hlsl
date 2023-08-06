@@ -18,16 +18,18 @@ struct MaterialProperties
     // 0 bytes
     float4 Color;
     // 16 bytes
+    float4 UVScaleOffset;
+    // 32 bytes
     float Opacity;
     float Diffuse;
     float Specular;
     float SpecularPower;
-    // 32 bytes
+    // 48 bytes
     float EmissionStrength;
     float ReceivesShadows;
     float IsTransparent;
     uint TextureFlags;
-    // 48 bytes
+    // 64 bytes
 };
 
 struct PixelInfo
@@ -166,6 +168,8 @@ LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 
 float4 PS(PS_IN i) : SV_Target
 {
     float2 uv = i.UV;
+    uv.xy = (uv.xy * MaterialPropertiesCB.UVScaleOffset.xy) + MaterialPropertiesCB.UVScaleOffset.zw;
+    
     float4 col = DiffuseTexture.Sample(TextureSampler, uv);
     col *= MaterialPropertiesCB.Color;
     
@@ -218,7 +222,7 @@ float4 PS(PS_IN i) : SV_Target
             emission.rgb *= emissionStrength * MaterialPropertiesCB.Color.rgb;
         }
         
-        col *= float4(light + emission.rgb, 1);
+        col = float4((light * col.rgb) + emission.rgb, col.a);
         
         if (PixelInfoCB.ShadingType >= 1.5) // shading type of 2 means lighting only
         {

@@ -592,6 +592,17 @@ void Thetis::DrawImGuiProperties()
                         {
                             ImGui::Text(("Name: " + WStringToString(knit.material.name)).c_str());
                             // TODO dynamic material properties, including textures
+                            if (knit.material.HasVector(L"UVScaleOffset"))
+                            {
+                                Vector4 scaleOffset = knit.material.GetVector(L"UVScaleOffset");
+                                bool hasChanged = ImGui::DragFloat2("UV Scale", &scaleOffset.x, 0.1f, -100.0f, 100.0f, "%.3f");
+                                hasChanged |= ImGui::DragFloat2("UV Offset", &scaleOffset.z, 0.01f, -100.0f, 100.0f, "%.3f");
+                                if (hasChanged)
+                                {
+                                    knit.material.SetVector(L"UVScaleOffset", scaleOffset);
+                                }
+                            }
+
                             if (knit.material.HasFloat(L"Diffuse"))
                             {
                                 float value = knit.material.GetFloat(L"Diffuse");
@@ -1045,7 +1056,7 @@ void Thetis::DrawTextureSelection()
         static char textureSelectFilter[64];
         ImGui::SetNextItemWidth(-1);
         ImGui::InputTextWithHint("##Filter", "Filter", textureSelectFilter, 64);
-        std::wstring filter = StringToWString(textureSelectFilter);
+        std::wstring filter = ToLowerWString(StringToWString(textureSelectFilter));
 
         if (ImGui::BeginTable("textureTable", 3, ImGuiTableFlags_BordersOuter))
         {
@@ -1070,7 +1081,7 @@ void Thetis::DrawTextureSelection()
                 // If a filter is applied, check for the substring filter. If not found then continue
                 if (filter != L"")
                 {
-                    if (texture->GetName().find(filter) == std::string::npos)
+                    if (ToLowerWString(texture->GetName()).find(filter) == std::string::npos)
                         continue;
                 }
 

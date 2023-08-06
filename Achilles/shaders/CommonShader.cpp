@@ -70,5 +70,7 @@ std::shared_ptr<Mesh> CommonShader::CommonShaderMeshCreation(aiScene* scene, aiN
     aabb.Extents = Vector3::Max(aabb.Extents, Vector3(0.05f)) * 1.05f; // avoid tiny numbers for objects like planes and scale it up a little bit
     mesh->SetBoundingBox(aabb);
 
+    material.SetVector(L"UVScaleOffset", Vector4(1.0f, 1.0f, 0.0f, 0.0f));
+
     return mesh;
 }

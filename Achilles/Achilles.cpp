@@ -651,6 +651,31 @@ void Achilles::LoadInternalContent()
     commandList->CreateTextureFromMemory(*whitePixelTexture, L"White", pixels, 1, 1, TextureUsage::Generic, false);
     Texture::AddCachedTexture(L"White", whitePixelTexture);
 
+    std::shared_ptr<Texture> blackPixelTexture = std::make_shared<Texture>();
+    pixels = { 0xFF000000 };
+    commandList->CreateTextureFromMemory(*blackPixelTexture, L"Black", pixels, 1, 1, TextureUsage::Generic, false);
+    Texture::AddCachedTexture(L"Black", blackPixelTexture);
+
+    std::shared_ptr<Texture> nearlyBlackTexture = std::make_shared<Texture>();
+    pixels = { 0xFF080808 };
+    commandList->CreateTextureFromMemory(*nearlyBlackTexture, L"Nearly Black", pixels, 1, 1, TextureUsage::Generic, false);
+    Texture::AddCachedTexture(L"Nearly Black", nearlyBlackTexture);
+
+    std::shared_ptr<Texture> lightGreyTexture = std::make_shared<Texture>();
+    pixels = { 0xFFC0C0C0 };
+    commandList->CreateTextureFromMemory(*lightGreyTexture, L"Light Grey", pixels, 1, 1, TextureUsage::Generic, false);
+    Texture::AddCachedTexture(L"Light Grey", lightGreyTexture);
+
+    std::shared_ptr<Texture> greyTexture = std::make_shared<Texture>();
+    pixels = { 0xFF808080 };
+    commandList->CreateTextureFromMemory(*greyTexture, L"Grey", pixels, 1, 1, TextureUsage::Generic, false);
+    Texture::AddCachedTexture(L"Grey", greyTexture);
+
+    std::shared_ptr<Texture> darkGreyTexture = std::make_shared<Texture>();
+    pixels = { 0xFF404040 };
+    commandList->CreateTextureFromMemory(*darkGreyTexture, L"Dark Grey", pixels, 1, 1, TextureUsage::Generic, false);
+    Texture::AddCachedTexture(L"Dark Grey", darkGreyTexture);
+
     Texture::AddCachedTextureFromContent(commandList, L"lightbulb");
 
     {

@@ -20,7 +20,7 @@ void Profiling::BeginBlock(const std::wstring& name)
     bool topLevel = false;
     if (ProfilerBlockStack.size() > 0)
     {
-        fullname += ProfilerBlockStack.top()->fullname + L".";
+        fullname += ProfilerBlockStack.top()->fullname + L"|";
     }
     else
     {
@@ -34,6 +34,7 @@ void Profiling::BeginBlock(const std::wstring& name)
     {
         std::shared_ptr<ProfilerBlock> block = iter->second;
         block->start = std::chrono::steady_clock::now();
+        block->level = (uint32_t)ProfilerBlockStack.size();
         ProfilerBlockStack.push(block);
     }
     else // no block found, create a new one
@@ -65,6 +66,14 @@ void Profiling::ClearFrame()
     ProfilerBlocksByFullname.clear();
 }
 
+static size_t GetSpaces(std::wstring name)
+{
+    const size_t lastSpace = name.rfind('|');
+    if (std::string::npos != lastSpace)
+        return lastSpace;
+    return 0;
+}
+
 void Profiling::Print()
 {
     OutputDebugStringW(L"Profiler block printing:\n");
@@ -74,12 +83,19 @@ void Profiling::Print()
         auto block = iter.second;
         if (block->completed)
         {
+            std::wstring preStringSpaces = L"";
+            size_t spaces = GetSpaces(block->fullname);
+            for (uint32_t s = 0; s < spaces; s++)
+                preStringSpaces += L" ";
+
             if (block->count <= 1)
-                OutputDebugStringWFormatted(L"%s - %.2fms\n", block->fullname.c_str(), block->duration);
+            {
+                OutputDebugStringWFormatted(L"%s%s - %.2fms\n", preStringSpaces.c_str(), block->name.c_str(), block->duration);
+            }
             else
             {
                 double average = block->duration / block->count;
-                OutputDebugStringWFormatted(L"%s - Total %.2fms, Average %.2fms (%i)\n", block->fullname.c_str(), block->duration, average, block->count);
+                OutputDebugStringWFormatted(L"%s%s - Total %.2fms, Average %.2fms (%i)\n", preStringSpaces.c_str(), block->name.c_str(), block->duration, average, block->count);
             }
 
             if (block->topLevel)
