@@ -224,7 +224,7 @@ ComPtr<ID3D12Device2> Achilles::CreateDevice(ComPtr<IDXGIAdapter4> adapter)
         pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
         pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
         pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
-        // pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_INFO, TRUE);
+        pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_INFO, TRUE);
         // Suppress whole categories of messages
         //D3D12_MESSAGE_CATEGORY Categories[] = {};
 
@@ -312,7 +312,7 @@ void Achilles::UpdateRenderTargetViews()
 
 void Achilles::UpdateDepthStencilView()
 {
-    DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+    DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
 
     CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
     D3D12_CLEAR_VALUE depthClearValue;
@@ -328,7 +328,7 @@ void Achilles::UpdateDepthStencilView()
 
 std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
 {
-    DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+    DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
 
     CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
     D3D12_CLEAR_VALUE clearValue;
@@ -369,6 +369,54 @@ std::shared_ptr<Texture> Achilles::CreateIntermediatePresentTexture()
     return tex;
 }
 
+void Achilles::UpdatePreLoadedRenderTarget()
+{
+    if (preloadedRenderTarget == nullptr)
+    {
+        throw std::exception("Called UpdatePreLoadedRenderTarget when preloadedRenderTarget doesn't exist");
+        return;
+    }
+
+    if (preloadedRenderTarget->GetTexture(AttachmentPoint::DepthStencil) == nullptr)
+    {
+        DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+
+        CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+        D3D12_CLEAR_VALUE depthClearValue;
+        depthClearValue.Format = depthDesc.Format;
+        depthClearValue.DepthStencil = { 1.0f, 0 };
+
+        std::shared_ptr<Texture> depthBuffer = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Depth, L"DepthStencil RT");
+        depthBuffer->CreateViews();
+        ResourceStateTracker::AddGlobalResourceState(depthBuffer->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
+
+        preloadedRenderTarget->AttachTexture(AttachmentPoint::DepthStencil, depthBuffer);
+    }
+    else
+    {
+        preloadedRenderTarget->GetTexture(AttachmentPoint::DepthStencil)->Resize(clientWidth, clientHeight);
+    }
+}
+
+void Achilles::UpdateSingleSampledTexture()
+{
+    if (singleSampledTexture == nullptr)
+    {
+        std::shared_ptr<Texture> mainRTTexture = GetCurrentRenderTarget()->GetTexture(AttachmentPoint::Color0);
+        D3D12_RESOURCE_DESC desc = mainRTTexture->GetD3D12ResourceDesc();
+        desc.SampleDesc = { 1,0 };
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+
+        singleSampledTexture = std::make_shared<Texture>(desc, nullptr, TextureUsage::Generic, L"Single Sampled Main Render Texture");
+        ResourceStateTracker::AddGlobalResourceState(singleSampledTexture->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
+    }
+    else
+    {
+        singleSampledTexture->Resize(clientWidth, clientHeight);
+    }
+}
+
 ComPtr<ID3D12CommandAllocator> Achilles::CreateCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
 {
     ComPtr<ID3D12CommandAllocator> commandAllocator;
@@ -386,6 +434,13 @@ std::shared_ptr<CommandQueue> Achilles::GetCommandQueue(D3D12_COMMAND_LIST_TYPE 
 std::shared_ptr<RenderTarget> Achilles::GetCurrentRenderTarget() const
 {
     return renderTarget;
+}
+
+std::shared_ptr<RenderTarget> Achilles::GetPreLoadedRenderTarget() const
+{
+    std::shared_ptr<Texture> presentTexture = GetSwapChainRenderTarget()->GetTexture(AttachmentPoint::Color0);
+    preloadedRenderTarget->AttachTexture(AttachmentPoint::Color0, presentTexture);
+    return preloadedRenderTarget;
 }
 
 std::shared_ptr<RenderTarget> Achilles::GetSwapChainRenderTarget() const
@@ -573,6 +628,11 @@ Color Achilles::GetStartupColor() const
     return Color(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
+void Achilles::UnloadPreLoadedAssets()
+{
+    preloadedRenderTarget.reset();
+}
+
 void Achilles::LoadInternalContent()
 {
     std::shared_ptr<CommandQueue> commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -599,6 +659,21 @@ void Achilles::LoadInternalContent()
     }
 
     commandQueue->ExecuteCommandList(commandList);
+}
+
+std::shared_ptr<Texture> Achilles::ResolveToSingleSampledTexture(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture)
+{
+    if (Application::GetMSAA() == MSAA::Off)
+    {
+        //commandList->CopyResource(*singleSampledTexture, *texture);
+        return texture;
+    }
+    else
+    {
+        commandList->ResolveSubresource(*singleSampledTexture, *texture);
+        commandList->TransitionBarrier(*singleSampledTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+    }
+    return singleSampledTexture;
 }
 
 void Achilles::ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture)
@@ -708,6 +783,8 @@ void Achilles::Render()
     // Transition ready for post processing's compute command list
     directCommandList->TransitionBarrier(*rtTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
 
+    std::shared_ptr<Texture> singleSampledTexture = ResolveToSingleSampledTexture(directCommandList, rtTexture);
+
     {
         ScopedTimer _prof(L"Execute Command List & Flush");
         directCommandQueue->ExecuteCommandList(directCommandList);
@@ -717,7 +794,8 @@ void Achilles::Render()
     std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();
 
     std::shared_ptr<Texture> intermediatePresentTexture = GetIntermediatePresentTexture();
-    ApplyPostProcessing(presentCommandList, rtTexture, intermediatePresentTexture);
+
+    ApplyPostProcessing(presentCommandList, singleSampledTexture, intermediatePresentTexture);
 
     std::shared_ptr<RenderTarget> presentRT = GetSwapChainRenderTarget();
     std::shared_ptr<Texture> presentTexture = presentRT->GetTexture(AttachmentPoint::Color0);
@@ -765,15 +843,9 @@ void Achilles::PreLoadedRender()
 
     std::shared_ptr<CommandList> commandList = directCommandQueue->GetCommandList();
 
-    std::shared_ptr<RenderTarget> presentRT = GetSwapChainRenderTarget();
-    std::shared_ptr<Texture> presentTexture = presentRT->GetTexture(AttachmentPoint::Color0);
-
-    std::shared_ptr<RenderTarget> realRT = GetCurrentRenderTarget();
-    std::shared_ptr<Texture> depthTexture = realRT->GetTexture(AttachmentPoint::DepthStencil);
-
-    std::shared_ptr<RenderTarget> tempRT = std::make_shared<RenderTarget>();
-    tempRT->AttachTexture(AttachmentPoint::Color0, presentTexture);
-    tempRT->AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+    std::shared_ptr<RenderTarget> preloadedRT = GetPreLoadedRenderTarget();
+    std::shared_ptr<Texture> presentTexture = preloadedRT->GetTexture(AttachmentPoint::Color0);
+    std::shared_ptr<Texture> depthTexture = preloadedRT->GetTexture(AttachmentPoint::DepthStencil);
 
     // Clear Render Texture
     {
@@ -793,7 +865,7 @@ void Achilles::PreLoadedRender()
     }
 
     // Setup RT and viewport
-    commandList->SetRenderTarget(*tempRT);
+    commandList->SetRenderTarget(*preloadedRT);
     commandList->SetViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (FLOAT)clientWidth, (FLOAT)clientHeight));
     commandList->SetScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX));
 
@@ -878,6 +950,10 @@ void Achilles::Resize(uint32_t width, uint32_t height)
         UpdateMainRenderTarget();
         UpdateRenderTargetViews();
         GetIntermediatePresentTexture()->Resize(clientWidth, clientHeight);
+        UpdateSingleSampledTexture();
+
+        if (isLoading)
+            UpdatePreLoadedRenderTarget();
 
         Flush();
 
@@ -978,6 +1054,17 @@ void Achilles::Initialize()
 
     Application::CreateDescriptorAllocators();
 
+    if (!Application::SetMSAASample(MSAA::x8))
+    {
+        if (!Application::SetMSAASample(MSAA::x4))
+        {
+            if (!Application::SetMSAASample(MSAA::x2))
+            {
+                Application::SetMSAASample(MSAA::Off);
+            }
+        }
+    }
+
     swapChain = CreateSwapChain(hWnd, directCommandQueue->GetD3D12CommandQueue(), clientWidth, clientHeight, BufferCount);
 
     renderTarget = std::make_shared<RenderTarget>();
@@ -986,9 +1073,13 @@ void Achilles::Initialize()
 
     currentBackBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
+    preloadedRenderTarget = std::make_shared<RenderTarget>();
+    UpdatePreLoadedRenderTarget();
+
     UpdateRenderTargetViews();
 
     intermediatePresentTexture = CreateIntermediatePresentTexture();
+    UpdateSingleSampledTexture();
 
     for (int i = 0; i < BufferCount; ++i)
     {
@@ -1069,6 +1160,8 @@ void Achilles::Run()
             {
                 if (loadContentThread.joinable())
                     loadContentThread.join();
+
+                UnloadPreLoadedAssets();
                 isLoading = false;
             }
 

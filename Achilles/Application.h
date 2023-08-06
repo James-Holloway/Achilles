@@ -9,6 +9,14 @@ using Microsoft::WRL::ComPtr;
 
 class CommandQueue;
 
+enum class MSAA
+{
+    Off,
+    x2,
+    x4,
+    x8,
+};
+
 class Application
 {
 private:
@@ -23,6 +31,10 @@ private:
     inline static std::unique_ptr<DescriptorAllocator> descriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = { nullptr };
 
     inline static bool isEditor = false;
+
+    inline static MSAA msaa = MSAA::Off;
+    inline static DXGI_SAMPLE_DESC msaaFormat = DXGI_SAMPLE_DESC{ .Count = 1, .Quality = 0 };
+
 public:
     // Global Frame Counter
     inline static uint64_t GetGlobalFrameCounter()
@@ -52,6 +64,12 @@ public:
             d3d12Device = nullptr;
         }
     }
+
+    // Returns the MSAA sampling required for DXGI_SAMPLE_DESC
+    static DXGI_SAMPLE_DESC GetSampleDescription();
+
+    static bool SetMSAASample(MSAA _msaa);
+    static MSAA GetMSAA();
 
     // Descriptor Allocators
     // Allocate a number of CPU visible descriptors.

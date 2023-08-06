@@ -1,5 +1,58 @@
 #include "Application.h"
 #include "CommandQueue.h"
+#include "MathHelpers.h"
+
+DXGI_SAMPLE_DESC Application::GetSampleDescription()
+{
+    return msaaFormat;
+}
+
+bool Application::SetMSAASample(MSAA _msaa)
+{
+    if (d3d12Device == nullptr)
+        throw std::exception("Device was not set on application before setting the MSAA sample rate");
+
+    UINT sampleCount = 1;
+    UINT qualityLevels = 0;
+    switch (_msaa)
+    {
+    default:
+    case MSAA::Off:
+        sampleCount = 1;
+        break;
+    case MSAA::x2:
+        sampleCount = 2;
+        break;
+    case MSAA::x4:
+        sampleCount = 4;
+        break;
+    case MSAA::x8:
+        sampleCount = 8;
+        break;
+    }
+
+    D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msaaLevels;
+    msaaLevels.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    msaaLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+    msaaLevels.NumQualityLevels = 0;
+    msaaLevels.SampleCount = sampleCount;
+
+    d3d12Device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &msaaLevels, sizeof(msaaLevels));
+
+    if (msaaLevels.SampleCount < sampleCount)
+        return false;
+
+    msaaFormat.Count = sampleCount;
+    msaaFormat.Quality = std::max<UINT>(1u, msaaLevels.NumQualityLevels) - 1;
+    msaa = _msaa;
+
+    return true;
+}
+
+MSAA Application::GetMSAA()
+{
+    return msaa;
+}
 
 DescriptorAllocation Application::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
 {

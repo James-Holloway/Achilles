@@ -48,7 +48,7 @@ void PostProcessing::ApplyPostProcessing(std::shared_ptr<Texture> texture, std::
 
 void PostProcessing::Resize(uint32_t width, uint32_t height)
 {
-    PPBloom::ResizeUAVs((float)width, (float)height);
+    PPBloom::ResizeUAVs(width, height);
 }
 
 void PostProcessing::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture)

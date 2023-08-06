@@ -46,6 +46,6 @@ namespace PPBloom
     std::shared_ptr<Shader> GetPPBloomDownsampleShader(ComPtr<ID3D12Device2> device);
     std::shared_ptr<Shader> GetPPBloomApplyShader(ComPtr<ID3D12Device2> device);
     void CreateUAVs(float width, float height);
-    void ResizeUAVs(float width, float height);
+    void ResizeUAVs(uint32_t width, uint32_t height);
     void ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, float bloomThreshold, float upsampleBlendFactor, float bloomStrength);
 }

@@ -156,7 +156,11 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
     HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
     ThrowBlobIfFailed(hr, errorBlob);
 
-    DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };
+    DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
+    if (rtvFormat == DXGI_FORMAT_R8G8B8A8_UNORM)
+    {
+        sampleDesc = { 1, 0 };
+    }
 
     // D3D12_GRAPHICS_PIPELINE_STATE_DESC
     struct PipelineStateStream
@@ -260,7 +264,7 @@ std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device
     HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
     ThrowBlobIfFailed(hr, errorBlob);
 
-    DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };
+    DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
 
     // D3D12_GRAPHICS_PIPELINE_STATE_DESC
     struct PipelineStateStream
@@ -352,7 +356,7 @@ std::shared_ptr<Shader> Shader::ShaderSkyboxVSPS(ComPtr<ID3D12Device2> device, D
     HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
     ThrowBlobIfFailed(hr, errorBlob);
 
-    DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };
+    DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
 
     // D3D12_GRAPHICS_PIPELINE_STATE_DESC
     struct PipelineStateStream
@@ -453,7 +457,7 @@ std::shared_ptr<Shader> Shader::ShaderWireframeVSPS(ComPtr<ID3D12Device2> device
     HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
     ThrowBlobIfFailed(hr, errorBlob);
 
-    DXGI_SAMPLE_DESC sampleDesc = { 1, 0 };
+    DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
 
     // D3D12_GRAPHICS_PIPELINE_STATE_DESC
     struct PipelineStateStream

@@ -106,8 +106,10 @@ void PPBloom::CreateUAVs(float width, float height)
     uint32_t bloomWidth = width > 2560 ? 1280 : 640;
     uint32_t bloomHeight = height > 1440 ? 768 : 384;
 
+    DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+
     CD3DX12_RESOURCE_DESC resDesc{};
-    resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, bloomWidth, bloomHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, bloomWidth, bloomHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     bloomBuffer1[0] = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Bloom Buffer 1a");
     bloomBuffer1[1] = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Bloom Buffer 1b");
@@ -133,17 +135,17 @@ void PPBloom::CreateUAVs(float width, float height)
     bloomBuffer5[1] = std::make_shared<Texture>(resDesc, nullptr, TextureUsage::Albedo, L"Bloom Buffer 5b");
 
     CD3DX12_RESOURCE_DESC lumaDesc{};
-    lumaDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, (UINT64)bloomWidth, (UINT)bloomHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    lumaDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8_UNORM, (UINT64)bloomWidth, (UINT)bloomHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     bloomLumaBuffer = std::make_shared<Texture>(lumaDesc, nullptr, TextureUsage::Linear, L"Bloom Luma Buffer");
 
     CD3DX12_RESOURCE_DESC intermediaryDesc{};
-    intermediaryDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, (UINT64)width, (UINT)height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    intermediaryDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, (UINT64)width, (UINT)height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     bloomIntermediaryTexture = std::make_shared<Texture>(intermediaryDesc, nullptr, TextureUsage::Albedo, L"Bloom Intermediary Texture");
 
     hasCreatedUAVs = true;
 }
 
-void PPBloom::ResizeUAVs(float width, float height)
+void PPBloom::ResizeUAVs(uint32_t width, uint32_t height)
 {
     uint32_t bloomWidth = width > 2560 ? 1280 : 640;
     uint32_t bloomHeight = height > 1440 ? 768 : 384;
@@ -173,7 +175,7 @@ void PPBloom::ResizeUAVs(float width, float height)
     bloomBuffer5[0]->Resize(bloomWidth, bloomHeight);
     bloomBuffer5[1]->Resize(bloomWidth, bloomHeight);
 
-    bloomIntermediaryTexture->Resize((uint32_t)width, (uint32_t)height);
+    bloomIntermediaryTexture->Resize(width, height);
 }
 
 void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, float bloomThreshold, float upsampleBlendFactor, float bloomStrength)

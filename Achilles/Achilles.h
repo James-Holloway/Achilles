@@ -55,6 +55,8 @@ protected:
     std::shared_ptr<Texture> backBuffers[BufferCount];
     std::shared_ptr<RenderTarget> renderTarget;
     std::shared_ptr<RenderTarget> swapChainRenderTarget;
+    std::shared_ptr<RenderTarget> preloadedRenderTarget;
+    std::shared_ptr<Texture> singleSampledTexture;
     std::shared_ptr<Texture> intermediatePresentTexture;
 
     std::shared_ptr<CommandQueue> directCommandQueue;
@@ -72,7 +74,7 @@ private:
     bool isInitialized = false; // Stores init state
     std::atomic<bool> hasLoaded = false; // Stores whether content has been loaded
     std::thread loadContentThread; // Loads content in this thread
-    bool isLoading = false; // Set to true at the end of Initialize, set to false once loadContentThread has been joined
+    bool isLoading = false; // Stores whether we are on the startup screen. Set to true at the end of Initialize, set to false once loadContentThread has been joined
     std::shared_ptr<Texture> startupTexture;
 
     // Update variables
@@ -149,11 +151,14 @@ protected:
     std::shared_ptr<Texture> CreateRenderTargetTexture(std::wstring name = L"Render Target Texture");
     void UpdateMainRenderTarget();
     std::shared_ptr<Texture> CreateIntermediatePresentTexture();
+    void UpdatePreLoadedRenderTarget();
+    void UpdateSingleSampledTexture();
     ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
 
     // Get functions
     std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const;
     std::shared_ptr<RenderTarget> GetCurrentRenderTarget() const;
+    std::shared_ptr<RenderTarget> GetPreLoadedRenderTarget() const;
     std::shared_ptr<RenderTarget> GetSwapChainRenderTarget() const;
     std::shared_ptr<Texture> GetIntermediatePresentTexture() const;
 
@@ -172,7 +177,9 @@ protected:
     void LoadVitalContent(); // Loads content required for the startup screen
     virtual std::wstring GetStartupTexture() const; // Returns the content name for the startup texture
     virtual DirectX::SimpleMath::Color GetStartupColor() const; // Returns the background color for the startup loading screen
+    void virtual UnloadPreLoadedAssets();
     void LoadInternalContent();
+    std::shared_ptr<Texture> ResolveToSingleSampledTexture(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture);
     virtual void ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture);
     virtual void CallPostPresentFunctions();
 
