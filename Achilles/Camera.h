@@ -76,8 +76,10 @@ public:
     void SetPerspective(bool _perspective);
 
     virtual DirectX::BoundingFrustum GetFrustum();
+    DirectX::SimpleMath::Viewport GetViewport();
 
     Vector3 WorldToScreen(Vector3 worldPosition, bool& visible);
+    DirectX::SimpleMath::Ray ScreenToWorldRay(int x, int y);
     // Unfortunately returns a backface billboard. Need to cull front or flip normals
     Matrix GetBillboardMatrix(Vector3 worldPosition);
 

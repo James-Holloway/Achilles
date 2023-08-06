@@ -160,6 +160,8 @@ void CommandList::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementS
 
             // Add references to resources so they stay in scope until the command list is reset.
             TrackObject(uploadResource);
+
+            buffer.StoreBufferData(bufferData, bufferSize);
         }
 
         onExecutedFunctions.push_back([&](void) { buffer.bufferInfo.hasBeenCopied = true; });

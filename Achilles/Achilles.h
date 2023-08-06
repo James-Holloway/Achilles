@@ -219,7 +219,7 @@ public:
     std::shared_ptr<Scene> GetMainScene();
     void AddScene(std::shared_ptr<Scene> scene);
     void RemoveScene(std::shared_ptr<Scene> scene);
-    std::vector<std::shared_ptr<Object>>& GetEveryActiveObject(); // Get all active objects from every active scene
+    std::vector<std::shared_ptr<Object>> GetEveryActiveObject(); // Get all active objects from every active scene
     void DrawActiveScenes();
     // Also populates the light and shadow info for LightData
     void DrawShadowScenes(std::shared_ptr<CommandList> commandList);
@@ -252,6 +252,10 @@ public:
     virtual void HandleDroppedFiles(std::vector<std::wstring> files);
     virtual void LoadObjectFromFile(std::wstring path);
     virtual void LoadTextureFromFile(std::wstring path, std::shared_ptr<CommandList> commandList);
+
+public:
+    // Utility functions
+    std::shared_ptr<Object> PickObject(int x, int y); // Picks nearest object based on AABB
 };
 
 #define ACHILLES_IF_DESTROYING_RETURN() if (isDestroying) return;

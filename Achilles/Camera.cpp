@@ -128,12 +128,17 @@ void Camera::SetPerspective(bool _perspective)
     SetOrthographic(!_perspective);
 }
 
-DirectX::BoundingFrustum Camera::GetFrustum()
+BoundingFrustum Camera::GetFrustum()
 {
-    DirectX::BoundingFrustum f = frustum;
+    BoundingFrustum f = frustum;
     f.Origin = GetPosition();
     f.Orientation = Quaternion::CreateFromYawPitchRoll(GetRotation());
     return f;
+}
+
+Viewport Camera::GetViewport()
+{
+    return Viewport(viewport);
 }
 
 Vector3 Camera::WorldToScreen(Vector3 worldPosition, bool& visible)
@@ -153,6 +158,16 @@ Vector3 Camera::WorldToScreen(Vector3 worldPosition, bool& visible)
     screenPos.y *= 2;
 
     return screenPos;
+}
+
+DirectX::SimpleMath::Ray Camera::ScreenToWorldRay(int x, int y)
+{
+    Viewport vp = GetViewport();
+    Vector3 nearPoint = vp.Unproject(Vector3((float)x, (float)y, 0.0f), GetProj(), GetView(), Matrix::Identity);
+    Vector3 farPoint = vp.Unproject(Vector3((float)x, (float)y, 1.0f), GetProj(), GetView(), Matrix::Identity);
+    Vector3 dir = farPoint - nearPoint;
+    dir.Normalize();
+    return Ray(nearPoint, dir);
 }
 
 Matrix Camera::GetBillboardMatrix(Vector3 worldPosition)

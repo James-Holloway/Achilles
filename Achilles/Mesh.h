@@ -32,5 +32,11 @@ public:
 	DirectX::BoundingBox GetBoundingBox();
 	void SetBoundingBox(DirectX::BoundingBox box);
 
+	std::shared_ptr<VertexBuffer> GetVertexBuffer();
+	std::shared_ptr<IndexBuffer> GetIndexBuffer();
+
+	// Gets the position of every vertex. Duplicated points
+	std::vector<DirectX::SimpleMath::Vector3> GetTrianglePoints(DirectX::SimpleMath::Matrix transformMatrix = DirectX::SimpleMath::Matrix::Identity);
+
 	bool HasBeenCopied();
 };

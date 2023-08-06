@@ -99,7 +99,7 @@ void PPBloom::CreateUAVs(float width, float height)
 {
     if (hasCreatedUAVs)
     {
-        ResizeUAVs(width, height);
+        ResizeUAVs((uint32_t)width, (uint32_t)height);
         return;
     }
 

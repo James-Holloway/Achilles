@@ -87,8 +87,8 @@ bool Texture::GetSize(float& width, float& height)
     if (d3d12Resource)
     {
         CD3DX12_RESOURCE_DESC resDesc(d3d12Resource->GetDesc());
-        width = resDesc.Width;
-        height = resDesc.Height;
+        width = (float)resDesc.Width;
+        height = (float)resDesc.Height;
         return true;
     }
     return false;
@@ -490,16 +490,16 @@ std::shared_ptr<Texture> Texture::LoadTextureFromAssimp(std::shared_ptr<CommandL
         ScratchImage scratchImage;
         ComPtr<ID3D12Resource> textureResource;
 
-        if (tex->achFormatHint == "dds")
+        if (strcmp(tex->achFormatHint, "dds") == 0)
         {
             // Use DDS texture loader.
             ThrowIfFailed(LoadFromDDSMemory((void*)tex->pcData, tex->mWidth, DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
         }
-        else if (tex->achFormatHint == "hdr")
+        else if (strcmp(tex->achFormatHint, "hdr") == 0)
         {
             ThrowIfFailed(LoadFromHDRMemory((void*)tex->pcData, tex->mWidth, &metadata, scratchImage));
         }
-        else if (tex->achFormatHint == "tga")
+        else if (strcmp(tex->achFormatHint, "tga") == 0)
         {
             ThrowIfFailed(LoadFromTGAMemory((void*)tex->pcData, tex->mWidth, &metadata, scratchImage));
         }

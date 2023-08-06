@@ -1,7 +1,7 @@
 #include "IndexBuffer.h"
 #include <cassert>
 
-IndexBuffer::IndexBuffer(const std::wstring& _name) : Buffer(_name), numIndicies(0), indexFormat(DXGI_FORMAT_UNKNOWN), indexBufferView({}) {}
+IndexBuffer::IndexBuffer(const std::wstring& _name) : Buffer(_name), numIndices(0), indexFormat(DXGI_FORMAT_UNKNOWN), indexBufferView({}) {}
 
 IndexBuffer::~IndexBuffer() {}
 
@@ -9,7 +9,7 @@ void IndexBuffer::CreateViews(size_t numElements, size_t elementSize)
 {
     assert(elementSize == 2 || elementSize == 4 && "Indices must be 16, or 32-bit integers.");
 
-    numIndicies = numElements;
+    numIndices = numElements;
     indexFormat = (elementSize == 2) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 
     indexBufferView.BufferLocation = d3d12Resource->GetGPUVirtualAddress();

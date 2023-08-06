@@ -30,6 +30,7 @@ protected:
 
     std::shared_ptr<Object> debugBoundingBox;
     std::shared_ptr<Object> debugBoundingBoxCenter;
+    std::shared_ptr<Object> debugBoundingBoxAABB;
     bool drawDebugBoundingBox = false;
 
 public:

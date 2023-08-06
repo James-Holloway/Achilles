@@ -117,6 +117,7 @@ void Achilles::RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClassNa
     windowClass.cbClsExtra = 0;
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = hInst;
+#pragma warning(suppress : 6387)
     windowClass.hIcon = ::LoadIconW(hInst, NULL);
     windowClass.hCursor = ::LoadCursorW(NULL, IDC_ARROW);
     windowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -1029,7 +1030,7 @@ void Achilles::Initialize()
     EnableDebugLayer();
 
     // Initialize COM, used for Texture loading using CommandList::LoadTextureFromFile and for Drag & Drop
-    OleInitialize(NULL);
+    ThrowIfFailed(OleInitialize(NULL));
 
     std::wstring windowClassName = (L"AchillesWindowClass" + name);
 
@@ -1288,7 +1289,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 {
     ScopedTimer _prof(L"DrawShadowScenes");
     // Get all objects from each active scene
-    std::vector<std::shared_ptr<Object>>& flattenedScenes = GetEveryActiveObject();
+    std::vector<std::shared_ptr<Object>> flattenedScenes = GetEveryActiveObject();
 
 #pragma region Populate Light Objects
     std::vector<CombinedLight> allLights;
@@ -1494,7 +1495,7 @@ void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
     scenes.erase(scene);
 }
 
-std::vector<std::shared_ptr<Object>>& Achilles::GetEveryActiveObject()
+std::vector<std::shared_ptr<Object>> Achilles::GetEveryActiveObject()
 {
     std::vector<std::shared_ptr<Object>> flattenedScenes;
     for (std::shared_ptr<Scene> scene : scenes)
@@ -1651,7 +1652,7 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
     commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
     commandList->SetIndexBuffer(*mesh->indexBuffer);
 
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
 }
 
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
@@ -1681,7 +1682,7 @@ void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, s
     commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
     commandList->SetIndexBuffer(*mesh->indexBuffer);
 
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
 }
 
 void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
@@ -1735,7 +1736,7 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
     commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
     commandList->SetIndexBuffer(*mesh->indexBuffer);
 
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
 }
 
 void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader)
@@ -1764,7 +1765,7 @@ void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandL
 
         commandList->SetShaderResourceView(ShadowMapping::RootParameters::RootParameterTextures, 0, *mainTexture);
 
-        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
     }
 }
 
@@ -1793,7 +1794,7 @@ void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, st
             mainTexture = Texture::GetCachedTexture(L"White");
         commandList->SetShaderResourceView(ShadowMapping::RootParameters::RootParameterTextures, 0, *mainTexture);
 
-        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndicies(), 1, 0, 0, 0);
+        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
     }
 }
 
@@ -1923,4 +1924,76 @@ void Achilles::LoadTextureFromFile(std::wstring path, std::shared_ptr<CommandLis
     std::shared_ptr<Texture> texture = std::make_shared<Texture>(TextureUsage::Generic, filename);
     commandList->LoadTextureFromFile(*texture, path, TextureUsage::Generic);
     Texture::AddCachedTexture(filename, texture);
+}
+
+std::shared_ptr<Object> Achilles::PickObject(int x, int y)
+{
+    std::shared_ptr<Camera> camera = Camera::mainCamera;
+    if (camera == nullptr)
+        return nullptr;
+
+    Ray worldRay = camera->ScreenToWorldRay(x, y);
+
+    std::vector<std::shared_ptr<Object>> flattenedScenes = GetEveryActiveObject();
+    std::vector<std::shared_ptr<Object>> aabbIntersectedObjects;
+
+    float distance = 0;
+    for (std::shared_ptr<Object> object : flattenedScenes)
+    {
+        if (worldRay.Intersects(object->GetWorldAABB(), distance))
+        {
+            aabbIntersectedObjects.push_back(object);
+        }
+    }
+
+    if (aabbIntersectedObjects.size() <= 0)
+        return nullptr;
+
+    std::shared_ptr<Object> nearestObject;
+    float nearestDistance = INFINITY;
+    for (std::shared_ptr<Object> object : aabbIntersectedObjects)
+    {
+        // Go through each mesh with triangle strip topology and check if the triangles are intersected
+        for (uint32_t k = 0; k < object->GetKnitCount(); k++)
+        {
+            std::shared_ptr<Mesh> mesh = object->GetMesh(k);
+            if (mesh == nullptr)
+                continue;
+
+            if (mesh->topology != D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+                continue;
+
+            std::vector<Vector3> tris = mesh->GetTrianglePoints(object->GetWorldMatrix());
+
+            for (size_t t = 0; t < tris.size(); t += 3)
+            {
+                Vector3 tri0 = tris[t + 0];
+                Vector3 tri1 = tris[t + 1];
+                Vector3 tri2 = tris[t + 2];
+
+                if (worldRay.Intersects(tri0, tri1, tri2, distance))
+                {
+                    if (distance < nearestDistance)
+                    {
+                        nearestObject = object;
+                        nearestDistance = distance;
+                    }
+                }
+            }
+        }
+        // If object has no meshes, check by default AABB
+        if (object->GetKnitCount() <= 0)
+        {
+            if (worldRay.Intersects(object->GetWorldAABB(), distance))
+            {
+                if (distance < nearestDistance)
+                {
+                    nearestObject = object;
+                    nearestDistance = distance;
+                }
+            }
+        }
+    }
+
+    return nearestObject;
 }

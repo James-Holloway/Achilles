@@ -36,9 +36,11 @@ void Thetis::OnUpdate(float deltaTime)
 
 void Thetis::OnRender(float deltaTime)
 {
+    ScopedTimer _prof(L"OnRender");
     if (drawDebugBoundingBox && selectedPropertiesObject != nullptr)
     {
         BoundingOrientedBox obb = selectedPropertiesObject->GetWorldBoundingBox();
+        BoundingBox aabb = selectedPropertiesObject->GetWorldAABB();
         debugBoundingBox->SetLocalPosition(obb.Center);
         debugBoundingBox->SetLocalRotation(obb.Orientation);
         debugBoundingBox->SetLocalScale(obb.Extents);
@@ -48,6 +50,11 @@ void Thetis::OnRender(float deltaTime)
         debugBoundingBoxCenter->SetLocalRotation(Quaternion::Identity);
         debugBoundingBoxCenter->SetLocalScale(Vector3(0.05f));
         QueueObjectDraw(debugBoundingBoxCenter);
+
+        debugBoundingBoxAABB->SetLocalPosition(aabb.Center);
+        debugBoundingBoxAABB->SetLocalRotation(Quaternion::Identity);
+        debugBoundingBoxAABB->SetLocalScale(aabb.Extents);
+        QueueObjectDraw(debugBoundingBoxAABB);
     }
 }
 
@@ -1407,10 +1414,13 @@ void Thetis::LoadContent()
 
     // Create debug wireframe bounding box
     debugBoundingBox = Object::CreateObjectsFromContentFile(L"cube.fbx", DebugWireframe::GetDebugWireframeShader(device));
-    debugBoundingBox->GetMaterial(0).SetVector(L"Color", Color(1.0f, 0.0f, 0.0f, 1.0f));
+    debugBoundingBox->GetMaterial(0).SetVector(L"Color", Color(1.0f, 0.0f, 0.0f, 1.0f)); // red
 
     debugBoundingBoxCenter = Object::CreateObjectsFromContentFile(L"icosphere.fbx", DebugWireframe::GetDebugWireframeShader(device));
-    debugBoundingBoxCenter->GetMaterial(0).SetVector(L"Color", Color(0.0f, 1.0f, 0.0f, 1.0f));
+    debugBoundingBoxCenter->GetMaterial(0).SetVector(L"Color", Color(0.0f, 1.0f, 0.0f, 1.0f)); // green
+
+    debugBoundingBoxAABB = debugBoundingBox->Clone();
+    debugBoundingBoxAABB->GetMaterial(0).SetVector(L"Color", Color(0.0f, 0.0f, 1.0f, 1.0f)); // blue
 
     ACHILLES_IF_DESTROYING_RETURN();
 
@@ -1607,6 +1617,17 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
 
         if (cameraBaseMoveSpeed > 10)
             cameraBaseMoveSpeed = 10;
+    }
+
+    if (mt.leftButton == mt.HELD)
+    {
+        
+    }
+    else if (mt.leftButton == mt.RELEASED)
+    {
+        selectedPropertiesObject = PickObject(md.mouseX, md.mouseY);
+        if (selectedPropertiesObject != nullptr)
+            selectedPropertiesScene = selectedPropertiesObject->GetScene();
     }
 }
 
