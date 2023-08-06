@@ -155,12 +155,12 @@ uint32_t ResourceStateTracker::FlushPendingResourceBarriers(CommandList& command
     if (numBarriers > 0)
     {
         auto d3d12CommandList = commandList.GetGraphicsCommandList();
-        // d3d12CommandList->ResourceBarrier(numBarriers, RBs.data());
+        d3d12CommandList->ResourceBarrier(numBarriers, RBs.data());
         // Remove me after debugging
-        for (size_t i = 0; i < numBarriers; i++)
-        {
-            d3d12CommandList->ResourceBarrier(1, &RBs[i]);
-        }
+        // for (size_t i = 0; i < numBarriers; i++)
+        // {
+        //     d3d12CommandList->ResourceBarrier(1, &RBs[i]);
+        // }
     }
 
     pendingResourceBarriers.clear();

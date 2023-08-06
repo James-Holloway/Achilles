@@ -209,20 +209,21 @@ float4 PS(PS_IN i) : SV_Target
         float3 specular = result.Specular * MaterialPropertiesCB.Specular;
         float3 ambient = result.Ambient;
         float3 light = diffuse + specular + ambient;
+        float4 emission = float4(0, 0, 0, 1);
         
-        col *= float4(light, 1);
+        if ((MaterialPropertiesCB.TextureFlags & TEXTUREFLAGS_EMISSION) != 0)
+        {
+            emission = EmissionTexture.Sample(TextureSampler, uv);
+            float emissionStrength = MaterialPropertiesCB.EmissionStrength * emission.a;
+            emission.rgb *= emissionStrength * MaterialPropertiesCB.Color.rgb;
+        }
+        
+        col *= float4(light + emission.rgb, 1);
         
         if (PixelInfoCB.ShadingType >= 1.5) // shading type of 2 means lighting only
         {
             col = float4(light, 1);
         }
-    }
-    
-    if ((MaterialPropertiesCB.TextureFlags & TEXTUREFLAGS_EMISSION) != 0)
-    {
-        float4 emission = EmissionTexture.Sample(TextureSampler, uv);
-        float emissionStrength = MaterialPropertiesCB.EmissionStrength * emission.a;
-        col.rgb = lerp(col.rgb, float3(1, 1, 1), max(float3(0, 0, 0), emission.rgb * emissionStrength));
     }
     
     return col;

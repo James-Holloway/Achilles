@@ -47,6 +47,8 @@ protected:
     uint32_t clientWidth = 1600;
     uint32_t clientHeight = 900;
 
+    MSAA msaa = MSAA::x4;
+
     // DirectX 12 Objects
     ComPtr<ID3D12Device2> device;
     ComPtr<IDXGISwapChain4> swapChain;
@@ -217,6 +219,7 @@ public:
     std::shared_ptr<Scene> GetMainScene();
     void AddScene(std::shared_ptr<Scene> scene);
     void RemoveScene(std::shared_ptr<Scene> scene);
+    std::vector<std::shared_ptr<Object>>& GetEveryActiveObject(); // Get all active objects from every active scene
     void DrawActiveScenes();
     // Also populates the light and shadow info for LightData
     void DrawShadowScenes(std::shared_ptr<CommandList> commandList);

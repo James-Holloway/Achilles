@@ -810,8 +810,10 @@ void Thetis::DrawImGuiProperties()
                                     THETIS_SHADOWMAP_COMBO(1024);
                                     THETIS_SHADOWMAP_COMBO(2048);
                                     THETIS_SHADOWMAP_COMBO(4096);
+                                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
                                     THETIS_SHADOWMAP_COMBO(8192);
                                     THETIS_SHADOWMAP_COMBO(16384);
+                                    ImGui::PopStyleColor();
 
                                     ImGui::EndCombo();
                                 }
@@ -886,8 +888,10 @@ void Thetis::DrawImGuiProperties()
                                     THETIS_SHADOWMAP_COMBO(1024);
                                     THETIS_SHADOWMAP_COMBO(2048);
                                     THETIS_SHADOWMAP_COMBO(4096);
+                                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
                                     THETIS_SHADOWMAP_COMBO(8192);
                                     THETIS_SHADOWMAP_COMBO(16384);
+                                    ImGui::PopStyleColor();
 
                                     ImGui::EndCombo();
                                 }

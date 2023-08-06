@@ -312,18 +312,25 @@ void Achilles::UpdateRenderTargetViews()
 
 void Achilles::UpdateDepthStencilView()
 {
-    DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
+    if (renderTarget->GetTexture(AttachmentPoint::DepthStencil) == nullptr)
+    {
+        DXGI_SAMPLE_DESC sampleDesc = Application::GetSampleDescription();
 
-    CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-    D3D12_CLEAR_VALUE depthClearValue;
-    depthClearValue.Format = depthDesc.Format;
-    depthClearValue.DepthStencil = { 1.0f, 0 };
+        CD3DX12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, clientWidth, clientHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+        D3D12_CLEAR_VALUE depthClearValue;
+        depthClearValue.Format = depthDesc.Format;
+        depthClearValue.DepthStencil = { 1.0f, 0 };
 
-    std::shared_ptr<Texture> depthBuffer = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Depth, L"DepthStencil RT");
-    depthBuffer->CreateViews();
-    ResourceStateTracker::AddGlobalResourceState(depthBuffer->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
+        std::shared_ptr<Texture> depthBuffer = std::make_shared<Texture>(depthDesc, &depthClearValue, TextureUsage::Depth, L"DepthStencil RT");
+        depthBuffer->CreateViews();
+        ResourceStateTracker::AddGlobalResourceState(depthBuffer->GetD3D12Resource().Get(), D3D12_RESOURCE_STATE_COMMON);
 
-    renderTarget->AttachTexture(AttachmentPoint::DepthStencil, depthBuffer);
+        renderTarget->AttachTexture(AttachmentPoint::DepthStencil, depthBuffer);
+    }
+    else
+    {
+        renderTarget->GetTexture(AttachmentPoint::DepthStencil)->Resize(clientWidth, clientHeight);
+    }
 }
 
 std::shared_ptr<Texture> Achilles::CreateRenderTargetTexture(std::wstring name)
@@ -774,10 +781,9 @@ void Achilles::Render()
 
     float dt = deltaTime.count() * 1e-9f;
     OnRender(dt);
-    DrawActiveScenes(); // Deferred
-    DrawShadowScenes(directCommandList); // Immediate
-    DrawSkybox(directCommandList, lightData); // Draw skybox last
-    DrawQueuedEvents(directCommandList); // Rendering deferred
+    DrawActiveScenes(); // Defer events until DrawQueuedEvents
+    DrawShadowScenes(directCommandList); // Immediately renders the active scene objects from the shadow camera perspectives. Also populates lightData
+    DrawQueuedEvents(directCommandList); // Rendering deferred events
     OnPostRender(dt);
 
     // Transition ready for post processing's compute command list
@@ -808,7 +814,7 @@ void Achilles::Render()
     achillesImGui->Render(presentCommandList, *presentRT);
 
     Present(directCommandQueue, presentCommandList);
-    Flush();
+    // Flush();
 
     totalFrameCount++;
     Application::IncrementGlobalFrameCounter();
@@ -1023,7 +1029,7 @@ void Achilles::Initialize()
     EnableDebugLayer();
 
     // Initialize COM, used for Texture loading using CommandList::LoadTextureFromFile and for Drag & Drop
-    ThrowIfFailed(OleInitialize(NULL));
+    OleInitialize(NULL);
 
     std::wstring windowClassName = (L"AchillesWindowClass" + name);
 
@@ -1054,15 +1060,23 @@ void Achilles::Initialize()
 
     Application::CreateDescriptorAllocators();
 
-    if (!Application::SetMSAASample(MSAA::x8))
+    // Set the MSAA
+    bool previousFailed = false;
+    if (msaa == MSAA::x8)
     {
-        if (!Application::SetMSAASample(MSAA::x4))
-        {
-            if (!Application::SetMSAASample(MSAA::x2))
-            {
-                Application::SetMSAASample(MSAA::Off);
-            }
-        }
+        previousFailed |= Application::SetMSAASample(MSAA::x8);
+    }
+    if (msaa == MSAA::x4 || previousFailed)
+    {
+        previousFailed |= Application::SetMSAASample(MSAA::x4);
+    }
+    if (msaa == MSAA::x2 || previousFailed)
+    {
+        previousFailed |= Application::SetMSAASample(MSAA::x2);
+    }
+    if (msaa == MSAA::Off || previousFailed)
+    {
+        Application::SetMSAASample(MSAA::Off);
     }
 
     swapChain = CreateSwapChain(hWnd, directCommandQueue->GetD3D12CommandQueue(), clientWidth, clientHeight, BufferCount);
@@ -1274,14 +1288,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
 {
     ScopedTimer _prof(L"DrawShadowScenes");
     // Get all objects from each active scene
-    std::vector<std::shared_ptr<Object>> flattenedScenes;
-    for (std::shared_ptr<Scene> scene : scenes)
-    {
-        if (scene->IsActive())
-        {
-            scene->GetObjectTree()->FlattenActive(flattenedScenes);
-        }
-    }
+    std::vector<std::shared_ptr<Object>>& flattenedScenes = GetEveryActiveObject();
 
 #pragma region Populate Light Objects
     std::vector<CombinedLight> allLights;
@@ -1399,7 +1406,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
             commandList->SetGraphicsRootSignature(*shadowShader->rootSignature);
         }
 
-        commandList->TransitionBarrier(*shadowMap, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+        commandList->TransitionBarrier(*shadowMap, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
         commandList->ClearDepthStencilTexture(*shadowMap, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
         commandList->SetRenderTargetDepthOnly(*rt);
@@ -1485,6 +1492,19 @@ void Achilles::AddScene(std::shared_ptr<Scene> scene)
 void Achilles::RemoveScene(std::shared_ptr<Scene> scene)
 {
     scenes.erase(scene);
+}
+
+std::vector<std::shared_ptr<Object>>& Achilles::GetEveryActiveObject()
+{
+    std::vector<std::shared_ptr<Object>> flattenedScenes;
+    for (std::shared_ptr<Scene> scene : scenes)
+    {
+        if (scene->IsActive())
+        {
+            scene->GetObjectTree()->FlattenActive(flattenedScenes);
+        }
+    }
+    return flattenedScenes;
 }
 
 void Achilles::AddObjectToScene(std::shared_ptr<Object> object)
@@ -1807,6 +1827,9 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
             }
         }
     }
+
+    // Draw skybox after opaque queue to potentially reduce pixel overdraw
+    DrawSkybox(commandList, lightData);
 
     {
         ScopedTimer _prof2(L"Transparent");

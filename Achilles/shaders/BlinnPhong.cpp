@@ -202,7 +202,7 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
         ai_real a;
         mat->Get(AI_MATKEY_COLOR_DIFFUSE, rgb);
         mat->Get(AI_MATKEY_OPACITY, a);
-        if (a < 0)
+        if ((float)a <= 0.0f) // Set invalid opacity to 1 and presume opacity of 0.0 is a mistake
             a = (ai_real)1.0f;
 
         Vector4 color(rgb.r, rgb.g, rgb.b, (float)a);
@@ -248,12 +248,13 @@ std::shared_ptr<Mesh> BlinnPhong::BlinnPhongMeshCreation(aiScene* scene, aiNode*
 bool BlinnPhong::BlinnPhongIsKnitTransparent(std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Mesh> mesh, Material material)
 {
     std::shared_ptr<Texture> texture = material.GetTexture(L"MainTexture");
-    if (texture == nullptr || !texture->IsValid())
-        return false;
 
     Color color = material.GetVector(L"Color");
 
-    return texture->IsTransparent() || color.w < 1.0f;
+    if (texture == nullptr || !texture->IsValid())
+        return color.w < 0.99f;
+
+    return texture->IsTransparent() || color.w < 0.99f;
 }
 
 static std::shared_ptr<Shader> BlinnPhongShader{};
