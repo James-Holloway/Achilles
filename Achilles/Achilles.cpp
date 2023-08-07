@@ -720,7 +720,7 @@ void Achilles::CallPostPresentFunctions()
     std::vector<std::function<void(void)>> previousPostPresentFunctions{};
     postPresentFunctions.swap(previousPostPresentFunctions); // by swapping rather than clearing afterwards we can add  to postPresentFunctions inside a post present function
 
-    for (auto func : previousPostPresentFunctions)
+    for (std::function<void(void)> func : previousPostPresentFunctions)
     {
         func();
     }
@@ -906,8 +906,7 @@ void Achilles::PreLoadedRender()
     if (startupShader != nullptr)
     {
         // Setup shader
-        commandList->SetPipelineState(startupShader->pipelineState);
-        commandList->SetGraphicsRootSignature(*startupShader->rootSignature);
+        commandList->SetShader(startupShader);
 
         startupShader->BindTexture(*commandList, StartupScreen::RootParameters::RootParameterTextures, 0, startupTexture);
 
@@ -1414,55 +1413,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
         if (shadowCamera == nullptr)
             continue;
 
-        std::shared_ptr<RenderTarget> rt = shadowCamera->GetShadowMapRenderTarget();
-        std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap();
-        LightObject* lightObject = shadowCamera->GetLightObject();
-
-        if (lightObject == nullptr)
-            continue;
-
-        if (shadowCamera->GetLightType() == LightType::Directional)
-        {
-            commandList->SetPipelineState(shadowHighBiasShader->pipelineState);
-            commandList->SetGraphicsRootSignature(*shadowHighBiasShader->rootSignature);
-        }
-        else
-        {
-            commandList->SetPipelineState(shadowShader->pipelineState);
-            commandList->SetGraphicsRootSignature(*shadowShader->rootSignature);
-        }
-
-        commandList->TransitionBarrier(*shadowMap, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-        commandList->ClearDepthStencilTexture(*shadowMap, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
-        commandList->SetRenderTargetDepthOnly(*rt);
-        commandList->SetScissorRect(shadowCamera->scissorRect);
-        commandList->SetViewport(shadowCamera->viewport);
-
-#pragma warning (suppress : 26813)
-        if (shadowCamera->GetLightType() == LightType::Directional)
-        {
-            for (std::shared_ptr<Object> object : shadowCastingObjects)
-            {
-                DrawObjectShadowDirectional(commandList, object, shadowCamera, lightObject, lightObject->GetDirectionalLight(), shadowHighBiasShader);
-            }
-        }
-#pragma warning (suppress : 26813)
-        else if (shadowCamera->GetLightType() == LightType::Spot)
-        {
-            for (std::shared_ptr<Object> object : shadowCastingObjects)
-            {
-                DrawObjectShadowSpot(commandList, object, shadowCamera, lightObject, lightObject->GetSpotLight(), shadowShader);
-            }
-        }
-#pragma warning (suppress : 26813)
-        else if (shadowCamera->GetLightType() == LightType::Point)
-        {
-            /*for (std::shared_ptr<Object> object : shadowCastingObjects)
-            {
-
-            }*/
-        }
+        ShadowMapping::RenderShadowScene(commandList, shadowCamera, shadowCastingObjects);
     }
 #pragma endregion
 
@@ -1660,8 +1611,7 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
 
     commandList->SetRenderTarget(*RT);
 
-    commandList->SetPipelineState(skyboxShader->pipelineState);
-    commandList->SetGraphicsRootSignature(*skyboxShader->rootSignature);
+    commandList->SetShader(skyboxShader);
 
     std::shared_ptr<Camera> camera = Camera::mainCamera;
     if (camera == nullptr)
@@ -1673,11 +1623,8 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
     if (!skyboxShader->renderCallback(commandList, skydome, 0, mesh, material, camera, lightData))
         return;
 
-    commandList->SetPrimitiveTopology(mesh->topology);
-    commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
-    commandList->SetIndexBuffer(*mesh->indexBuffer);
-
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
+    commandList->SetMesh(mesh);
+    commandList->DrawMesh(mesh);
 }
 
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
@@ -1695,19 +1642,15 @@ void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, s
     if (shader->renderCallback == nullptr)
         throw std::exception("Shader did not have a rendercallback");
 
-    commandList->SetPipelineState(shader->pipelineState);
-    commandList->SetGraphicsRootSignature(*shader->rootSignature);
+    commandList->SetShader(shader);
 
     bool shouldRender = shader->renderCallback(commandList, object, knitIndex, mesh, material, camera, lightData);
 
     if (!shouldRender) // It's a shame we've done all this work for this object and we're discarding it but the shader is telling us that we should stop
         return;
 
-    commandList->SetPrimitiveTopology(mesh->topology);
-    commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
-    commandList->SetIndexBuffer(*mesh->indexBuffer);
-
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
+    commandList->SetMesh(mesh);
+    commandList->DrawMesh(mesh);
 }
 
 void Achilles::DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera)
@@ -1747,8 +1690,7 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 
     std::shared_ptr<Shader> shader = SpriteUnlit::GetSpriteUnlitShader(device);
 
-    commandList->SetPipelineState(shader->pipelineState);
-    commandList->SetGraphicsRootSignature(*shader->rootSignature);
+    commandList->SetShader(shader);
 
     Material mat = Material();
     mat.shader = shader;
@@ -1757,70 +1699,8 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
     if (!shouldRender)
         return;
 
-    commandList->SetPrimitiveTopology(mesh->topology);
-    commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
-    commandList->SetIndexBuffer(*mesh->indexBuffer);
-
-    commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
-}
-
-void Achilles::DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader)
-{
-    ScopedTimer _prof(L"DrawObjectShadowDirectional");
-
-    if (!object->ShouldDraw(shadowCamera->GetFrustum()) && frustumCulling)
-        return;
-
-    ShadowMapping::ShadowMatrices shadowMatrices{};
-    shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
-    commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
-
-    for (uint32_t i = 0; i < object->GetKnitCount(); i++)
-    {
-        Knit knit = object->GetKnit(i);
-        std::shared_ptr<Mesh> mesh = knit.mesh;
-        Material material = knit.material;
-        commandList->SetPrimitiveTopology(mesh->topology);
-        commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
-        commandList->SetIndexBuffer(*mesh->indexBuffer);
-
-        std::shared_ptr<Texture> mainTexture = material.GetTexture(L"MainTexture");
-        if (mainTexture == nullptr || !mainTexture->IsValid())
-            mainTexture = Texture::GetCachedTexture(L"White");
-
-        commandList->SetShaderResourceView(ShadowMapping::RootParameters::RootParameterTextures, 0, *mainTexture);
-
-        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
-    }
-}
-
-void Achilles::DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, SpotLight spotLight, std::shared_ptr<Shader> shader)
-{
-    ScopedTimer _prof(L"DrawObjectShadowSpot");
-
-    if (!object->ShouldDraw(shadowCamera->GetFrustum()) && frustumCulling)
-        return;
-
-    ShadowMapping::ShadowMatrices shadowMatrices{};
-    shadowMatrices.MVP = (object->GetWorldMatrix() * (shadowCamera->GetView() * shadowCamera->GetProj()));
-    commandList->SetGraphics32BitConstants<ShadowMapping::ShadowMatrices>(ShadowMapping::RootParameterMatrices, shadowMatrices);
-
-    for (uint32_t i = 0; i < object->GetKnitCount(); i++)
-    {
-        Knit knit = object->GetKnit(i);
-        std::shared_ptr<Mesh> mesh = knit.mesh;
-        Material material = knit.material;
-        commandList->SetPrimitiveTopology(mesh->topology);
-        commandList->SetVertexBuffer(0, *mesh->vertexBuffer);
-        commandList->SetIndexBuffer(*mesh->indexBuffer);
-
-        std::shared_ptr<Texture> mainTexture = material.GetTexture(L"MainTexture");
-        if (mainTexture == nullptr || !mainTexture->IsValid())
-            mainTexture = Texture::GetCachedTexture(L"White");
-        commandList->SetShaderResourceView(ShadowMapping::RootParameters::RootParameterTextures, 0, *mainTexture);
-
-        commandList->DrawIndexed((uint32_t)mesh->indexBuffer->GetNumIndices(), 1, 0, 0, 0);
-    }
+    commandList->SetMesh(mesh);
+    commandList->DrawMesh(mesh);
 }
 
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
@@ -1985,7 +1865,7 @@ std::shared_ptr<Object> Achilles::PickObject(int x, int y)
             if (mesh == nullptr)
                 continue;
 
-            if (mesh->topology != D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+            if (mesh->GetTopology() != D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
                 continue;
 
             std::vector<Vector3> tris = mesh->GetTrianglePoints(object->GetWorldMatrix());

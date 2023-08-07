@@ -74,8 +74,7 @@ void PPBlur::BlurTexture(std::shared_ptr<CommandList> commandList, std::shared_p
     if (&textures[0] == &lowerResBuf) // Just blur
     {
         std::shared_ptr<Shader> shader = GetPPBlurShader(device);
-        commandList->SetPipelineState(shader->pipelineState);
-        commandList->SetComputeRootSignature(*shader->rootSignature);
+        commandList->SetShader(shader);
 
         BlurCB0 blurCB0{};
         blurCB0.g_inverseDimensions = Vector2(1.0f / bufferWidth, 1.0f / bufferHeight);
@@ -84,8 +83,7 @@ void PPBlur::BlurTexture(std::shared_ptr<CommandList> commandList, std::shared_p
         commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 0, *textures[1], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 0, *textures[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-        commandList->SetPipelineState(shader->pipelineState);
-        commandList->SetComputeRootSignature(*shader->rootSignature);
+        commandList->SetShader(shader);
 
         commandList->Dispatch2D(bufferWidth, bufferHeight);
     }
@@ -104,8 +102,7 @@ void PPBlur::BlurTexture(std::shared_ptr<CommandList> commandList, std::shared_p
         commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 0, *textures[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 1, *lowerResBuf, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-        commandList->SetPipelineState(shader->pipelineState);
-        commandList->SetComputeRootSignature(*shader->rootSignature);
+        commandList->SetShader(shader);
 
         commandList->Dispatch2D(bufferWidth, bufferHeight);
     }

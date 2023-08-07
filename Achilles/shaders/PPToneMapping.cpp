@@ -46,8 +46,7 @@ void PPToneMapping::ApplyToneMapping(std::shared_ptr<CommandList> commandList, s
     toneMappingCB0.RcpBufferDim = Vector2(1 / (float)width, 1 / (float)height);
     toneMappingCB0.ToneMapper = ToneMapper;
 
-    commandList->SetPipelineState(toneMappingShader->pipelineState);
-    commandList->SetComputeRootSignature(*toneMappingShader->rootSignature);
+    commandList->SetShader(toneMappingShader);
 
     commandList->SetCompute32BitConstants<ToneMappingCB0>(RootParameters::RootParameterCB0, toneMappingCB0);
     commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 0, *texture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

@@ -24,6 +24,11 @@ Mesh::Mesh(std::wstring _name, std::shared_ptr<CommandList> commandList, void* v
     SetName(_name);
 }
 
+std::wstring Mesh::GetName()
+{
+    return name;
+}
+
 void Mesh::SetName(std::wstring newName)
 {
     name = newName;
@@ -51,6 +56,23 @@ std::shared_ptr<VertexBuffer> Mesh::GetVertexBuffer()
 std::shared_ptr<IndexBuffer> Mesh::GetIndexBuffer()
 {
     return indexBuffer;
+}
+
+D3D_PRIMITIVE_TOPOLOGY Mesh::GetTopology()
+{
+    return topology;
+}
+
+std::shared_ptr<Shader> Mesh::GetShader()
+{
+    return shader;
+}
+
+uint32_t Mesh::GetNumIndices()
+{
+    if (indexBuffer == nullptr)
+        return 0;
+    return (uint32_t)indexBuffer->GetNumIndices();
 }
 
 std::vector<Vector3> Mesh::GetTrianglePoints(Matrix transformMatrix)

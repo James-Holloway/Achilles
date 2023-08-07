@@ -44,8 +44,7 @@ void PPGammaCorrection::ApplyGammaCorrection(std::shared_ptr<CommandList> comman
     gammaCorrectionCB0.RcpBufferDim = Vector2(1 / (float)width, 1 / (float)height);
     gammaCorrectionCB0.GammaCorrection = GammaCorrection;
 
-    commandList->SetPipelineState(gammaCorrectionShader->pipelineState);
-    commandList->SetComputeRootSignature(*gammaCorrectionShader->rootSignature);
+    commandList->SetShader(gammaCorrectionShader);
 
     commandList->SetCompute32BitConstants<GammaCorrectionCB0>(RootParameters::RootParameterCB0, gammaCorrectionCB0);
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 0, *presentTexture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

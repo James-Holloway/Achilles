@@ -18,6 +18,8 @@
 #include "VertexBuffer.h"
 #include "ShaderResourceView.h"
 #include "BufferInfo.h"
+#include "Shader.h"
+#include "Mesh.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -1230,6 +1232,36 @@ void CommandList::Reset()
 
     rootSignature = nullptr;
     computeCommandList = nullptr;
+}
+
+void CommandList::SetShader(std::shared_ptr<Shader> shader)
+{
+    if (shader == nullptr)
+        throw std::exception("Shader was invalid");
+
+    SetPipelineState(shader->pipelineState);
+    if (shader->shaderType == ShaderType::CS)
+        SetComputeRootSignature(*shader->rootSignature);
+    else
+        SetGraphicsRootSignature(*shader->rootSignature);
+}
+
+void CommandList::SetMesh(std::shared_ptr<Mesh> mesh)
+{
+    if (mesh == nullptr)
+        throw std::exception("Mesh was invalid");
+
+    SetPrimitiveTopology(mesh->GetTopology());
+    SetVertexBuffer(0, *mesh->GetVertexBuffer());
+    SetIndexBuffer(*mesh->GetIndexBuffer());
+}
+
+void CommandList::DrawMesh(std::shared_ptr<Mesh> mesh)
+{
+    if (mesh == nullptr)
+        throw std::exception("Mesh was invalid");
+
+    DrawIndexed(mesh->GetNumIndices(), 1, 0, 0, 0);
 }
 
 void CommandList::TrackObject(ComPtr<ID3D12Object> object)

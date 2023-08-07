@@ -198,8 +198,7 @@ void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_p
     extractCB0.g_inverseOutputSize = Vector2(1.0f / width, 1.0f/ height);
     extractCB0.g_bloomThreshold = bloomThreshold;
 
-    commandList->SetPipelineState(bloomExtract->pipelineState);
-    commandList->SetComputeRootSignature(*bloomExtract->rootSignature);
+    commandList->SetShader(bloomExtract);
 
     commandList->SetCompute32BitConstants<ExtractCB0>(RootParameters::RootParameterCB0, extractCB0);
     commandList->SetUnorderedAccessView(RootParameters::RootParameterUAVs, 0, *bloomBuffer1[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -214,8 +213,7 @@ void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_p
     DownsampleCB0 downsampleCB0;
     downsampleCB0.g_inverseDimensions = extractCB0.g_inverseOutputSize;
 
-    commandList->SetPipelineState(bloomDownsample->pipelineState);
-    commandList->SetComputeRootSignature(*bloomDownsample->rootSignature);
+    commandList->SetShader(bloomDownsample);
 
     commandList->SetCompute32BitConstants<DownsampleCB0>(RootParameters::RootParameterCB0, downsampleCB0);
     commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 0, *bloomBuffer1[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -244,8 +242,7 @@ void PPBloom::ApplyBloom(std::shared_ptr<CommandList> commandList, std::shared_p
     applyCB0.g_RcpBufferDim = Vector2(1.0f / textureWidth, 1.0f / textureHeight);
     applyCB0.g_BloomStrength = bloomStrength;
 
-    commandList->SetPipelineState(bloomApply->pipelineState);
-    commandList->SetComputeRootSignature(*bloomApply->rootSignature);
+    commandList->SetShader(bloomApply);
 
     commandList->SetCompute32BitConstants<ApplyCB0>(RootParameters::RootParameterCB0, applyCB0);
     commandList->SetShaderResourceView(RootParameters::RootParameterSRVs, 0, *bloomBuffer1[0], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

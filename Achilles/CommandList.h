@@ -35,6 +35,9 @@ class PanoToCubemapPSO;
 class ConstantBufferView;
 class ShaderResourceView;
 
+class Shader;
+class Mesh;
+
 class CommandList
 {
     friend class CommandQueue;
@@ -303,6 +306,14 @@ public:
     {
         return computeCommandList;
     }
+
+    //// Helpers functions that simplify drawing ////
+    
+    // Sets shader pipeline state and root signature
+    void SetShader(std::shared_ptr<Shader> shader);
+
+    void SetMesh(std::shared_ptr<Mesh> mesh);
+    void DrawMesh(std::shared_ptr<Mesh> mesh);
 
 protected:
 

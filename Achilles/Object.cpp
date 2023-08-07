@@ -131,7 +131,7 @@ void Object::SetMesh(uint32_t index, std::shared_ptr<Mesh> _mesh)
 
     knits[index].mesh = _mesh;
     if (_mesh != nullptr)
-        knits[index].material.shader = _mesh->shader;
+        knits[index].material.shader = _mesh->GetShader();
 }
 
 Material& Object::GetMaterial(uint32_t index)
