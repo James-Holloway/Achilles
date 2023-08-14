@@ -313,7 +313,7 @@ public:
     void SetShader(std::shared_ptr<Shader> shader);
 
     void SetMesh(std::shared_ptr<Mesh> mesh);
-    void DrawMesh(std::shared_ptr<Mesh> mesh);
+    void DrawMesh(std::shared_ptr<Mesh> mesh, uint32_t instances = 1);
 
 protected:
 

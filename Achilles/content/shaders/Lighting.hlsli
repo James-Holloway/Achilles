@@ -1,61 +1,84 @@
+#ifndef MAX_SPOT_SHADOW_MAPS
+#define MAX_SPOT_SHADOW_MAPS 8
+#endif
+#ifndef MAX_CASCADED_SHADOW_MAPS
+#define MAX_CASCADED_SHADOW_MAPS 4
+#endif
+#ifndef MAX_NUM_CASCADES
+#define MAX_NUM_CASCADES 6
+#endif
+
+#define LIGHT_TYPE_POINT 1
+#define LIGHT_TYPE_SPOT 2
+#define LIGHT_TYPE_DIRECTIONAL 4
+
 // Structs
-struct PointLight
+struct LightInfo
 {
-    // 0 bytes
+    matrix ShadowMatrix;
+    uint IsShadowCaster;
+    float3 Padding;
+};
+
+struct LightCommon
+{
     float4 PositionWorldSpace;
-    // 16 bytes
+    
     float4 Color;
-    // 32 bytes
+    
     float Strength;
     float ConstantAttenuation;
     float LinearAttenuation;
     float QuadraticAttenuation;
-    // 48 bytes
+    
     float MaxDistance;
     float Rank;
     float2 Padding;
-    // 64 bytes
+};
+
+struct PointLight
+{
+    LightCommon Light;
 };
 
 struct SpotLight
 {
-    // 0 bytes
-    PointLight Light;
-    // 64 bytes
+    LightCommon Light;
+    
+    LightInfo LightInfo;
+    
     float4 DirectionWorldSpace;
-    // 80 bytes
+    
     float4 RotationWorldSpace;
-    // 96 bytes
+    
     float InnerSpotAngle;
     float OuterSpotAngle;
     float2 Padding;
-    // 112 bytes
 };
 
-// Directional light
 struct DirectionalLight
 {
-    // 0 bytes
+    LightInfo LightInfo;
+    
     float4 DirectionWorldSpace;
-    // 16 bytes
+    
     float4 RotationWorldSpace;
-    // 32 bytes
+    
     float4 Color;
-    // 48 bytes
+    
     float Strength;
     float Rank;
-    float2 Padding;
-    // 64 bytes
+    uint NumCascades;
+    float Padding;
+    
 };
 
 struct AmbientLight
 {
-    // 0 bytes
     float4 Color;
-    // 16 bytes
+    
     float Strength;
     float3 Padding;
-    // 32 bytes
 };
 
 struct LightProperties
@@ -63,16 +86,10 @@ struct LightProperties
     uint PointLightCount;
     uint SpotLightCount;
     uint DirectionalLightCount;
-    uint ShadowCount;
-    uint LightInfoCount;
-};
-
-struct LightInfo
-{
-    matrix ShadowMatrix;
-    uint LightType;
-    uint LightIndex;
-    uint IsShadowCaster;
+    uint SpotShadowCount;
+    
+    uint CascadeShadowCount;
+    float3 Padding;
 };
 
 struct LightResult
@@ -80,6 +97,13 @@ struct LightResult
     float3 Diffuse;
     float3 Specular;
     float3 Ambient;
+};
+
+struct CascadeInfo
+{
+    matrix CascadeMatrix;
+    float DepthStart;
+    float3 Padding;
 };
 
 // Lighting
@@ -109,18 +133,18 @@ float DoSpotCone(float3 spotDir, float3 lightDir, float innerSpotAngle, float ou
 LightResult DoPointLighting(PointLight light, float3 worldPos, float3 normal, float3 viewDir, float specularPower)
 {
     LightResult lightResult = (LightResult) 0;
-    float3 lightDir = (light.PositionWorldSpace.xyz - worldPos);
+    float3 lightDir = (light.Light.PositionWorldSpace.xyz - worldPos);
     float distance = length(lightDir);
-    if (distance > light.MaxDistance)
+    if (distance > light.Light.MaxDistance)
     {
         return lightResult;
     }
     lightDir = lightDir / distance;
     
-    float attenuation = DoAttenuation(light.ConstantAttenuation, light.LinearAttenuation, light.QuadraticAttenuation, distance);
+    float attenuation = DoAttenuation(light.Light.ConstantAttenuation, light.Light.LinearAttenuation, light.Light.QuadraticAttenuation, distance);
     
-    lightResult.Diffuse = DoDiffuse(normal, lightDir) * light.Color.rgb * light.Strength * attenuation;
-    lightResult.Specular = DoSpecular(viewDir, normal, lightDir, specularPower) * light.Color.rgb * light.Strength * attenuation;
+    lightResult.Diffuse = DoDiffuse(normal, lightDir) * light.Light.Color.rgb * light.Light.Strength * attenuation;
+    lightResult.Specular = DoSpecular(viewDir, normal, lightDir, specularPower) * light.Light.Color.rgb * light.Light.Strength * attenuation;
     return lightResult;
 }
 
@@ -158,12 +182,10 @@ LightResult DoDirectionalLighting(DirectionalLight light, float3 normal, float3 
 #if SHADOWS
 SamplerComparisonState ShadowSampler : register(s0, space1);
 
-float CalcShadowFactor(float4 shadowPosH, Texture2D shadowMap)
+float CalcShadowFactor(float4 shadowPos, Texture2D shadowMap)
 {
-    shadowPosH.xyz /= shadowPosH.w; // Complete projection by doing division by w
-    
     // Depth in NDC space
-    float depth = shadowPosH.z;
+    float depth = shadowPos.z;
     
     uint width, height, numMips;
     shadowMap.GetDimensions(0, width, height, numMips);
@@ -181,18 +203,24 @@ float CalcShadowFactor(float4 shadowPosH, Texture2D shadowMap)
     [unroll]
     for (int i = 0; i < 9; i++)
     {
-        percentLit += shadowMap.SampleCmpLevelZero(ShadowSampler, shadowPosH.xy + offsets[i], depth).r;
+        percentLit += shadowMap.SampleCmpLevelZero(ShadowSampler, shadowPos.xy + offsets[i], depth).r;
     }
     
     return percentLit / 9.0f;
 }
 
-void CalcShadowFactors(in uint shadowCount, in float4 ShadowPos[MAX_SHADOW_MAPS], in Texture2D ShadowMaps[MAX_SHADOW_MAPS], out float shadowFactors[MAX_SHADOW_MAPS])
+float CalcShadowFactorDivision(float4 shadowPosH, Texture2D shadowMap)
+{
+    shadowPosH.xyz /= shadowPosH.w; // Complete projection by doing division by w
+    return CalcShadowFactor(shadowPosH, shadowMap);
+}
+
+void CalcShadowSpotFactors(in uint shadowCount, in float4 ShadowPos[MAX_SPOT_SHADOW_MAPS], in Texture2D ShadowMaps[MAX_SPOT_SHADOW_MAPS], out float shadowFactors[MAX_SPOT_SHADOW_MAPS])
 {
     if (shadowCount <= 0) // No shadows
     {
         [unroll]
-        for (int i = 0; i < MAX_SHADOW_MAPS; i++)
+        for (int i = 0; i < MAX_SPOT_SHADOW_MAPS; i++)
         {
             shadowFactors[i] = 1.0f;
         }
@@ -200,16 +228,124 @@ void CalcShadowFactors(in uint shadowCount, in float4 ShadowPos[MAX_SHADOW_MAPS]
     }
     
     [unroll]
-    for (int s = 0; s < MAX_SHADOW_MAPS; s++)
+    for (int s = 0; s < MAX_SPOT_SHADOW_MAPS; s++)
     {
-        if (shadowCount > s)
-            shadowFactors[s] = CalcShadowFactor(ShadowPos[s], ShadowMaps[s]);
+        if (s < shadowCount)
+            shadowFactors[s] = CalcShadowFactorDivision(ShadowPos[s], ShadowMaps[s]);
         else
             shadowFactors[s] = 1.0f;
     }
     
     return;
 }
+
+void CalcShadowCascadedFactors(in uint shadowCount, in float4 PositionWS, in float PixelDepth, in CascadeInfo CascadeInfos[MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES], in uint NumCascades[MAX_CASCADED_SHADOW_MAPS], in Texture2D ShadowMaps[MAX_NUM_CASCADES], in uint MapOffset, out float shadowFactors[MAX_CASCADED_SHADOW_MAPS])
+{
+    if (MapOffset < shadowCount)
+    {
+        // Select cascade by interval
+        /*
+        uint cascade = 0;
+        uint nc = NumCascades[MapOffset];
+        bool cascadeFound = false;
+        CascadeInfo ci;
+        for (int c = nc - 1; c >= 0; c--)
+        {
+            ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
+            cascade = c;
+            if (ci.DepthStart < PixelDepth)
+            {
+                cascadeFound = true;
+                break;
+            }
+        }
+        //*/
+        // Select cascade by map
+        uint cascade = 0;
+        uint nc = NumCascades[MapOffset];
+        bool cascadeFound = false;
+        float4 shadowPos = float4(0, 0, 0, 0);
+        CascadeInfo ci;
+        for (int c = 0; c < nc; c++)
+        {
+            ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
+            shadowPos = mul(PositionWS, ci.CascadeMatrix);
+            // TODO add min/max border instead of 0/1
+            if ((min(shadowPos.x, shadowPos.y) > 0) && (max(shadowPos.x, shadowPos.y) < 1))
+            {
+                cascade = c;
+                cascadeFound = true;
+                break;
+            }
+        }
+        
+        // float4 shadowPos = mul(PositionWS, ci.CascadeMatrix);
+        if (cascadeFound)
+        {
+            shadowFactors[MapOffset] = CalcShadowFactorDivision(shadowPos, ShadowMaps[cascade]);
+        }
+        else
+            shadowFactors[MapOffset] = 1.0f;
+    }
+    else
+    {
+        shadowFactors[MapOffset] = 1.0f;
+    }
+}
+
+static const float4 CascadeColorMultipliers[8] =
+{
+    float4(1.5f, 0.0f, 0.0f, 1.0f), // red
+    float4(0.0f, 1.5f, 0.0f, 1.0f), // green
+    float4(0.0f, 0.0f, 5.5f, 1.0f), // blue
+    float4(1.5f, 0.0f, 5.5f, 1.0f), // pink
+    float4(1.5f, 1.5f, 0.0f, 1.0f), // yellow
+    float4(0.0f, 1.0f, 5.5f, 1.0f), // light blue
+    float4(0.5f, 3.5f, 0.8f, 1.0f), // mint
+    float4(1.0f, 1.0f, 1.0f, 1.0f), // white
+};
+
+float4 CascadeDebugDraw(in uint shadowCount, in float4 PositionWS, in float PixelDepth, in CascadeInfo CascadeInfos[MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES], in uint NumCascades[MAX_CASCADED_SHADOW_MAPS], in uint MapOffset)
+{
+    if (MapOffset < shadowCount)
+    {
+        // Select cascade by interval
+        /*
+        uint cascade = 0;
+        uint nc = NumCascades[MapOffset];
+        CascadeInfo ci;
+        for (int c = nc - 1; c >= 0; c--)
+        {
+            ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
+            cascade = c;
+            if (ci.DepthStart < PixelDepth)
+            {
+                return CascadeColorMultipliers[cascade];
+            }
+        }
+        //*/
+        
+        // Select cascade by map
+        uint cascade = 0;
+        uint nc = NumCascades[MapOffset];
+        CascadeInfo ci;
+        
+        for (int c = 0; c < nc; c++)
+        {
+            ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
+            float4 shadowPos = mul(PositionWS, ci.CascadeMatrix);
+            // TODO add min/max border instead of 0/1
+            if ((min(shadowPos.x, shadowPos.y) > 0) && (max(shadowPos.x, shadowPos.y) < 1))
+            {
+                cascade = c;
+                return CascadeColorMultipliers[cascade];
+            }
+        }
+        
+    }
+    return float4(0.25, 0.25, 0.25, 1.0f); // grey
+}
+
 #endif
 
 // Normals

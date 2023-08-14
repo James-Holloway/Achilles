@@ -716,7 +716,7 @@ static Color GetColorFromLight(aiLight* light, float& strength)
     return Color(colv3.x, colv3.y, colv3.z, 1);
 }
 
-static void GetAttenuationFromLight(aiLight* light, PointLight outLight)
+static void GetAttenuationFromLight(aiLight* light, LightCommon outLight)
 {
     // Divide linear and quadratic components by 2 to compensate for using a attenuation constant of 1
     if (light->mAttenuationConstant == 0.0f)
@@ -745,9 +745,9 @@ std::shared_ptr<LightObject> Object::CreateLightObjectFromSceneNode(aiScene* sce
     case aiLightSource_POINT:
     {
         PointLight point{};
-        point.Color = GetColorFromLight(light, point.Strength);
+        point.Light.Color = GetColorFromLight(light, point.Light.Strength);
 
-        GetAttenuationFromLight(light, point);
+        GetAttenuationFromLight(light, point.Light);
 
         lightObject->AddLight(point);
         break;

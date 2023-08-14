@@ -34,7 +34,10 @@ namespace ShadowMapping
     std::shared_ptr<Shader> GetShadowMappingHighBiasShader(ComPtr<ID3D12Device2> device = nullptr);
 
     void DrawObjectShadowDirectional(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader);
+    void DrawObjectShadowDirectionalCascaded(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader, Matrix cascadeMatrix);
     void DrawObjectShadowSpot(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, SpotLight spotLight, std::shared_ptr<Shader> shader);
-
+    // Renders Cascaded Shadow Maps for directional lights
+    void DrawShadowDirectionalCascaded(std::shared_ptr<CommandList> commandList, std::vector<std::shared_ptr<Object>> shadowCastingObjects, std::shared_ptr<ShadowCamera> shadowCamera, LightObject* lightObject, DirectionalLight directionalLight, std::shared_ptr<Shader> shader);
+    // Assumes shaders ShadowMappingShader and ShadowMappingHighBiasShader have been loaded elsewhere before calling this
     void RenderShadowScene(std::shared_ptr<CommandList> commandList, std::shared_ptr<ShadowCamera> shadowCamera, std::vector<std::shared_ptr<Object>> shadowCastingObjects);
 }

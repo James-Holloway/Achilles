@@ -17,7 +17,7 @@ if (postProcessing->ToneMapper == PPToneMapping::ToneMappers:: Name) \
 #define THETIS_SHADOWMAP_COMBO(Size) \
 if (ImGui::Selectable(std::to_string(Size).c_str(), shadowMapSize == Size)) \
 { \
-    postPresentFunctions.push_back([=]() { shadowCamera->ResizeShadowMap(Size, Size); }); \
+    postPresentFunctions.push_back([=]() { shadowCamera->ResizeShadowMaps(Size, Size); }); \
 } \
 if (shadowMapSize == Size) \
 { \
@@ -638,7 +638,7 @@ void Thetis::DrawImGuiProperties()
                             if (knit.material.HasFloat(L"ShadingType"))
                             {
                                 int value = (int)knit.material.GetFloat(L"ShadingType");
-                                if (ImGui::DragInt("ShadingType", &value, 0.025f, 0, 2, "%i"))
+                                if (ImGui::DragInt("ShadingType", &value, 0.025f, 0, 3, "%i"))
                                 {
                                     knit.material.SetFloat(L"ShadingType", (float)value);
                                 }
@@ -739,25 +739,25 @@ void Thetis::DrawImGuiProperties()
                             PointLight& pointLight = lightObject->GetPointLight();
                             float color[3] =
                             {
-                                pointLight.Color.x,
-                                pointLight.Color.y,
-                                pointLight.Color.z,
+                                pointLight.Light.Color.x,
+                                pointLight.Light.Color.y,
+                                pointLight.Light.Color.z,
                             };
                             if (ImGui::ColorEdit3("Color", color))
                             {
-                                pointLight.Color.x = color[0];
-                                pointLight.Color.y = color[1];
-                                pointLight.Color.z = color[2];
+                                pointLight.Light.Color.x = color[0];
+                                pointLight.Light.Color.y = color[1];
+                                pointLight.Light.Color.z = color[2];
                             }
 
-                            ImGui::DragFloat("Strength", &pointLight.Strength, 0.025f, 0.0f, 100.0f, "%.1f");
-                            ImGui::DragFloat("Max Distance", &pointLight.MaxDistance, 1.0f, 0.0f, 10000.0f, "%.2f");
+                            ImGui::DragFloat("Strength", &pointLight.Light.Strength, 0.025f, 0.0f, 100.0f, "%.1f");
+                            ImGui::DragFloat("Max Distance", &pointLight.Light.MaxDistance, 1.0f, 0.0f, 10000.0f, "%.2f");
                             ImGui::Separator();
-                            ImGui::DragFloat("Constant Attenuation", &pointLight.ConstantAttenuation, 0.10f, 0.0f, 2.0f, "%.2f");
-                            ImGui::DragFloat("Linear Attenuation", &pointLight.LinearAttenuation, 0.0025f, 0.0f, 2.0f, "%.4f");
-                            ImGui::DragFloat("Quadratic Attenuation", &pointLight.QuadraticAttenuation, 0.00025f, 0.0f, 2.0f, "%.7f");
+                            ImGui::DragFloat("Constant Attenuation", &pointLight.Light.ConstantAttenuation, 0.10f, 0.0f, 2.0f, "%.2f");
+                            ImGui::DragFloat("Linear Attenuation", &pointLight.Light.LinearAttenuation, 0.0025f, 0.0f, 2.0f, "%.4f");
+                            ImGui::DragFloat("Quadratic Attenuation", &pointLight.Light.QuadraticAttenuation, 0.00025f, 0.0f, 2.0f, "%.7f");
                             ImGui::Separator();
-                            ImGui::DragFloat("Rank", &pointLight.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
+                            ImGui::DragFloat("Rank", &pointLight.Light.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
 
                             ImGui::TreePop();
                         }
@@ -804,7 +804,7 @@ void Thetis::DrawImGuiProperties()
                             ImGui::Separator();
                             if (ImGui::Button("Set Debug ShadowCamera"))
                             {
-                                Camera::debugShadowCamera = lightObject->GetShadowCamera(LightType::Spot);
+                                Camera::debugShadowCamera = lightObject->GetShadowCamera(LightType::Spot, nullptr);
                             }
                             ImGui::SameLine();
                             if (ImGui::Button("Clear DSC"))
@@ -813,7 +813,7 @@ void Thetis::DrawImGuiProperties()
                             }
 
                             ImGui::Separator();
-                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Spot);
+                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Spot, nullptr);
                             if (shadowCamera && shadowCamera->GetShadowMap() != nullptr)
                             {
                                 std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap();
@@ -846,6 +846,8 @@ void Thetis::DrawImGuiProperties()
                     {
                         if (ImGui::TreeNodeEx("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
                         {
+                            static uint32_t selectedCascade = 0;
+
                             DirectionalLight& directionalLight = lightObject->GetDirectionalLight();
                             float color[3] =
                             {
@@ -866,11 +868,22 @@ void Thetis::DrawImGuiProperties()
 
                             ImGui::Separator();
 
-                            Matrix shadowMatrix = Matrix::Identity;
-                            if (lightObject->GetShadowCamera(LightType::Directional) != nullptr)
-                                shadowMatrix = lightObject->GetShadowCamera(LightType::Directional)->GetShadowMatrix();
+                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Directional, nullptr);
 
-                            ImGui::Text("Shadow Matrix");
+                            Matrix shadowMatrix = Matrix::Identity;
+                            if (shadowCamera != nullptr)
+                            {
+                                std::vector<Matrix> shadowMatrices = shadowCamera->GetCascadeProjections();
+                                if (selectedCascade < shadowMatrices.size() && shadowCamera->GetNumCascades() > 0)
+                                    shadowMatrix = shadowCamera->GetView() * shadowMatrices[selectedCascade];
+
+                                if (shadowCamera->GetNumCascades() <= 0)
+                                {
+                                    shadowMatrix = shadowCamera->GetView() * shadowCamera->GetProj();
+                                }
+                            }
+
+                            ImGui::Text("Cascade Matrix");
                             ImGui::BeginDisabled(true);
                             ImGui::InputFloat4("##ShadowMatrix1", shadowMatrix.m[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
                             ImGui::InputFloat4("##ShadowMatrix2", shadowMatrix.m[1], "%.3f", ImGuiInputTextFlags_ReadOnly);
@@ -882,7 +895,7 @@ void Thetis::DrawImGuiProperties()
                             ImGui::Separator();
                             if (ImGui::Button("Set Debug ShadowCamera"))
                             {
-                                Camera::debugShadowCamera = lightObject->GetShadowCamera(LightType::Directional);
+                                Camera::debugShadowCamera = shadowCamera;
                             }
                             ImGui::SameLine();
                             if (ImGui::Button("Clear DSC"))
@@ -891,30 +904,101 @@ void Thetis::DrawImGuiProperties()
                             }
                             ImGui::Separator();
 
-                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Directional);
-                            if (shadowCamera && shadowCamera->GetShadowMap())
+                            if (shadowCamera)
                             {
-                                std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap();
-
-                                uint32_t shadowMapSize = shadowCamera->cameraWidth;
-                                std::string shadowMapSizeStr = std::to_string(shadowMapSize);
-                                if (ImGui::BeginCombo("Shadow Map Size", shadowMapSizeStr.c_str()))
+                                uint32_t numCascades = shadowCamera->GetNumCascades();
+                                std::string numCascadesStr = std::to_string(numCascades);
+                                if (ImGui::BeginCombo("Num Cascades", numCascadesStr.c_str()))
                                 {
-                                    THETIS_SHADOWMAP_COMBO(128);
-                                    THETIS_SHADOWMAP_COMBO(256);
-                                    THETIS_SHADOWMAP_COMBO(512);
-                                    THETIS_SHADOWMAP_COMBO(1024);
-                                    THETIS_SHADOWMAP_COMBO(2048);
-                                    THETIS_SHADOWMAP_COMBO(4096);
-                                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
-                                    THETIS_SHADOWMAP_COMBO(8192);
-                                    THETIS_SHADOWMAP_COMBO(16384);
-                                    ImGui::PopStyleColor();
+                                    for (uint32_t c = 0; c <= MAX_NUM_CASCADES; c++)
+                                    {
+                                        if (ImGui::Selectable(std::to_string(c).c_str(), numCascades == c))
+                                        {
+                                            postPresentFunctions.push_back([=]() { shadowCamera->ResizeCascades(c); });
+                                        }
+                                        if (numCascades == c)
+                                        {
+                                            ImGui::SetItemDefaultFocus();
+                                        }
+                                    }
 
                                     ImGui::EndCombo();
                                 }
 
-                                AchillesImGui::Image(shadowMap, ImVec2(256.0f, 256.0f));
+                                std::string selectedCascadeStr = std::to_string(selectedCascade);
+                                if (ImGui::BeginCombo("View Cascade", selectedCascadeStr.c_str()))
+                                {
+                                    for (uint32_t c = 0; c < std::max<uint32_t>(1, shadowCamera->GetNumCascades()); c++)
+                                    {
+                                        if (ImGui::Selectable(std::to_string(c).c_str(), selectedCascade == c))
+                                        {
+                                            selectedCascade = c;
+                                        }
+                                        if (selectedCascade == c)
+                                        {
+                                            ImGui::SetItemDefaultFocus();
+                                        }
+                                    }
+
+                                    ImGui::EndCombo();
+                                }
+
+                                if (numCascades > 0)
+                                {
+                                    float intervals[2] = { 0 };
+                                    float cameraZRange = Camera::mainCamera->farZ - Camera::mainCamera->nearZ;
+
+                                    if (selectedCascade == 0)
+                                        intervals[0] = 0.0f;
+                                    else
+                                        intervals[0] = shadowCamera->GetCascadePartitions()[selectedCascade - 1];
+
+                                    intervals[1] = std::max<float>(0.01f, shadowCamera->GetCascadePartitions()[selectedCascade]);
+
+                                    ImGui::BeginDisabled(true);
+                                    ImGui::InputFloat2("Partitions", intervals, "%.2f");
+
+                                    intervals[0] *= cameraZRange;
+                                    intervals[1] *= cameraZRange;
+
+                                    ImGui::InputFloat2("Partition Intervals", intervals, "%.2f");
+                                    ImGui::EndDisabled();
+                                }
+
+                                if (shadowCamera->GetShadowMap())
+                                {
+                                    ImGui::Separator();
+
+                                    if (selectedCascade >= shadowCamera->GetNumCascades())
+                                        selectedCascade = std::max<uint32_t>(1, shadowCamera->GetNumCascades()) - 1;
+                                    if (shadowCamera->GetNumCascades() == 0)
+                                        selectedCascade = 0;
+
+                                    std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap(selectedCascade);
+
+                                    uint32_t shadowMapSize = shadowCamera->cameraWidth;
+                                    std::string shadowMapSizeStr = std::to_string(shadowMapSize);
+                                    if (ImGui::BeginCombo("Shadow Map Size", shadowMapSizeStr.c_str()))
+                                    {
+                                        THETIS_SHADOWMAP_COMBO(128);
+                                        THETIS_SHADOWMAP_COMBO(256);
+                                        THETIS_SHADOWMAP_COMBO(512);
+                                        THETIS_SHADOWMAP_COMBO(1024);
+                                        THETIS_SHADOWMAP_COMBO(2048);
+                                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
+                                        THETIS_SHADOWMAP_COMBO(4096);
+                                        THETIS_SHADOWMAP_COMBO(8192);
+                                        THETIS_SHADOWMAP_COMBO(16384);
+
+                                        ImGui::PopStyleColor();
+
+                                        ImGui::EndCombo();
+                                    }
+
+                                    ImGui::Separator();
+
+                                    AchillesImGui::Image(shadowMap, ImVec2(256.0f, 256.0f));
+                                }
                             }
 
                             ImGui::TreePop();
@@ -1346,6 +1430,7 @@ void Thetis::LoadContent()
     spotLightObject->AddLight(spotLight);
     spotLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
     spotLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
+    spotLightObject->SetActive(false);
     spotLightObject->SetIsShadowCaster(true);
     mainScene->AddObjectToScene(spotLightObject);
 
@@ -1353,7 +1438,7 @@ void Thetis::LoadContent()
     sunLightObject->AddLight(DirectionalLight());
     sunLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
     sunLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
-    sunLightObject->SetActive(false);
+    sunLightObject->SetActive(true);
     sunLightObject->SetIsShadowCaster(true);
     mainScene->AddObjectToScene(sunLightObject);
 
@@ -1632,7 +1717,7 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
 
     if (mt.leftButton == mt.HELD)
     {
-        
+
     }
     else if (mt.leftButton == mt.RELEASED)
     {

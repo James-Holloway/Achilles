@@ -325,6 +325,102 @@ std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSPS(ComPtr<ID3D12Device2> device
     return shader;
 }
 
+std::shared_ptr<Shader> Shader::ShaderDepthOnlyVSGSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, std::wstring shaderName, uint32_t depthBias)
+{
+    std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, _vertexLayout, _vertexSize);
+    shader->rootSignature = rootSignature;
+    shader->shaderType = ShaderType::VSGSPS;
+
+    std::wstring shaderPath = GetContentDirectoryW() + L"shaders/" + shaderName + L".hlsl";
+
+    // Compile shaders at runtime
+
+    ComPtr<IDxcBlob> vertexShader;
+    ComPtr<IDxcBlob> pixelShader;
+    ComPtr<IDxcBlob> geometryShader;
+    ThrowIfFailed(CompileShader(shaderPath, L"VS", L"vs_6_4", vertexShader));
+    ThrowIfFailed(CompileShader(shaderPath, L"PS", L"ps_6_4", pixelShader));
+    ThrowIfFailed(CompileShader(shaderPath, L"GS", L"gs_6_4", geometryShader));
+
+    if (vertexShader == nullptr || pixelShader == nullptr || geometryShader == nullptr)
+        throw std::exception("Shader(s) did not compile");
+
+    D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+    featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+    {
+        featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+    }
+
+    ComPtr<ID3DBlob> rootSignatureBlob;
+    ComPtr<ID3DBlob> errorBlob;
+    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc(rootSignature->GetRootSignatureDesc());
+    HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &rootSignatureBlob, &errorBlob);
+    ThrowBlobIfFailed(hr, errorBlob);
+
+    DXGI_SAMPLE_DESC sampleDesc = { 1,0 };
+
+    // D3D12_GRAPHICS_PIPELINE_STATE_DESC
+    struct PipelineStateStream
+    {
+        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+        CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+        CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+        CD3DX12_PIPELINE_STATE_STREAM_GS GS;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+        CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+        CD3DX12_PIPELINE_STATE_STREAM_FLAGS Flags;
+        CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
+        CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
+    } pipelineStateStream;
+
+    // Set a null render target so that we disable color writes, optimizing performance
+    D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+    rtvFormats.NumRenderTargets = 0;
+    rtvFormats.RTFormats[0] = DXGI_FORMAT_UNKNOWN;
+
+    CD3DX12_RASTERIZER_DESC rasterizerDesc{ CD3DX12_DEFAULT() };
+    rasterizerDesc.DepthBias = depthBias;
+    rasterizerDesc.DepthBiasClamp = 0.0f;
+    rasterizerDesc.SlopeScaledDepthBias = 1.0f;
+
+    pipelineStateStream.pRootSignature = shader->rootSignature->GetRootSignature().Get();
+    pipelineStateStream.InputLayout = { _vertexLayout, vertexLayoutCount };
+    pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize());
+    pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShader->GetBufferPointer(), pixelShader->GetBufferSize());
+    pipelineStateStream.GS = CD3DX12_SHADER_BYTECODE(geometryShader->GetBufferPointer(), geometryShader->GetBufferSize());
+    pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    pipelineStateStream.RTVFormats = rtvFormats;
+    pipelineStateStream.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+    pipelineStateStream.SampleDesc = sampleDesc;
+    pipelineStateStream.Rasterizer = rasterizerDesc;
+
+    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+        sizeof(PipelineStateStream), &pipelineStateStream
+    };
+
+    ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&shader->pipelineState)));
+
+    shader->pipelineState->SetName(shaderName.c_str());
+
+    // Create an SRV that can be used to pad unused texture slots.
+    D3D12_SHADER_RESOURCE_VIEW_DESC SRV;
+    SRV.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    SRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    SRV.Texture2D.MostDetailedMip = 0;
+    SRV.Texture2D.MipLevels = 1;
+    SRV.Texture2D.PlaneSlice = 0;
+    SRV.Texture2D.ResourceMinLODClamp = 0;
+    SRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    shader->defaultSRV = std::make_shared<ShaderResourceView>(nullptr, &SRV);
+
+    return shader;
+}
+
 std::shared_ptr<Shader> Shader::ShaderSkyboxVSPS(ComPtr<ID3D12Device2> device, D3D12_INPUT_ELEMENT_DESC* _vertexLayout, UINT vertexLayoutCount, size_t _vertexSize, std::shared_ptr<RootSignature> rootSignature, ShaderRender _renderCallback, std::wstring shaderName)
 {
     std::shared_ptr<Shader> shader = std::make_shared<Shader>(shaderName, nullptr, 0, _renderCallback);

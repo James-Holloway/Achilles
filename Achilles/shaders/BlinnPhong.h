@@ -45,19 +45,20 @@ namespace BlinnPhong
     enum RootParameters
     {
         //// Vertex shader parameter ////
-        RootParameterMatrices,  // ConstantBuffer<Matricies> MatricesCB : register(b0)
-        RootParameterPixelInfo, // ConstantBuffer<PixelInfo> PixelInfoCB : register(b1)
-        RootParameterMaterialProperties, // ConstantBuffer<MaterialProperties> : register(b2)
-        RootParameterLightProperties, // ConstantBuffer<LightProperties> : register(b3)
-        RootParameterAmbientLight, // ConstantBuffer<AmbientLight> : register(b4)
+        RootParameterMatrices,  // ConstantBuffer<Matricies> MatricesCB : register(b0);
+        RootParameterPixelInfo, // ConstantBuffer<PixelInfo> PixelInfoCB : register(b1);
+        RootParameterMaterialProperties, // ConstantBuffer<MaterialProperties> : register(b2);
+        RootParameterLightProperties, // ConstantBuffer<LightProperties> : register(b3);
+        RootParameterAmbientLight, // ConstantBuffer<AmbientLight> : register(b4);
 
         //// Pixel shader parameters ////
         RootParameterPointLights, // StructuredBuffer<PointLight> PointLights : register( t0 );
         RootParameterSpotLights, // StructuredBuffer<SpotLight> SpotLights : register( t1 );
-        RootParameterDirectionalLights, // StructuredBuffer<DirectionalLight> DirectionalLights : register( t2 )
-        RootParameterLightInfos, // StructuredBuffer<LightInfo> LightInfos : register( t3 )
-        RootParameterTextures, // Texture2D DiffuseTexture : register( t4 );
-        RootParameterShadowMaps, // Texture2D ShadowMap0 : register( t0, space1 )
+        RootParameterDirectionalLights, // StructuredBuffer<DirectionalLight> DirectionalLights : register( t2 );
+        RootParameterCascadeInfos, // StructuredBuffer<CascadeInfo> CascadeInfos : register( t3 );
+        RootParameterTextures, // Texture2D DiffuseTexture : register( t0, space1 );
+        RootParameterSpotShadowMaps, // Texture2D SpotShadowMap0 : register(t0, space2);
+        RootParameterCascadeShadowMaps, // Texture2D CascadedShadowMap0[8] : register(t0, space3);
 
         RootParameterCount
     };

@@ -5,7 +5,9 @@
 #include <d3d12.h>
 #include <directxtk12/SimpleMath.h>
 
-constexpr size_t MAX_SHADOW_MAPS = 8;
+constexpr size_t MAX_SPOT_SHADOW_MAPS = 8; // Maximum number of spotlight shadows that are supported by shaders
+constexpr size_t MAX_CASCADED_SHADOW_MAPS = 4; // Maximum number of cascaded shadow maps that are supported by shaders
+constexpr size_t MAX_NUM_CASCADES = 6; // The maximum number of cascades/textures per cascaded shadow map
 
 class LightObject;
 class ShadowCamera;
@@ -17,23 +19,45 @@ using DirectX::SimpleMath::Vector4;
 using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Color;
 
-// Point light
-struct PointLight
+struct LightInfo
 {
-    // 0 bytes
+    Matrix ShadowMatrix;
+    uint32_t IsShadowCaster;
+    float Padding[3] = { 0 };
+};
+
+struct CascadeInfo
+{
+    Matrix CascadeMatrix;
+    float DepthStart;
+    float Padding[3];
+
+    CascadeInfo();
+};
+
+// Point light
+struct LightCommon
+{   
     Vector4 PositionWorldSpace;
-    // 16 bytes
+    
     Color Color;
-    // 32 bytes
+    
     float Strength;
     float ConstantAttenuation;
     float LinearAttenuation;
     float QuadraticAttenuation;
-    // 48 bytes
+    
     float MaxDistance;
     float Rank;
     float Padding[2];
-    // 64 bytes
+
+
+    LightCommon();
+};
+
+struct PointLight
+{
+    LightCommon Light;
 
     PointLight();
 };
@@ -41,17 +65,17 @@ struct PointLight
 // Spot light
 struct SpotLight
 {
-    // 0 bytes
-    PointLight Light;
-    // 64 bytes
+    LightCommon Light;
+    
+    LightInfo LightInfo;
+
     Vector4 DirectionWorldSpace;
-    // 80 bytes
+    
     Vector4 RotationWorldSpace;
-    // 96 bytes
+    
     float InnerSpotAngle;
     float OuterSpotAngle;
     float Padding[2];
-    // 112 bytes
 
     SpotLight();
 };
@@ -59,29 +83,30 @@ struct SpotLight
 // Directional light
 struct DirectionalLight
 {
-    // 0 bytes
+    LightInfo LightInfo;
+    
     Vector4 DirectionWorldSpace;
-    // 16 bytes
+    
     Vector4 RotationWorldSpace;
-    // 32 bytes
+    
     Color Color;
-    // 48 bytes
+    
     float Strength;
     float Rank;
-    float Padding[2];
-    // 64 bytes
+    uint32_t NumCascades;
+    float Padding;
+    
 
     DirectionalLight();
 };
 
 struct AmbientLight
 {
-    // 0 bytes
     Color Color;
-    // 16 bytes
+
     float Strength;
     float Padding[3];
-    // 32 bytes
+    
 
     AmbientLight();
 };
@@ -91,18 +116,11 @@ struct LightProperties
     uint32_t PointLightCount;
     uint32_t SpotLightCount;
     uint32_t DirectionalLightCount;
-    uint32_t ShadowCount;
-    uint32_t LightInfoCount;
+    uint32_t SpotShadowCount;
+    uint32_t CascadeShadowCount;
+    float Padding[3] = { 0 };
 
     LightProperties();
-};
-
-struct LightInfo
-{
-    Matrix ShadowMatrix;
-    uint32_t LightType;
-    uint32_t LightIndex;
-    uint32_t IsShadowCaster;
 };
 
 class LightData
@@ -114,8 +132,9 @@ public:
     AmbientLight AmbientLight{};
 
     std::vector<std::shared_ptr<ShadowCamera>> ShadowCameras{};
-    std::vector<std::shared_ptr<ShadowMap>> SortedShadowMaps{};
-    std::vector<LightInfo> SortedLightInfo{};
+    std::vector<std::shared_ptr<ShadowMap>> SortedSpotShadowMaps{};
+    std::vector<std::shared_ptr<ShadowMap>> SortedCascadeShadowMaps{};
+    std::vector<CascadeInfo> SortedCascadeShadowInfos{};
     
     LightProperties GetLightProperties();
 };

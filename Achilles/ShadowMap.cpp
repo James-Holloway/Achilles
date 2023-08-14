@@ -32,16 +32,6 @@ ShadowMap& ShadowMap::operator=(ShadowMap&& other) noexcept
     return *this;
 }
 
-float ShadowMap::GetRank()
-{
-    return rank;
-}
-
-void ShadowMap::SetRank(float _rank)
-{
-    rank = _rank;
-}
-
 void ShadowMap::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
 {
     Texture::Resize(width, height, depthOrArraySize);

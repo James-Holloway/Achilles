@@ -691,6 +691,10 @@ void Achilles::LoadInternalContent()
         skydomeMaterial.SetFloat(L"PrimarySunShineExponent", skyboxInfo.PrimarySunShineExponent);
     }
 
+    // Ensures we have loaded the shadow mapping shaders inside ShadowMapping::RenderShadowScene
+    std::shared_ptr<Shader> shadowShader = ShadowMapping::GetShadowMappingShader(device);
+    std::shared_ptr<Shader> shadowHighBiasShader = ShadowMapping::GetShadowMappingHighBiasShader(device);
+
     commandQueue->ExecuteCommandList(commandList);
 }
 
@@ -808,7 +812,7 @@ void Achilles::Render()
     float dt = deltaTime.count() * 1e-9f;
     OnRender(dt);
     DrawActiveScenes(); // Defer events until DrawQueuedEvents
-    DrawShadowScenes(directCommandList); // Immediately renders the active scene objects from the shadow camera perspectives. Also populates lightData
+    DrawShadowScenes(directCommandList, Camera::mainCamera); // Immediately renders the active scene objects from the shadow camera perspectives. Also populates lightData
     DrawQueuedEvents(directCommandList); // Rendering deferred events
     OnPostRender(dt);
 
@@ -1309,11 +1313,12 @@ void Achilles::DrawActiveScenes()
     }
 }
 
-void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
+void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList, std::shared_ptr<Camera> camera)
 {
     ScopedTimer _prof(L"DrawShadowScenes");
     // Get all objects from each active scene
     std::vector<std::shared_ptr<Object>> flattenedScenes = GetEveryActiveObject();
+    std::map<LightObject*, std::shared_ptr<ShadowCamera>> lightObjectShadowCameraMap; // added to avoid getting the camera twice, causing ShadowCamera::UpdateMatrix to be called twice
 
 #pragma region Populate Light Objects
     std::vector<CombinedLight> allLights;
@@ -1335,7 +1340,7 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
                 PointLight& light = lightObject->GetPointLight();
                 CombinedLight combinedLight
                 {
-                    .Rank = light.Rank,
+                    .Rank = light.Light.Rank,
                     .LightObject = lightObject.get(),
                     .LightType = LightType::Point,
                     .IsShadowCaster = lightObject->IsShadowCaster(),
@@ -1383,29 +1388,38 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
     lightData.ShadowCameras.clear();
     for (CombinedLight combinedLight : allLights)
     {
+        if (camera == nullptr)
+            break;
+
         LightObject* lightObject = combinedLight.LightObject;
-        if (lightObject->HasLightType(LightType::Point))
+        if (combinedLight.LightType == LightType::Point)
         {
-            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Point);
+            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Point, camera);
             if (sCam != nullptr)
+            {
                 lightData.ShadowCameras.push_back(sCam);
+                lightObjectShadowCameraMap.emplace(lightObject, sCam);
+            }
         }
-        if (lightObject->HasLightType(LightType::Spot))
+        else if (combinedLight.LightType == LightType::Spot)
         {
-            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Spot);
+            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Spot, camera);
             if (sCam != nullptr)
+            {
                 lightData.ShadowCameras.push_back(sCam);
+                lightObjectShadowCameraMap.emplace(lightObject, sCam);
+            }
         }
-        if (lightObject->HasLightType(LightType::Directional))
+        else if (combinedLight.LightType == LightType::Directional)
         {
-            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Directional);
+            std::shared_ptr<ShadowCamera> sCam = lightObject->GetShadowCamera(LightType::Directional, camera);
             if (sCam != nullptr)
+            {
                 lightData.ShadowCameras.push_back(sCam);
+                lightObjectShadowCameraMap.emplace(lightObject, sCam);
+            }
         }
     }
-
-    std::shared_ptr<Shader> shadowShader = ShadowMapping::GetShadowMappingShader(device);
-    std::shared_ptr<Shader> shadowHighBiasShader = ShadowMapping::GetShadowMappingHighBiasShader(device);
 
     // Actual rendering of the shadow scene, once per shadow camera
     for (std::shared_ptr<ShadowCamera> shadowCamera : lightData.ShadowCameras)
@@ -1417,47 +1431,107 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList)
     }
 #pragma endregion
 
-    // Populate ShadowMaps + ShadowInfos
-    lightData.SortedShadowMaps.clear();
-    lightData.SortedLightInfo.clear();
+    // Populate ShadowMaps and finish populating LightInfos of lights
+    lightData.SortedSpotShadowMaps.clear();
+    lightData.SortedCascadeShadowMaps.clear();
+    lightData.SortedCascadeShadowInfos.clear();
 
-    size_t cameraIndex = 0;
+    size_t spotCameraIndex = 0;
+    size_t cascadeCameraIndex = 0;
     for (size_t i = 0; i < allLights.size(); i++)
     {
-        CombinedLight combinedLight = allLights[i];
+        CombinedLight& combinedLight = allLights[i];
         LightObject* lightObject = combinedLight.LightObject;
 
         LightInfo lightInfo
         {
             .ShadowMatrix = Matrix::Identity,
-            .LightType = (uint32_t)combinedLight.LightType,
             .IsShadowCaster = lightObject->IsShadowCaster(),
         };
 
-        if (cameraIndex < MAX_SHADOW_MAPS && lightObject->IsShadowCaster())
+        if (lightObject->IsShadowCaster())
         {
-            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(combinedLight.LightType);
-            lightData.SortedShadowMaps.push_back(shadowCamera->GetShadowMap());
-            lightInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
+            if (combinedLight.LightType == LightType::Spot && spotCameraIndex < MAX_SPOT_SHADOW_MAPS)
+            {
+                auto iter = lightObjectShadowCameraMap.find(lightObject);
+                if (iter != lightObjectShadowCameraMap.end())
+                {
+                    std::shared_ptr<ShadowCamera> shadowCamera = iter->second;
+                    lightInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
+                    lightData.SortedSpotShadowMaps.push_back(shadowCamera->GetShadowMap());
+                    spotCameraIndex++;
+                }
+            }
+            // Push cascaded light maps and infos
+            else if (combinedLight.LightType == LightType::Directional && cascadeCameraIndex < MAX_CASCADED_SHADOW_MAPS)
+            {
+                auto iter = lightObjectShadowCameraMap.find(lightObject);
+                if (iter != lightObjectShadowCameraMap.end())
+                {
+                    std::shared_ptr<ShadowCamera> shadowCamera = iter->second;
+
+                    combinedLight.DirectionalLight.NumCascades = std::max<uint32_t>(1, shadowCamera->GetNumCascades());
+
+                    lightInfo.ShadowMatrix = shadowCamera->GetShadowMatrix();
+
+                    for (uint32_t c = 0; c < MAX_NUM_CASCADES; c++)
+                    {
+                        if (shadowCamera->GetNumCascades() == 0)
+                        {
+                            CascadeInfo cascadeInfo;
+                            if (c == 0) // If cascades are disabled then only push cascade map 0
+                            {
+                                lightData.SortedCascadeShadowMaps.push_back(shadowCamera->GetShadowMap());
+                                cascadeInfo.CascadeMatrix = shadowCamera->GetShadowMatrix();
+                                cascadeInfo.DepthStart = 0.0f;
+                            }
+                            else
+                            {
+                                lightData.SortedCascadeShadowMaps.push_back(nullptr);
+                            }
+
+                            lightData.SortedCascadeShadowInfos.push_back(cascadeInfo);
+                        }
+                        else
+                        {
+                            // It's okay if we push a nullptr shadow map as we need the padding
+                            lightData.SortedCascadeShadowMaps.push_back(shadowCamera->GetShadowMap(c));
+
+                            CascadeInfo cascadeInfo;
+                            if (c < shadowCamera->GetNumCascades())
+                            {
+                                cascadeInfo.CascadeMatrix = shadowCamera->GetCascadeMatrices()[c];
+
+                                if (c == 0)
+                                    cascadeInfo.DepthStart = 0.0f;
+                                else
+                                    cascadeInfo.DepthStart = shadowCamera->GetCascadePartitions()[c - 1] * (camera->farZ - camera->nearZ);
+
+                                // cascadeInfo.MaxBorderPadding = 
+                                // cascadeInfo.MinBorderPadding = 1.0f / shadowCamera->cameraWidth;
+                            }
+                            lightData.SortedCascadeShadowInfos.push_back(cascadeInfo);
+                        }
+                    }
+                    cascadeCameraIndex++;
+                }
+            }
         }
 
         if (combinedLight.LightType == LightType::Point)
         {
             lightData.PointLights.push_back(combinedLight.PointLight);
-            lightInfo.LightIndex = (uint32_t)(lightData.PointLights.size() - 1);
         }
         else if (combinedLight.LightType == LightType::Spot)
         {
+            combinedLight.SpotLight.LightInfo = lightInfo;
             lightData.SpotLights.push_back(combinedLight.SpotLight);
-            lightInfo.LightIndex = (uint32_t)(lightData.SpotLights.size() - 1);
         }
         else if (combinedLight.LightType == LightType::Directional)
         {
+            combinedLight.DirectionalLight.LightInfo = lightInfo;
             lightData.DirectionalLights.push_back(combinedLight.DirectionalLight);
-            lightInfo.LightIndex = (uint32_t)(lightData.DirectionalLights.size() - 1);
         }
-
-        lightData.SortedLightInfo.push_back(lightInfo);
     }
 }
 

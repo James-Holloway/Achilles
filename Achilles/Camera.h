@@ -89,4 +89,7 @@ public:
 
     void RotateEuler(Vector3 euler, bool unlockPitch = false, bool unlockRoll = false);
     void MoveRelative(Vector3 direction);
+
+    // Used in ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera
+    void CreateFrustumPointsFromCascadeInterval(float intervalBegin, float intervalEnd, Vector4* frustumPoints);
 };

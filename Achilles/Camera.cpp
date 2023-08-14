@@ -87,7 +87,7 @@ void Camera::SetView(Matrix _view)
 {
     view = _view;
     inverseView = view.Invert().Transpose();
-    
+
     Vector3 scale, pos;
     Quaternion rot;
     view.Invert().Decompose(scale, rot, pos);
@@ -230,4 +230,90 @@ void Camera::MoveRelative(Vector3 direction)
     Vector3 pos = DirectX::XMVector3TransformNormal(direction, world * rot);
     position += pos;
     dirtyViewMatrix = true;
+}
+
+void Camera::CreateFrustumPointsFromCascadeInterval(float intervalBegin, float intervalEnd, Vector4* frustumPoints)
+{
+    /*
+
+    // Near cap
+    frustumPoints[0] = { +1.0f, -1.0f, intervalBegin, +1.0f };
+    frustumPoints[1] = { -1.0f, -1.0f, intervalBegin, +1.0f };
+    frustumPoints[2] = { -1.0f, +1.0f, intervalBegin, +1.0f };
+    frustumPoints[3] = { +1.0f, +1.0f, intervalBegin, +1.0f };
+    // Far cap
+    frustumPoints[4] = { +1.0f, -1.0f, intervalEnd, +1.0f };
+    frustumPoints[5] = { -1.0f, -1.0f, intervalEnd, +1.0f };
+    frustumPoints[6] = { -1.0f, +1.0f, intervalEnd, +1.0f };
+
+    Matrix persinv = GetProj().Invert();
+
+    for (int i = 0; i < 8; i++)
+    {
+        frustumPoints[i] = XMVector4Transform(frustumPoints[i], persinv);
+    }
+
+    //*/
+
+    /*
+    BoundingFrustum viewFrustum = frustum;
+    // BoundingFrustum viewFrustum = GetFrustum();
+    viewFrustum.Near = intervalBegin;
+    viewFrustum.Far = intervalEnd;
+
+    Vector3 frustumPoints3[8];
+    viewFrustum.GetCorners(frustumPoints3);
+
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        frustumPoints[i] = Vector4(XMVECTOR(frustumPoints3[i]));
+        frustumPoints[i].w = 1;
+    }
+    //*/
+
+    /**/
+    BoundingFrustum viewFrustum(GetProj().Transpose());
+    viewFrustum.Near = intervalBegin;
+    viewFrustum.Far = intervalEnd;
+
+    static const XMVECTORU32 vGrabX = { 0xFFFFFFFF,0x00000000,0x00000000,0x00000000 };
+    static const XMVECTORU32 vGrabY = { 0x00000000,0xFFFFFFFF,0x00000000,0x00000000 };
+
+    XMVECTORF32 vRightTop = { viewFrustum.RightSlope, viewFrustum.TopSlope, 1.0f, 1.0f };
+    XMVECTORF32 vLeftBottom = { viewFrustum.LeftSlope, viewFrustum.BottomSlope, 1.0f, 1.0f };
+    XMVECTORF32 vNear = { viewFrustum.Near, viewFrustum.Near, viewFrustum.Near, 1.0f };
+    XMVECTORF32 vFar = { viewFrustum.Far, viewFrustum.Far, viewFrustum.Far, 1.0f };
+
+    XMVECTOR vRightTopNear = XMVectorMultiply(vRightTop, vNear);
+    XMVECTOR vRightTopFar = XMVectorMultiply(vRightTop, vFar);
+    XMVECTOR vLeftBottomNear = XMVectorMultiply(vLeftBottom, vNear);
+    XMVECTOR vLeftBottomFar = XMVectorMultiply(vLeftBottom, vFar);
+
+    frustumPoints[0] = vRightTopNear;
+    frustumPoints[1] = XMVectorSelect(vRightTopNear, vLeftBottomNear, vGrabX);
+    frustumPoints[2] = vLeftBottomNear;
+    frustumPoints[3] = XMVectorSelect(vRightTopNear, vLeftBottomNear, vGrabY);
+
+    frustumPoints[4] = vRightTopFar;
+    frustumPoints[5] = XMVectorSelect(vRightTopFar, vLeftBottomFar, vGrabX);
+    frustumPoints[6] = vLeftBottomFar;
+    frustumPoints[7] = XMVectorSelect(vRightTopFar, vLeftBottomFar, vGrabY);
+    // */
+
+    /*
+    Matrix inv = XMMatrixInverse(nullptr, GetProj() * GetView());
+
+    uint32_t i = 0;
+    for (unsigned int x = 0; x < 2; ++x)
+    {
+        for (unsigned int y = 0; y < 2; ++y)
+        {
+            for (unsigned int z = 0; z < 2; ++z)
+            {
+                const Vector4 pt = XMVector4Transform(Vector4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f), inv);
+                frustumPoints[i++] = pt / pt.w;
+            }
+        }
+    }
+    //*/
 }

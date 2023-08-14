@@ -99,6 +99,7 @@ SpotLight& LightObject::GetSpotLight()
 
 DirectionalLight& LightObject::GetDirectionalLight()
 {
+
     return directionalLight;
 }
 
@@ -123,7 +124,7 @@ void LightObject::ConstructLightPositions(std::shared_ptr<Camera> camera)
 
     if (HasLightType(LightType::Point))
     {
-        pointLight.PositionWorldSpace = worldPos4;
+        pointLight.Light.PositionWorldSpace = worldPos4;
     }
     if (HasLightType(LightType::Spot))
     {
@@ -154,7 +155,7 @@ Color LightObject::GetSpriteColor()
 
     Color color{ 0,0,0,0 };
     if (HasLightType(LightType::Point))
-        color += pointLight.Color;
+        color += pointLight.Light.Color;
     if (HasLightType(LightType::Spot))
         color += spotLight.Light.Color;
     if (HasLightType(LightType::Directional))
@@ -183,7 +184,7 @@ void LightObject::SetIsShadowCaster(bool _shadowCaster)
     shadowCaster = _shadowCaster;
 }
 
-std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
+std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType, std::shared_ptr<Camera> camera)
 {
     if (!HasLightType(lightType))
         return nullptr;
@@ -192,11 +193,13 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
         return nullptr;
 
     Vector3 shadowCenter = Vector3::Zero;
-    BoundingSphere shadowBounds{ shadowCenter, 25.0f };
+    BoundingBox boundingBox{ shadowCenter, Vector3(5.0f) };
+    BoundingSphere boundingSphere{ shadowCenter, 5.0f };
     std::shared_ptr<Scene> scene = GetScene();
     if (scene != nullptr)
     {
-        shadowBounds = scene->GetBoundingSphere();
+        boundingBox = scene->GetBoundingBox();
+        BoundingSphere::CreateFromBoundingBox(boundingSphere, boundingBox);
     }
 
     switch (lightType)
@@ -209,7 +212,9 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
             pointShadowCamera->SetLightType(LightType::Point);
         }
         pointShadowCamera->SetLightObject(this);
-        pointShadowCamera->UpdateMatrix(GetWorldPosition(), GetWorldRotation(), shadowBounds);
+
+        if (camera != nullptr)
+            pointShadowCamera->UpdateMatrix(GetWorldPosition(), GetWorldRotation(), boundingBox, camera);
         return pointShadowCamera;
     }
     break;
@@ -221,7 +226,9 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
             spotShadowCamera->SetLightType(LightType::Spot);
         }
         spotShadowCamera->SetLightObject(this);
-        spotShadowCamera->UpdateMatrix(GetWorldPosition(), (Quaternion)spotLight.RotationWorldSpace, shadowBounds);
+
+        if (camera != nullptr)
+            spotShadowCamera->UpdateMatrix(GetWorldPosition(), (Quaternion)spotLight.RotationWorldSpace, boundingBox, camera);
         return spotShadowCamera;
     }
     break;
@@ -235,9 +242,10 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType)
         directionalShadowCamera->SetLightObject(this);
 
         Vector3 lightDir = (Vector3)directionalLight.DirectionWorldSpace;
-        Vector3 lightPos = -2.0f * shadowBounds.Radius * lightDir;
+        Vector3 lightPos = (-1.25f * boundingSphere.Radius * lightDir) + boundingSphere.Center;
 
-        directionalShadowCamera->UpdateMatrix(lightPos, (Quaternion)directionalLight.RotationWorldSpace, shadowBounds);
+        if (camera != nullptr)
+            directionalShadowCamera->UpdateMatrix(lightPos, (Quaternion)directionalLight.RotationWorldSpace, boundingBox, camera);
         return directionalShadowCamera;
     }
     break;

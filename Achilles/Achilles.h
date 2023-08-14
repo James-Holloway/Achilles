@@ -222,7 +222,7 @@ public:
     std::vector<std::shared_ptr<Object>> GetEveryActiveObject(); // Get all active objects from every active scene
     void DrawActiveScenes();
     // Also populates the light and shadow info for LightData
-    void DrawShadowScenes(std::shared_ptr<CommandList> commandList);
+    void DrawShadowScenes(std::shared_ptr<CommandList> commandList, std::shared_ptr<Camera> camera);
     virtual void AddObjectToScene(std::shared_ptr<Object> object);
 
 public:

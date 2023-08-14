@@ -55,9 +55,9 @@ void Scene::SetName(std::wstring _name)
     objectTree->SetName(name);
 }
 
-BoundingSphere Scene::GetBoundingSphere()
+DirectX::BoundingBox Scene::GetBoundingBox()
 {
-    ScopedTimer _prof(L"GetSceneBounds");
+    ScopedTimer _prof(L"Get Scene Bounding Box");
 
     std::vector<std::shared_ptr<Object>> flattenedTree;
     objectTree->FlattenActive(flattenedTree);
@@ -67,6 +67,12 @@ BoundingSphere Scene::GetBoundingSphere()
     {
         BoundingBox::CreateMerged(aabb, aabb, object->GetWorldAABB());
     }
+    return aabb;
+}
+
+BoundingSphere Scene::GetBoundingSphere()
+{
+    BoundingBox aabb = GetBoundingBox();
 
     BoundingSphere bs;
     BoundingSphere::CreateFromBoundingBox(bs, aabb);

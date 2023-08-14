@@ -22,6 +22,7 @@ public:
     std::wstring GetName();
     void SetName(std::wstring _name);
 
+    DirectX::BoundingBox GetBoundingBox();
     DirectX::BoundingSphere GetBoundingSphere();
 
     uint32_t GetSceneIndex();

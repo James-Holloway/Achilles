@@ -33,8 +33,9 @@ public:
 
     bool IsShadowCaster();
     void SetIsShadowCaster(bool _shadowCaster);
+    // @param camera should be the camera the scene is being rendered from. Use nullptr to NOT update the matrix at the same time
     // @returns nullptr if the camera doesn't have the light type or if it is not a shadow caster, otherwise the relevant shadow camera
-    std::shared_ptr<ShadowCamera> GetShadowCamera(LightType lightType);
+    std::shared_ptr<ShadowCamera> GetShadowCamera(LightType lightType, std::shared_ptr<Camera> camera);
 
 protected:
     LightType lightTypes = LightType::None;

@@ -1256,12 +1256,12 @@ void CommandList::SetMesh(std::shared_ptr<Mesh> mesh)
     SetIndexBuffer(*mesh->GetIndexBuffer());
 }
 
-void CommandList::DrawMesh(std::shared_ptr<Mesh> mesh)
+void CommandList::DrawMesh(std::shared_ptr<Mesh> mesh, uint32_t instances)
 {
     if (mesh == nullptr)
         throw std::exception("Mesh was invalid");
 
-    DrawIndexed(mesh->GetNumIndices(), 1, 0, 0, 0);
+    DrawIndexed(mesh->GetNumIndices(), instances, 0, 0, 0);
 }
 
 void CommandList::TrackObject(ComPtr<ID3D12Object> object)
