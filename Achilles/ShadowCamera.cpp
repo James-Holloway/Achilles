@@ -171,7 +171,7 @@ static const float preCalculatedPartitions[MAX_NUM_CASCADES][MAX_NUM_CASCADES] =
         0.05f, 0.25f, 0.45f, 0.75f, 1.0f, 1.0f // 5 cascades
     },
     {
-        0.033f, 0.1f, 0.33f, 0.5f, 0.85f, 1.0f // 6 cascades
+        0.05f, 0.15f, 0.33f, 0.5f, 0.85f, 1.0f // 6 cascades
     },
 };
 
@@ -312,6 +312,9 @@ std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(B
             lightCameraOrthographicMin = XMVectorMin(tempTranslatedCornerPoint, lightCameraOrthographicMin);
             lightCameraOrthographicMax = XMVectorMax(tempTranslatedCornerPoint, lightCameraOrthographicMax);
         }
+        
+        float farPlane = XMVectorGetZ(lightCameraOrthographicMax) * 5;
+        float nearPlane = -farPlane;
 
         // Avoid shadow shimmering
         {
@@ -378,8 +381,8 @@ std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(B
 
         // ComputeNearAndFar(fNearPlane, fFarPlane, vLightCameraOrthographicMin, vLightCameraOrthographicMax, vSceneAABBPointsLightSpace) - line 985 from CascadedShadowsMappedManager.cpp
 
-        float nearPlane = FLT_MAX;
-        float farPlane = -FLT_MAX;
+        // float nearPlane = FLT_MAX;
+        // float farPlane = -FLT_MAX;
 
         // nearPlane = 0.0f;
         // farPlane = 100.0f;

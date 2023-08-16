@@ -266,7 +266,7 @@ void CalcShadowCascadedFactors(in uint shadowCount, in float4 PositionWS, in flo
         bool cascadeFound = false;
         float4 shadowPos = float4(0, 0, 0, 0);
         CascadeInfo ci;
-        for (int c = 0; c < nc; c++)
+        for (int c = 0; c < min(nc, MAX_NUM_CASCADES); c++)
         {
             ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
             shadowPos = mul(PositionWS, ci.CascadeMatrix);
@@ -330,7 +330,7 @@ float4 CascadeDebugDraw(in uint shadowCount, in float4 PositionWS, in float Pixe
         uint nc = NumCascades[MapOffset];
         CascadeInfo ci;
         
-        for (int c = 0; c < nc; c++)
+        for (int c = 0; c < min(nc, MAX_NUM_CASCADES); c++)
         {
             ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
             float4 shadowPos = mul(PositionWS, ci.CascadeMatrix);

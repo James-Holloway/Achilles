@@ -1507,8 +1507,8 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList, std::s
                                 else
                                     cascadeInfo.DepthStart = shadowCamera->GetCascadePartitions()[c - 1] * (camera->farZ - camera->nearZ);
 
-                                // cascadeInfo.MaxBorderPadding = 
                                 // cascadeInfo.MinBorderPadding = 1.0f / shadowCamera->cameraWidth;
+                                // cascadeInfo.MaxBorderPadding = 1.0f - cascadeInfo.MinBorderPadding;
                             }
                             lightData.SortedCascadeShadowInfos.push_back(cascadeInfo);
                         }
