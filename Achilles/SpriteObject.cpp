@@ -21,9 +21,16 @@ void SpriteObject::SetSpriteColor(Color color)
     spriteColor = color;
 }
 
-bool SpriteObject::ShouldDraw()
+bool SpriteObject::ShouldDraw(DirectX::BoundingFrustum frustum)
 {
-    return editorSprite && Application::IsEditor();
+    if (Object::ShouldDraw(frustum))
+    {
+        if (editorSprite)
+            return Application::IsEditor();
+
+        return true;
+    }
+    return false;
 }
 bool SpriteObject::GetEditorSprite()
 {

@@ -1685,6 +1685,12 @@ void Thetis::OnKeyboard(Keyboard::KeyboardStateTracker kbt, Keyboard::State kb, 
     {
         Profiling::ProfilerShouldPrint = true;
     }
+
+    if (kb.LeftControl && kbt.pressed.F8)
+    {
+        Application::SetIsEditor(!Application::IsEditor());
+        OutputDebugStringW(Application::IsEditor() ? L"Application::IsEditor\n" : L"!Application::IsEditor\n");
+    }
 }
 
 void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State state, float dt)

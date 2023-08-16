@@ -600,6 +600,10 @@ void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_p
     fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
     UINT syncInterval = vSync ? 1 : 0;
+    if (GetForegroundWindow() != hWnd)
+    {
+        syncInterval = 4; // every 4th blank
+    }
     UINT presentFlags = tearingSupported && !vSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
 
     ThrowIfFailed(swapChain->Present(syncInterval, presentFlags));
@@ -1507,8 +1511,8 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList, std::s
                                 else
                                     cascadeInfo.DepthStart = shadowCamera->GetCascadePartitions()[c - 1] * (camera->farZ - camera->nearZ);
 
-                                // cascadeInfo.MinBorderPadding = 1.0f / shadowCamera->cameraWidth;
-                                // cascadeInfo.MaxBorderPadding = 1.0f - cascadeInfo.MinBorderPadding;
+                                cascadeInfo.MinBorderPadding = 1.0f / shadowCamera->cameraWidth;
+                                cascadeInfo.MaxBorderPadding = 1.0f - cascadeInfo.MinBorderPadding;
                             }
                             lightData.SortedCascadeShadowInfos.push_back(cascadeInfo);
                         }
@@ -1754,6 +1758,8 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
 
     if (camera.use_count() <= 0)
         throw std::exception("Rendered camera was not available");
+
+    if (!object->ShouldDraw(camera->GetFrustum())) return;
 
     ScopedTimer _prof(L"DrawSpriteIndexed");
 

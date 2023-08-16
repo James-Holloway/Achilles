@@ -1,6 +1,6 @@
 #include "Lights.h"
 
-CascadeInfo::CascadeInfo() : CascadeMatrix(Matrix::Identity), DepthStart(0), Padding{ 0 }
+CascadeInfo::CascadeInfo() : CascadeMatrix(Matrix::Identity), DepthStart(0), MinBorderPadding(0), MaxBorderPadding(1), Padding{ 0 }
 {
 
 }

@@ -103,7 +103,9 @@ struct CascadeInfo
 {
     matrix CascadeMatrix;
     float DepthStart;
-    float3 Padding;
+    float MinBorderPadding;
+    float MaxBorderPadding;
+    float Padding;
 };
 
 // Lighting
@@ -271,7 +273,7 @@ void CalcShadowCascadedFactors(in uint shadowCount, in float4 PositionWS, in flo
             ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
             shadowPos = mul(PositionWS, ci.CascadeMatrix);
             // TODO add min/max border instead of 0/1
-            if ((min(shadowPos.x, shadowPos.y) > 0) && (max(shadowPos.x, shadowPos.y) < 1))
+            if ((min(shadowPos.x, shadowPos.y) > ci.MinBorderPadding) && (max(shadowPos.x, shadowPos.y) < ci.MaxBorderPadding))
             {
                 cascade = c;
                 cascadeFound = true;
@@ -335,7 +337,7 @@ float4 CascadeDebugDraw(in uint shadowCount, in float4 PositionWS, in float Pixe
             ci = CascadeInfos[(MapOffset * MAX_NUM_CASCADES) + c];
             float4 shadowPos = mul(PositionWS, ci.CascadeMatrix);
             // TODO add min/max border instead of 0/1
-            if ((min(shadowPos.x, shadowPos.y) > 0) && (max(shadowPos.x, shadowPos.y) < 1))
+            if ((min(shadowPos.x, shadowPos.y) > ci.MinBorderPadding) && (max(shadowPos.x, shadowPos.y) < ci.MaxBorderPadding))
             {
                 cascade = c;
                 return CascadeColorMultipliers[cascade];

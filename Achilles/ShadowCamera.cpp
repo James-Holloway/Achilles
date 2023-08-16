@@ -321,15 +321,15 @@ std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(B
             // Grow the orthographic projection so it doesn't disappear into a corner
             XMVECTOR diagonal = frustumPoints[0] - frustumPoints[6];
             diagonal = XMVector3Length(diagonal);
-            diagonal *= 1.25;
+            diagonal *= 2.5;
             if (cascadeIndex >= numCascades - 1)
-                diagonal *= 2.5f;
+                diagonal *= 3.33f;
 
             // The bound is the length of the diagonal of the frustum interval
             float cascadeBound = XMVectorGetX(diagonal);
 
             // The offset calculated will pad the ortho projection so that it is always the same size and big enough to cover the entire cascade interval
-            XMVECTOR vBorderOffset = (diagonal - (lightCameraOrthographicMax - lightCameraOrthographicMin)); // * g_vHalfVector;
+            XMVECTOR vBorderOffset = (diagonal - (lightCameraOrthographicMax - lightCameraOrthographicMin)) * g_vHalfVector;
             vBorderOffset *= g_vMultiplySetzwToZero;
 
             // Add the offsets to the projection
@@ -337,35 +337,13 @@ std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(B
             lightCameraOrthographicMin -= vBorderOffset;
 
             // The world units per texel are used to snap the shadow the orthographic projection to texel sized increments.  This keeps the edges of the shadows from shimmering
-            FLOAT fWorldUnitsPerTexel = cascadeBound / (float)cameraWidth;
+            float fWorldUnitsPerTexel = (cascadeBound) / (float)cameraWidth;
             worldUnitsPerTexel = XMVectorSet(fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f);
-
-            /*
-            // We calculate a looser bound based on the size of the PCF blur.  This ensures us that we're sampling within the correct map.
-            uint32_t PCFBlurSize = 3;
-            float scaleDuetoBlurAMT = ((float)(PCFBlurSize * 2 + 1) / (float)cameraWidth);
-            XMVECTORF32 vScaleDuetoBlurAMT = { scaleDuetoBlurAMT, scaleDuetoBlurAMT, 0.0f, 0.0f };
-
-            float fNormalizeByBufferSize = (1.0f / (float)cameraWidth);
-            XMVECTOR normalizeByBufferSize = XMVectorSet(fNormalizeByBufferSize, fNormalizeByBufferSize, 0.0f, 0.0f);
-
-            // We calculate the offsets as a percentage of the bound.
-            vBorderOffset = lightCameraOrthographicMax - lightCameraOrthographicMin;
-            vBorderOffset *= g_vHalfVector;
-            vBorderOffset *= vScaleDuetoBlurAMT;
-            lightCameraOrthographicMax += vBorderOffset;
-            lightCameraOrthographicMin -= vBorderOffset;
-
-            // The world units per texel are used to snap  the orthographic projection to texel sized increments.
-            // Because we're fitting tighly to the cascades, the shimmering shadow edges will still be present when the camera rotates. However, when zooming in or strafing the shadow edge will not shimmer.
-            worldUnitsPerTexel = lightCameraOrthographicMax - lightCameraOrthographicMin;
-            worldUnitsPerTexel *= normalizeByBufferSize;
-            //*/
         }
 
         float lightCameraOrthographicMinZ = XMVectorGetZ(lightCameraOrthographicMin);
 
-        bool moveLightTexelSize = true;
+        const bool moveLightTexelSize = true;
         if (moveLightTexelSize)
         {
             // We snap the camera to 1 pixel increments so that moving the camera does not cause the shadows to jitter.

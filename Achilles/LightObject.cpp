@@ -10,6 +10,7 @@ LightObject::LightObject(std::wstring _name) : SpriteObject(_name)
 {
     AddTag(ObjectTag::Light);
     SetSpriteTexture(Texture::GetCachedTexture(L"lightbulb"));
+    SetEditorSprite(true);
 }
 
 LightObject::~LightObject()

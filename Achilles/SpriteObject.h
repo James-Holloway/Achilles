@@ -15,7 +15,7 @@ public:
     virtual Color GetSpriteColor();
     virtual void SetSpriteColor(Color color);
 
-    bool ShouldDraw();
+    virtual bool ShouldDraw(DirectX::BoundingFrustum frustum) override;
     bool GetEditorSprite();
     void SetEditorSprite(bool _editorSprite);
 

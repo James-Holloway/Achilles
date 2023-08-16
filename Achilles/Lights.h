@@ -30,7 +30,9 @@ struct CascadeInfo
 {
     Matrix CascadeMatrix;
     float DepthStart;
-    float Padding[3];
+    float MinBorderPadding;
+    float MaxBorderPadding;
+    float Padding;
 
     CascadeInfo();
 };
