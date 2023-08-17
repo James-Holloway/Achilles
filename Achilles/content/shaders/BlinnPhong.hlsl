@@ -196,6 +196,7 @@ float4 PS(PS_IN i) : SV_Target
         float spotShadowFactors[MAX_SPOT_SHADOW_MAPS];
         float cascadedShadowFactors[MAX_CASCADED_SHADOW_MAPS];
         
+        [branch]
         if (MaterialPropertiesCB.ReceivesShadows > 0.5f) // receives shadows so calculate shadowFactors for the lights
         {
             // Calc SpotLight shadow factors
@@ -210,15 +211,6 @@ float4 PS(PS_IN i) : SV_Target
             CalcShadowSpotFactors(LightPropertiesCB.SpotShadowCount, SpotShadowPos, SpotShadowMaps, spotShadowFactors);
             
             // Calculate DirectionalLight shadow factors
-            CascadeInfo CInfos[MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES];
-            for (uint m = 0; m < MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES; m++)
-            {
-                if (m < LightPropertiesCB.CascadeShadowCount * MAX_NUM_CASCADES)
-                {
-                    CInfos[m] = CascadeInfos[m];
-                }
-            }
-            
             uint NumCascades[MAX_CASCADED_SHADOW_MAPS];
             for (int c = 0; c < MAX_CASCADED_SHADOW_MAPS; c++)
             {
@@ -227,10 +219,27 @@ float4 PS(PS_IN i) : SV_Target
                 else
                     NumCascades[c] = 0;
             }
-            Texture2D DirectionalShadowMaps[MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES];
+            
+            CascadeInfo CInfos[MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES];
+            
+            [unroll]
+            for (uint m = 0; m < MAX_NUM_CASCADES; m++)
+            {
+                if (m < LightPropertiesCB.CascadeShadowCount)
+                {
+                    [unroll]
+                    for (uint n = 0; n < MAX_CASCADED_SHADOW_MAPS; n++)
+                    {
+                        uint o = (m * MAX_NUM_CASCADES) + n;
+                        if (n < NumCascades[m])
+                            CInfos[o] = CascadeInfos[o];
+                    }
+                }
+            }
             
             // Actually calculate the shadow factors
             uint cascadeShadowCount = LightPropertiesCB.CascadeShadowCount;
+            [branch]
             if (cascadeShadowCount <= 0) // No shadows
             {
                 [unroll]
@@ -259,9 +268,16 @@ float4 PS(PS_IN i) : SV_Target
             {
                 spotShadowFactors[i] = 1.0f;
             }
+            
+            [unroll]
+            for (int j = 0; j < MAX_CASCADED_SHADOW_MAPS; j++)
+            {
+                cascadedShadowFactors[j] = 1.0f;
+            }
         }
         
-        LightResult result = DoLighting(i.Position.xyz, i.PositionWS.xyz, normal, PixelInfoCB.CameraPosition, MaterialPropertiesCB.SpecularPower, spotShadowFactors, cascadedShadowFactors);
+        LightResult
+            result = DoLighting(i.Position.xyz, i.PositionWS.xyz, normal, PixelInfoCB.CameraPosition, MaterialPropertiesCB.SpecularPower, spotShadowFactors, cascadedShadowFactors);
         float3 diffuse = result.Diffuse * MaterialPropertiesCB.Diffuse;
         float3 specular = result.Specular * MaterialPropertiesCB.Specular;
         float3 ambient = result.Ambient;

@@ -232,6 +232,7 @@ void CalcShadowSpotFactors(in uint shadowCount, in float4 ShadowPos[MAX_SPOT_SHA
     [unroll]
     for (int s = 0; s < MAX_SPOT_SHADOW_MAPS; s++)
     {
+        [branch]
         if (s < shadowCount)
             shadowFactors[s] = CalcShadowFactorDivision(ShadowPos[s], ShadowMaps[s]);
         else
@@ -282,10 +283,9 @@ void CalcShadowCascadedFactors(in uint shadowCount, in float4 PositionWS, in flo
         }
         
         // float4 shadowPos = mul(PositionWS, ci.CascadeMatrix);
+        [branch]
         if (cascadeFound)
-        {
             shadowFactors[MapOffset] = CalcShadowFactorDivision(shadowPos, ShadowMaps[cascade]);
-        }
         else
             shadowFactors[MapOffset] = 1.0f;
     }

@@ -159,16 +159,16 @@ static const float preCalculatedPartitions[MAX_NUM_CASCADES][MAX_NUM_CASCADES] =
         1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f // 1 cascade
     },
     {
-        0.25f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f // 2 cascades
+        0.35f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f // 2 cascades
     },
     {
-        0.15f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f // 3 cascades
+        0.05f, 0.35f, 1.0f, 1.0f, 1.0f, 1.0f // 3 cascades
     },
     {
-        0.1f, 0.35f, 0.6f, 1.0f, 1.0f, 1.0f // 4 cascades
+        0.05f, 0.15f, 0.45f, 1.0f, 1.0f, 1.0f // 4 cascades
     },
     {
-        0.05f, 0.25f, 0.45f, 0.75f, 1.0f, 1.0f // 5 cascades
+        0.05f, 0.15f, 0.45f, 0.75f, 1.0f, 1.0f // 5 cascades
     },
     {
         0.05f, 0.15f, 0.33f, 0.5f, 0.85f, 1.0f // 6 cascades

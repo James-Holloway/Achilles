@@ -720,7 +720,12 @@ std::shared_ptr<Texture> Achilles::ResolveToSingleSampledTexture(std::shared_ptr
 void Achilles::ApplyPostProcessing(std::shared_ptr<CommandList> commandList, std::shared_ptr<Texture> texture, std::shared_ptr<Texture> presentTexture)
 {
     ScopedTimer _prof(L"Post Processing");
+
+    computeCommandQueue->Wait(*directCommandQueue); // Waiting used instead of flushing
+
     postProcessing->ApplyPostProcessing(texture, presentTexture, postProcessingEnable);
+
+    directCommandQueue->Wait(*computeCommandQueue);
 }
 
 void Achilles::CallPostPresentFunctions()
@@ -826,9 +831,8 @@ void Achilles::Render()
     std::shared_ptr<Texture> singleSampledTexture = ResolveToSingleSampledTexture(directCommandList, rtTexture);
 
     {
-        ScopedTimer _prof(L"Execute Command List & Flush");
+        ScopedTimer _prof(L"Execute Command List");
         directCommandQueue->ExecuteCommandList(directCommandList);
-        directCommandQueue->Flush(); // Required else we crash when accessing rtTexture from compute (only when debugger is not present though)
     }
 
     std::shared_ptr<CommandList> presentCommandList = directCommandQueue->GetCommandList();

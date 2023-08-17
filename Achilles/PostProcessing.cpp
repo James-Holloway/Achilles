@@ -20,7 +20,6 @@ void PostProcessing::ApplyPostProcessing(std::shared_ptr<Texture> texture, std::
     {
         ApplyPresentConversion(commandList, texture, presentTexture);
         commandQueue->ExecuteCommandList(commandList);
-        commandQueue->Flush();
         return;
     }
 
@@ -32,7 +31,7 @@ void PostProcessing::ApplyPostProcessing(std::shared_ptr<Texture> texture, std::
     commandList->FlushResourceBarriers();
 
     // Exposure
-    
+
     // Tone Mapping
     ApplyToneMapping(commandList, texture, presentTexture);
 
@@ -43,7 +42,6 @@ void PostProcessing::ApplyPostProcessing(std::shared_ptr<Texture> texture, std::
     }
 
     commandQueue->ExecuteCommandList(commandList);
-    commandQueue->Flush();
 }
 
 void PostProcessing::Resize(uint32_t width, uint32_t height)

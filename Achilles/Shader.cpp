@@ -19,8 +19,9 @@ HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring 
     };
 
     // Indicate that the shader should be in a debuggable state if in debug mode
-#if defined(_DEBUG) || defined(_UNOPTIMIZED)
-    compilationArguments.push_back(L"-Zs"); // Enable debug information (slim format)
+#if defined(_DEBUG)
+    // compilationArguments.push_back(L"-Zs"); // Enable debug information (slim format)
+    compilationArguments.push_back(L"-Zi"); // Full debug information
 #else
     compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 #endif
@@ -69,6 +70,32 @@ HRESULT CompileShader(std::wstring shaderPath, std::wstring entry, std::wstring 
         OutputDebugStringW(outBuffer);
         return hrStatus;
     }
+
+#if defined(_DEBUG)
+    ComPtr<IDxcBlob> pdb;
+    ComPtr<IDxcBlobWide> pdbName;
+    hrStatus = compiledShader->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName);
+    if (FAILED(hrStatus))
+    {
+        OutputDebugStringWFormatted(L"Unable to get PDB information from shader (0x%X) : %s\n", hrStatus, shaderPath.c_str());
+        return hrStatus;
+    }
+    
+    std::wstring pdbNameStr = std::wstring(pdbName->GetStringPointer(), pdbName->GetStringLength());
+    std::wstring pdbDirectory = GetDirectoryFromPath(GetExePathW()) + L"/PDB/";
+    std::filesystem::path pdbPath = pdbDirectory + pdbNameStr;
+
+    if (!std::filesystem::exists(pdbDirectory))
+    {
+        std::filesystem::create_directory(pdbDirectory);
+    }
+
+    {
+        std::ofstream pdbOutput(pdbPath.wstring().c_str(), std::ios::binary);
+        if (pdbOutput)
+            pdbOutput.write(reinterpret_cast<char*>(pdb->GetBufferPointer()), pdb->GetBufferSize());
+    }
+#endif
 
     ComPtr<IDxcBlob> shader;
     ComPtr<IDxcBlobWide> shaderName;
