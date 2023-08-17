@@ -1733,6 +1733,32 @@ void Thetis::OnMouse(Mouse::ButtonStateTracker mt, MouseData md, Mouse::State st
     }
 }
 
+void Thetis::OnGamePad(float dt)
+{
+    auto state = gamepad->GetState(0, GamePad::DEAD_ZONE_CIRCULAR);
+
+    if (state.IsConnected())
+    {
+        float leftX = state.thumbSticks.leftX;
+        float leftY = state.thumbSticks.leftY;
+
+        float rightX = state.thumbSticks.rightX;
+        float rightY = state.thumbSticks.rightY;
+
+        float cameraRotationAmount = 45 * 3.0f * dt;
+        camera->RotateEuler(Vector3(toRad(cameraRotationAmount) * -rightY, toRad(cameraRotationAmount) * rightX, 0));
+
+        float movementSpeed = cameraBaseMoveSpeed * 2.0f * dt;
+        camera->MoveRelative(Vector3(movementSpeed * leftX, 0, movementSpeed * leftY));
+
+        if (state.IsRightShoulderPressed())
+            camera->MoveRelative(Vector3(0, movementSpeed, 0));
+
+        if (state.IsLeftShoulderPressed())
+            camera->MoveRelative(Vector3(0, -movementSpeed, 0));
+    }
+}
+
 void Thetis::AddObjectToScene(std::shared_ptr<Object> object)
 {
     if (selectedPropertiesScene == nullptr)

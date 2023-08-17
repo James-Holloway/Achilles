@@ -4,6 +4,7 @@
 #include <d3d12.h>
 #include <directxtk12/Keyboard.h>
 #include <directxtk12/Mouse.h>
+#include <directxtk12/GamePad.h>
 #include "AchillesDrop.h"
 #include "Resource.h"
 #include "Texture.h"
@@ -113,6 +114,7 @@ protected:
     std::unique_ptr<DirectX::Mouse> mouse;
     DirectX::Mouse::ButtonStateTracker mouseTracker;
     MouseData prevMouseData{};
+    std::unique_ptr<DirectX::GamePad> gamepad;
 
     std::deque<double> historicalFrameTimes{};
 
@@ -207,6 +209,7 @@ public:
     virtual void UnloadContent() {}; // Unload content just before Destroy
     virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt) {};
     virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) {};
+    virtual void OnGamePad(float dt) {};
 
 public:
     // Achilles functions for creating things

@@ -244,6 +244,7 @@ void CalcShadowSpotFactors(in uint shadowCount, in float4 ShadowPos[MAX_SPOT_SHA
 
 void CalcShadowCascadedFactors(in uint shadowCount, in float4 PositionWS, in float PixelDepth, in CascadeInfo CascadeInfos[MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES], in uint NumCascades[MAX_CASCADED_SHADOW_MAPS], in Texture2D ShadowMaps[MAX_NUM_CASCADES], in uint MapOffset, out float shadowFactors[MAX_CASCADED_SHADOW_MAPS])
 {
+    [branch]
     if (MapOffset < shadowCount)
     {
         // Select cascade by interval

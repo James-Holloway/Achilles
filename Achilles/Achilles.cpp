@@ -600,7 +600,7 @@ void Achilles::Present(std::shared_ptr<CommandQueue> commandQueue, std::shared_p
     fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
     UINT syncInterval = vSync ? 1 : 0;
-    if (GetForegroundWindow() != hWnd)
+    if (vSync && GetForegroundWindow() != hWnd)
     {
         syncInterval = 4; // every 4th blank
     }
@@ -780,6 +780,7 @@ void Achilles::Update()
         OnKeyboard(keyboardTracker, keyboard->GetState(), dt);
     if (!ImGui::GetIO().WantCaptureMouse)
         OnMouse(mouseTracker, mouseData, mouseState, dt);
+    OnGamePad(dt);
 
     OnUpdate(dt);
 }
@@ -1145,6 +1146,7 @@ void Achilles::Initialize()
     keyboard = std::make_unique<Keyboard>();
     mouse = std::make_unique<Mouse>();
     mouse->SetWindow(hWnd);
+    gamepad = std::make_unique<GamePad>();
 
     mainScene = std::make_shared<Scene>(L"Main");
     AddScene(mainScene);
