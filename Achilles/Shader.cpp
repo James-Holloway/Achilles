@@ -203,6 +203,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
         CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
         CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER Rasterizer;
         CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC Blend;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilState;
     } pipelineStateStream;
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
@@ -225,6 +226,11 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
         blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
     }
 
+    CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc{ CD3DX12_DEFAULT() };
+    depthStencilDesc.DepthEnable = true;
+    depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+    depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+
     pipelineStateStream.pRootSignature = shader->rootSignature->GetRootSignature().Get();
     pipelineStateStream.InputLayout = { _vertexLayout, vertexLayoutCount };
     pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -236,6 +242,7 @@ std::shared_ptr<Shader> Shader::ShaderVSPS(ComPtr<ID3D12Device2> device, D3D12_I
     pipelineStateStream.SampleDesc = sampleDesc;
     pipelineStateStream.Rasterizer = rasterizerDesc;
     pipelineStateStream.Blend = blendDesc;
+    pipelineStateStream.DepthStencilState = depthStencilDesc;
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream), &pipelineStateStream

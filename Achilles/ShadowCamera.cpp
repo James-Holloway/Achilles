@@ -10,7 +10,7 @@ static const XMVECTORF32 g_vHalfVector = { 0.5f, 0.5f, 0.5f, 0.5f };
 static const XMVECTORF32 g_vMultiplySetzwToZero = { 1.0f, 1.0f, 0.0f, 0.0f };
 static const XMVECTORF32 g_vZero = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-ShadowCamera::ShadowCamera() : ShadowCamera(L"ShadowCamera", ShadowCameraWidth, ShadowCameraHeight)
+ShadowCamera::ShadowCamera() : ShadowCamera(L"ShadowCamera", ShadowCameraWidth, ShadowCameraWidth)
 {
 
 }
@@ -40,6 +40,8 @@ void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, Boun
 
 void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, BoundingBox shadowBounds, std::shared_ptr<Camera> camera, uint32_t bufferWidth, uint32_t bufferHeight, uint32_t bufferPrecision)
 {
+    ScopedTimer _prof(L"UpdateMatrix");
+
     // Look at the shadow center (often 0,0,0)
     // Matrix view = (Matrix)XMMatrixLookAtLH(lightPos, (Vector3)shadowBounds.Center, Vector3::Up);
     // SetView(view);

@@ -14,9 +14,8 @@ using DirectX::SimpleMath::Quaternion;
 using DirectX::BoundingSphere;
 using DirectX::BoundingBox;
 
-constexpr uint32_t ShadowCameraWidth = 2048;
-constexpr uint32_t ShadowCameraHeight = 2048;
-constexpr uint32_t ShadowCameraNumCascades = 0; // Default to no shadow cascades as they aren't working properly yet
+constexpr uint32_t ShadowCameraWidth = 1024;
+constexpr uint32_t ShadowCameraNumCascades = 3; // Default to 3 cascades
 
 class LightObject;
 
@@ -59,7 +58,7 @@ protected:
 
 public:
     uint32_t cameraWidth = ShadowCameraWidth;
-    uint32_t cameraHeight = ShadowCameraHeight;
+    uint32_t cameraHeight = ShadowCameraWidth;
 
 protected:
     Matrix shadowMatrix;

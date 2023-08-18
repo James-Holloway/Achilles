@@ -3,6 +3,7 @@
 #include "shaders/ShadowMapping.h"
 #include "shaders/Skybox.h"
 #include "shaders/StartupScreen.h"
+#include "shaders/ZPrePass.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -698,6 +699,7 @@ void Achilles::LoadInternalContent()
     // Ensures we have loaded the shadow mapping shaders inside ShadowMapping::RenderShadowScene
     std::shared_ptr<Shader> shadowShader = ShadowMapping::GetShadowMappingShader(device);
     std::shared_ptr<Shader> shadowHighBiasShader = ShadowMapping::GetShadowMappingHighBiasShader(device);
+    std::shared_ptr<Shader> zPrePassShader = ZPrePass::GetZPrePassShader(device);
 
     commandQueue->ExecuteCommandList(commandList);
 }
@@ -1789,12 +1791,64 @@ void Achilles::DrawSpriteIndexed(std::shared_ptr<CommandList> commandList, std::
     commandList->DrawMesh(mesh);
 }
 
+void Achilles::DrawZPrePassObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)
+{
+    if (object == nullptr)
+        throw std::exception("Object was not available");
+
+    if (camera.use_count() <= 0)
+        throw std::exception("Rendered camera was not available");
+
+    if (!object->ShouldDraw(camera->GetFrustum()) && frustumCulling)
+        return;
+
+    ScopedTimer _prof(L"DrawZPrePassObjectIndexed");
+    std::shared_ptr<Mesh> mesh = object->GetMesh(knitIndex);
+    if (mesh == nullptr)
+        return; // Mesh did not exist but maybe the knit vector has missing spaces
+
+    ZPrePass::ZPrePassMatrix matrix{};
+    matrix.MVP = (object->GetWorldMatrix() * (camera->GetView() * camera->GetProj()));
+    commandList->SetGraphics32BitConstants<ZPrePass::ZPrePassMatrix>(ShadowMapping::RootParameterMatrices, matrix);
+
+    commandList->SetMesh(mesh);
+    commandList->DrawMesh(mesh);
+}
+
 void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 {
     ScopedTimer _prof(L"DrawQueuedEvents");
     std::shared_ptr<Camera> lastCamera = nullptr;
 
     std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
+
+    {
+        ScopedTimer _prof2(L"Z-PrePass");
+
+        commandList->SetRenderTargetDepthOnly(*rt);
+        commandList->SetShader(ZPrePass::GetZPrePassShader(device));
+
+        for (DrawEvent de : drawEventQueue)
+        {
+            if (de.camera != lastCamera)
+            {
+                commandList->SetViewport(de.camera->viewport);
+                commandList->SetScissorRect(de.camera->scissorRect);
+                lastCamera = de.camera;
+            }
+
+            switch (de.eventType)
+            {
+            case DrawEventType::Ignore:
+            case DrawEventType::DrawSprite: // Sprites should never be in the opaque queue
+                break;
+            case DrawEventType::DrawIndexed:
+                DrawZPrePassObjectKnitIndexed(commandList, de.object, de.knitIndex, de.camera);
+                break;
+            }
+        }
+    }
+
     commandList->SetRenderTarget(*rt);
 
     {

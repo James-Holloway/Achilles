@@ -199,6 +199,7 @@
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="ConstantBuffer.cpp" />
     <ClCompile Include="ConstantBufferView.cpp" />
+    <ClCompile Include="shaders\ZPrePass.cpp" />
     <None Include="content\models\skydome.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -337,6 +338,7 @@
     <ClInclude Include="UnorderedAccessView.h" />
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="VertexBuffer.h" />
+    <ClInclude Include="shaders\ZPrePass.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="content\shaders\ColorCommon.hlsli">
@@ -426,6 +428,14 @@
     <None Include="content\shaders\SpriteUnlit.hlsl">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\ZPrePass.hlsl">
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Unoptimized|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

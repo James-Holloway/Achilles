@@ -230,6 +230,9 @@
     <ClCompile Include="shaders\StartupScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="shaders\ZPrePass.cpp">
+      <Filter>Shaders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imgui.h">
@@ -448,6 +451,9 @@
     <ClInclude Include="shaders\StartupScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\ZPrePass.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -509,6 +515,9 @@
       <Filter>content\shaders</Filter>
     </None>
     <None Include="content\shaders\SpriteUnlit.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\shaders\ZPrePass.hlsl">
       <Filter>content\shaders</Filter>
     </None>
   </ItemGroup>
