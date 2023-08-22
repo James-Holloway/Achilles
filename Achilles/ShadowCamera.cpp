@@ -294,11 +294,7 @@ std::shared_ptr<ShadowMap> ShadowCamera::GetPointCubeShadowMap(std::shared_ptr<C
 
     if (commandList != nullptr)
     {
-        for (uint32_t i = 0; i < 6; i++)
-        {
-            std::shared_ptr<ShadowMap> directionShadowMap = GetShadowMap(i);
-            commandList->CopyTextureRegion(*cubeShadowMap, *directionShadowMap, i, 1, 0, 1);
-        }
+        commandList->CopyTexturesToCubemap(*cubeShadowMap, *GetShadowMap(0), *GetShadowMap(1), *GetShadowMap(2), *GetShadowMap(3), *GetShadowMap(4), *GetShadowMap(5));
     }
 
     return cubeShadowMap;

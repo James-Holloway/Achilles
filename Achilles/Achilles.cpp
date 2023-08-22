@@ -825,7 +825,17 @@ void Achilles::Render()
     float dt = deltaTime.count() * 1e-9f;
     OnRender(dt);
     DrawActiveScenes(); // Defer events until DrawQueuedEvents
-    DrawShadowScenes(directCommandList, Camera::mainCamera); // Immediately renders the active scene objects from the shadow camera perspectives. Also populates lightData
+
+    // Shadow rendering
+    shadowRateCounter += dt;
+    if (updateShadowsNextFrame || shadowRateCounter > shadowUpdateRate)
+    {
+        updateShadowsNextFrame = false;
+        shadowRateCounter = 0.0f;
+
+        DrawShadowScenes(directCommandList, Camera::mainCamera); // Immediately renders the active scene objects from the shadow camera perspectives. Also populates lightData
+    }
+
     DrawQueuedEvents(directCommandList); // Rendering deferred events
     OnPostRender(dt);
 
@@ -1726,6 +1736,11 @@ void Achilles::DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& l
 
     commandList->SetMesh(mesh);
     commandList->DrawMesh(mesh);
+}
+
+void Achilles::SetRenderShadowsNextFrame()
+{
+    updateShadowsNextFrame = true;
 }
 
 void Achilles::DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera)

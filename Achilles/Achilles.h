@@ -133,6 +133,11 @@ protected:
     LightData lightData{};
     std::shared_ptr<PostProcessing> postProcessing;
 
+    // Shadow Update Rate
+    float shadowUpdateRate = 1.0f / 30.0f;
+    double shadowRateCounter = 0.0;
+    bool updateShadowsNextFrame = true;
+
 public:
     // Constructor and destructor functions
     Achilles(std::wstring _name = L"Achilles", uint32_t width = 1600, uint32_t height = 900);
@@ -236,6 +241,9 @@ public:
     void ClearLightData(LightData& lightData);
     void ConstructLightPositions(std::vector<std::shared_ptr<Object>> flattenedScene, std::shared_ptr<Camera> camera);
     void DrawSkybox(std::shared_ptr<CommandList> commandList, LightData& lightData);
+
+    void SetRenderShadowsNextFrame();
+
 protected:
     void DrawObjectKnitIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, uint32_t knitIndex, std::shared_ptr<Camera> camera);
     void DrawObjectIndexed(std::shared_ptr<CommandList> commandList, std::shared_ptr<Object> object, std::shared_ptr<Camera> camera);

@@ -167,6 +167,9 @@ public:
     // Copies texture data between two locations
     void CopyTextureRegion(Texture& destination, Texture& source, uint32_t destinationFirstSubresource = 0, uint32_t destinationNumSubresources = 1, uint32_t sourceFirstSubresource = 0, uint32_t sourceNumSubresources = 1, UINT x = 0, UINT y = 0, UINT z = 0, D3D12_BOX* size = nullptr);
 
+    // Copies texture data from source0-5 into cubemap
+    void CopyTexturesToCubemap(Texture& cubemap, Texture& source0, Texture& source1, Texture& source2, Texture& source3, Texture& source4, Texture& source5);
+
 
     // Set a dynamic constant buffer data to an inline descriptor in the root signature
     void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData);

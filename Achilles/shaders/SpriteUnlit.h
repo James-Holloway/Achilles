@@ -6,7 +6,7 @@
 
 namespace SpriteUnlit
 {
-    constexpr float minScreenSize = 0.025f;
+    constexpr float minScreenSize = 0.005f;
     constexpr float maxScreenSize = 0.125f;
 
     struct SpriteProperties

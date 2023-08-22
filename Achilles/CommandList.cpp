@@ -883,6 +883,56 @@ void CommandList::CopyTextureRegion(Texture& destination, Texture& source, uint3
     }
 }
 
+void CommandList::CopyTexturesToCubemap(Texture& cubemap, Texture& source0, Texture& source1, Texture& source2, Texture& source3, Texture& source4, Texture& source5)
+{
+    auto device = Application::GetD3D12Device();
+    auto destinationResource = cubemap.GetD3D12Resource();
+    if (destinationResource)
+    {
+        // Resource must be in the copy-destination state.
+        TransitionBarrier(source0, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(source1, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(source2, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(source3, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(source4, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(source5, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(cubemap, D3D12_RESOURCE_STATE_COPY_DEST);
+        FlushResourceBarriers();
+
+        CD3DX12_TEXTURE_COPY_LOCATION dst0(destinationResource.Get(), 0);
+        CD3DX12_TEXTURE_COPY_LOCATION src0(source0.GetD3D12Resource().Get(), 0);
+        d3d12CommandList->CopyTextureRegion(&dst0, 0, 0, 0, &src0, nullptr);
+
+        CD3DX12_TEXTURE_COPY_LOCATION dst1(destinationResource.Get(), 1);
+        CD3DX12_TEXTURE_COPY_LOCATION src1(source1.GetD3D12Resource().Get(), 0);
+        d3d12CommandList->CopyTextureRegion(&dst1, 0, 0, 0, &src1, nullptr);
+
+        CD3DX12_TEXTURE_COPY_LOCATION dst2(destinationResource.Get(), 2);
+        CD3DX12_TEXTURE_COPY_LOCATION src2(source2.GetD3D12Resource().Get(), 0);
+        d3d12CommandList->CopyTextureRegion(&dst2, 0, 0, 0, &src2, nullptr);
+
+        CD3DX12_TEXTURE_COPY_LOCATION dst3(destinationResource.Get(), 3);
+        CD3DX12_TEXTURE_COPY_LOCATION src3(source3.GetD3D12Resource().Get(), 0);
+        d3d12CommandList->CopyTextureRegion(&dst3, 0, 0, 0, &src3, nullptr);
+
+        CD3DX12_TEXTURE_COPY_LOCATION dst4(destinationResource.Get(), 4);
+        CD3DX12_TEXTURE_COPY_LOCATION src4(source4.GetD3D12Resource().Get(), 0);
+        d3d12CommandList->CopyTextureRegion(&dst4, 0, 0, 0, &src4, nullptr);
+
+        CD3DX12_TEXTURE_COPY_LOCATION dst5(destinationResource.Get(), 5);
+        CD3DX12_TEXTURE_COPY_LOCATION src5(source5.GetD3D12Resource().Get(), 0);
+        d3d12CommandList->CopyTextureRegion(&dst5, 0, 0, 0, &src5, nullptr);
+
+        TrackObject(source0.GetD3D12Resource());
+        TrackObject(source1.GetD3D12Resource());
+        TrackObject(source2.GetD3D12Resource());
+        TrackObject(source3.GetD3D12Resource());
+        TrackObject(source4.GetD3D12Resource());
+        TrackObject(source5.GetD3D12Resource());
+        TrackObject(destinationResource);
+    }
+}
+
 void CommandList::SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData)
 {
     // Constant buffers must be 256-byte aligned.
