@@ -46,11 +46,15 @@ public:
 
     void ResizeShadowMaps(uint32_t width, uint32_t height);
     void ResizeCascades(uint32_t newCascades);
+    void CreatePointShadowMaps();
     uint32_t GetNumCascades();
 
     std::vector<Matrix> GetCascadeProjections();
     std::vector<Matrix> GetCascadeMatrices();
     std::vector<float> GetCascadePartitions();
+
+    DirectX::SimpleMath::Matrix GetPointDirectionShadowMatrix(uint32_t directionIndex);
+    std::shared_ptr<ShadowMap> GetPointCubeShadowMap(std::shared_ptr<CommandList> commandList);
 
 protected:
     // Returns a vector of orthographic matrices, one per cascade. used when setting the directional light's projection matrix
@@ -70,6 +74,8 @@ protected:
 
     uint32_t numCascades = ShadowCameraNumCascades;
     std::vector<float> cascadePartitions{};
+
+    std::shared_ptr<ShadowMap> cubeShadowMap;
 
     float rank = -1000.0f; // Return small rank so it becomes the last in the sorted shadow camera list
 

@@ -42,9 +42,6 @@ void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, Boun
 {
     ScopedTimer _prof(L"UpdateMatrix");
 
-    // Look at the shadow center (often 0,0,0)
-    // Matrix view = (Matrix)XMMatrixLookAtLH(lightPos, (Vector3)shadowBounds.Center, Vector3::Up);
-    // SetView(view);
     SetRotation(lightRotation.ToEuler());
     SetPosition(lightPos);
 
@@ -85,9 +82,20 @@ void ShadowCamera::UpdateMatrix(Vector3 lightPos, Quaternion lightRotation, Boun
         }
         SetPerspective(true);
     }
-    else if ((GetLightType() & LightType::Point) != LightType::None)
+    else if (GetLightType() == LightType::Point)
     {
+        SetFOV(90.0f);
+        nearZ = 0.005f;
+        farZ = 100.0f;
 
+        LightObject* lightObject = GetLightObject();
+        if (lightObject != nullptr)
+        {
+            PointLight point = lightObject->GetPointLight();
+            farZ = point.Light.MaxDistance;
+        }
+
+        SetPerspective(true);
     }
 
     shadowMatrix = ((GetView() * GetProj()) * NDCToTextureTransform).Transpose();
@@ -100,10 +108,13 @@ const Matrix& ShadowCamera::GetShadowMatrix() const
 
 std::shared_ptr<ShadowMap> ShadowCamera::GetShadowMap(uint32_t index)
 {
-    if (numCascades == 0)
+    if (GetLightType() == LightType::Directional && numCascades == 0)
         return shadowMaps[0];
 
-    if (index >= numCascades)
+    if (GetLightType() == LightType::Spot)
+        return shadowMaps[0];
+
+    if (index >= shadowMaps.size())
         return nullptr;
 
     return shadowMaps[index];
@@ -151,6 +162,9 @@ void ShadowCamera::ResizeShadowMaps(uint32_t width, uint32_t height)
 
     for (uint32_t i = 0; i < shadowMaps.size(); i++)
         shadowMaps[i]->Resize(cameraWidth, cameraHeight);
+
+    if (cubeShadowMap)
+        cubeShadowMap->Resize(cameraWidth, cameraHeight, 6);
 
     UpdateViewport(width, height);
 }
@@ -201,6 +215,19 @@ void ShadowCamera::ResizeCascades(uint32_t newCascades)
     }
 }
 
+void ShadowCamera::CreatePointShadowMaps()
+{
+    numCascades = 0;
+    shadowMaps.resize(6);
+    for (uint32_t i = 0; i < 6; i++)
+    {
+        shadowMaps[i] = ShadowMap::CreateShadowMap(cameraWidth, cameraHeight);
+        shadowMaps[i]->SetName(L"Point Shadow Map " + std::to_wstring(i));
+    }
+    cascadePartitions.resize(1);
+    cascadePartitions[0] = 1.0f;
+}
+
 uint32_t ShadowCamera::GetNumCascades()
 {
     return numCascades;
@@ -225,6 +252,56 @@ std::vector<Matrix> ShadowCamera::GetCascadeMatrices()
 std::vector<float> ShadowCamera::GetCascadePartitions()
 {
     return cascadePartitions;
+}
+
+DirectX::SimpleMath::Matrix ShadowCamera::GetPointDirectionShadowMatrix(uint32_t directionIndex)
+{
+    Vector3 pos = GetPosition();
+    Matrix directionalView = Matrix::Identity;
+
+    switch (directionIndex)
+    {
+    case 0:
+        directionalView = XMMatrixLookAtLH(pos, pos + Vector3::Right, Vector3::Up); // +x
+        break;
+    case 1:
+        directionalView = XMMatrixLookAtLH(pos, pos + Vector3::Left, Vector3::Up); // -x
+        break;
+    case 2:
+        directionalView = XMMatrixLookAtLH(pos, pos + Vector3::Up, Vector3::Forward); // +y
+        break;
+    case 3:
+        directionalView = XMMatrixLookAtLH(pos, pos + Vector3::Down, Vector3::Backward); // -y
+        break;
+    case 4:
+        directionalView = XMMatrixLookAtLH(pos, pos + Vector3::Backward, Vector3::Up); // +z
+        break;
+    case 5:
+        directionalView = XMMatrixLookAtLH(pos, pos + Vector3::Forward, Vector3::Up); // -z
+        break;
+    }
+
+    return directionalView;
+}
+
+std::shared_ptr<ShadowMap> ShadowCamera::GetPointCubeShadowMap(std::shared_ptr<CommandList> commandList)
+{
+    if (cubeShadowMap == nullptr)
+    {
+        cubeShadowMap = ShadowMap::CreateShadowMap(cameraWidth, cameraHeight, 6Ui16);
+        cubeShadowMap->SetName(L"Point Cube ShadowMap");
+    }
+
+    if (commandList != nullptr)
+    {
+        for (uint32_t i = 0; i < 6; i++)
+        {
+            std::shared_ptr<ShadowMap> directionShadowMap = GetShadowMap(i);
+            commandList->CopyTextureRegion(*cubeShadowMap, *directionShadowMap, i, 1, 0, 1);
+        }
+    }
+
+    return cubeShadowMap;
 }
 
 std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(BoundingBox sceneAABB, std::shared_ptr<Camera> camera, uint32_t numCascades)
@@ -314,7 +391,7 @@ std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(B
             lightCameraOrthographicMin = XMVectorMin(tempTranslatedCornerPoint, lightCameraOrthographicMin);
             lightCameraOrthographicMax = XMVectorMax(tempTranslatedCornerPoint, lightCameraOrthographicMax);
         }
-        
+
         float farPlane = XMVectorGetZ(lightCameraOrthographicMax) * 5;
         float nearPlane = -farPlane;
 
@@ -368,7 +445,7 @@ std::vector<Matrix> ShadowCamera::GetDirectionalLightFrustumFromSceneAndCamera(B
         // farPlane = 100.0f;
 
 #pragma region ComputeNearAndFar
-        
+
         // 12 triangles per frustum, plus 4 for extra triangles. x3 because 3 points make a triangle
         Vector3 triangleList[16 * 3] = { Vector3(0, 0, 0) };
         bool triangleCulled[16] = { false };

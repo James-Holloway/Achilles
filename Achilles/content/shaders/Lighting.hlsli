@@ -7,6 +7,9 @@
 #ifndef MAX_NUM_CASCADES
 #define MAX_NUM_CASCADES 6
 #endif
+#ifndef MAX_POINT_SHADOW_MAPS
+#define MAX_POINT_SHADOW_MAPS 6
+#endif
 
 #define LIGHT_TYPE_POINT 1
 #define LIGHT_TYPE_SPOT 2
@@ -89,7 +92,8 @@ struct LightProperties
     uint SpotShadowCount;
     
     uint CascadeShadowCount;
-    float3 Padding;
+    uint PointShadowCount;
+    float2 Padding;
 };
 
 struct LightResult
@@ -107,6 +111,11 @@ struct CascadeInfo
     float MaxBorderPadding;
     float Padding;
 };
+
+float LinearizeDepth(float d, float zNear, float zFar)
+{
+    return zNear * zFar / (zFar + d * (zFar - zNear));
+}
 
 // Lighting
 float DoDiffuse(float3 normal, float3 lightDir)
@@ -181,8 +190,9 @@ LightResult DoDirectionalLighting(DirectionalLight light, float3 normal, float3 
 }
 
 // Shadows
-#if SHADOWS
-SamplerComparisonState ShadowSampler : register(s0, space1);
+#if SHADOWS || 1
+SamplerComparisonState ShadowComparisonSampler : register(s0, space1);
+SamplerState ShadowSampler : register(s1, space1);
 
 float CalcShadowFactor(float4 shadowPos, Texture2D shadowMap)
 {
@@ -193,8 +203,10 @@ float CalcShadowFactor(float4 shadowPos, Texture2D shadowMap)
     shadowMap.GetDimensions(0, width, height, numMips);
     float dx = 1.0f / (float) width; // Texel size
     
+#if DISABLE_PCF
+    return shadowMap.SampleCmpLevelZero(ShadowComparisonSampler, shadowPos.xy, depth).r;
+#else
     float percentLit = 0.0f;
-    
     const float2 offsets[9] =
     {
         float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
@@ -205,10 +217,11 @@ float CalcShadowFactor(float4 shadowPos, Texture2D shadowMap)
     [unroll]
     for (int i = 0; i < 9; i++)
     {
-        percentLit += shadowMap.SampleCmpLevelZero(ShadowSampler, shadowPos.xy + offsets[i], depth).r;
+        percentLit += shadowMap.SampleCmpLevelZero(ShadowComparisonSampler, shadowPos.xy + offsets[i], depth).r;
     }
     
     return percentLit / 9.0f;
+#endif
 }
 
 float CalcShadowFactorDivision(float4 shadowPosH, Texture2D shadowMap)
@@ -347,6 +360,118 @@ float4 CascadeDebugDraw(in uint shadowCount, in float4 PositionWS, in float Pixe
         
     }
     return float4(0.25, 0.25, 0.25, 1.0f); // grey
+}
+
+static const int POINT_SHADOW_OFFSETS = 20;
+
+static const float3 PointShadowOffsets[POINT_SHADOW_OFFSETS] =
+{
+    float3(1, 1, 1), float3(1, -1, 1), float3(-1, -1, 1), float3(-1, 1, 1),
+	float3(1, 1, -1), float3(1, -1, -1), float3(-1, -1, -1), float3(-1, 1, -1),
+	float3(1, 1, 0), float3(1, -1, 0), float3(-1, -1, 0), float3(-1, 1, 0),
+	float3(1, 0, 1), float3(-1, 0, 1), float3(1, 0, -1), float3(-1, 0, -1),
+	float3(0, 1, 1), float3(0, -1, 1), float3(0, -1, -1), float3(0, 1, -1)
+};
+
+float CalcPointShadowFactor(float3 positionWS, float3 lightPos, float3 cameraPos, TextureCube shadowMap, float4 lightPerspectiveValues)
+{
+    /*
+    const float bias = 0.005;
+    
+    float3 shadowPos = normalize(positionWS - lightPos);
+    
+    float3 shadowPosAbs = abs(shadowPos);
+    // float z = max(shadowPosAbs.x, max(shadowPosAbs.y, shadowPosAbs.z));
+    float z = length(shadowPosAbs);
+    float depth = (lightPerspectiveValues.x * z + lightPerspectiveValues.y) / z;
+    
+    return shadowMap.SampleCmpLevelZero(ShadowComparisonSampler, shadowPos, depth - bias).r;
+    */
+    
+    float offsetBias = 0.05;
+    
+    float zNear = lightPerspectiveValues.w;
+    float zFar = lightPerspectiveValues.z;
+    float zRange = zFar - zNear;
+    
+    float3 shadowPos = positionWS - lightPos;
+    float currentDepth = length(shadowPos);
+    
+    float shadowFactor = 0.0f;
+    
+#if DISABLE_PCF
+    float closestDepth = shadowMap.SampleLevel(ShadowSampler, shadowPos, 0).r * zRange;
+    
+    if ((currentDepth - offsetBias) < closestDepth)
+    {
+        shadowFactor += 1.0f;
+    }
+#else
+#if DISTANCE_BASED_PCF
+    float viewDistance = length(cameraPos - positionWS);
+    float diskRadius = (1.0 + (viewDistance / zFar)) / 25.0;
+#else
+    // float width, height;
+    // shadowMap.GetDimensions(width, height);
+    
+    // float diskRadius = (10.0 / width);
+    float diskRadius = 0.05;
+#endif
+    
+    for (int s = 0; s < POINT_SHADOW_OFFSETS; s++)
+    {
+        float3 texel = shadowPos + PointShadowOffsets[s] * diskRadius;
+        float closestDepth = shadowMap.SampleLevel(ShadowSampler, texel, 0).r * zRange;
+        
+        if ((currentDepth - offsetBias) < closestDepth)
+        {
+            shadowFactor += 1.0;
+        }
+    }
+    
+    shadowFactor /= float(POINT_SHADOW_OFFSETS);
+#endif
+    
+    return shadowFactor;
+}
+
+float4 CalculatePointLightPerspectiveValues(float dist, float radius)
+{
+    float zRange = dist - radius;
+    float x = dist / zRange;
+    float y = (-dist * radius) / zRange;
+    return float4(x, y, dist, radius);
+}
+
+void CalcPointShadowFactors(in uint shadowCount, in float3 positionWS, in float3 cameraPos, in PointLight Lights[MAX_POINT_SHADOW_MAPS], in TextureCube ShadowMaps[MAX_POINT_SHADOW_MAPS], out float shadowFactors[MAX_POINT_SHADOW_MAPS])
+{
+    if (shadowCount <= 0) // No shadows
+    {
+        [unroll]
+        for (int i = 0; i < MAX_POINT_SHADOW_MAPS; i++)
+        {
+            shadowFactors[i] = 1.0f;
+        }
+        return;
+    }
+    
+    [unroll]
+    for (int s = 0; s < MAX_POINT_SHADOW_MAPS; s++)
+    {
+        [branch]
+        if (s < shadowCount)
+        {
+            float dist = Lights[s].Light.MaxDistance;
+            float radius = 0.005f; // Lights[s].Light.Radius
+            float4 lightPerspectiveValues = CalculatePointLightPerspectiveValues(dist, radius);
+            
+            shadowFactors[s] = CalcPointShadowFactor(positionWS, Lights[s].Light.PositionWorldSpace.xyz, cameraPos, ShadowMaps[s], lightPerspectiveValues);
+        }
+        else
+            shadowFactors[s] = 1.0f;
+    }
+    
+    return;
 }
 
 #endif

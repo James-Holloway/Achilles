@@ -16,6 +16,7 @@ public:
 
     virtual void Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize = 1) override;
 
-    static std::shared_ptr<ShadowMap> CreateShadowMap(uint32_t width, uint32_t height);
+    static std::shared_ptr<ShadowMap> CreateShadowMap(uint32_t width, uint32_t height, uint16_t arraySize = 1);
     static D3D12_SHADER_RESOURCE_VIEW_DESC GetShadowMapR32SRV();
+    static D3D12_SHADER_RESOURCE_VIEW_DESC GetCubeShadowMapR32SRV();
 };

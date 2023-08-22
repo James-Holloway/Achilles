@@ -1,7 +1,8 @@
+#define SHADOWS 1
 #define MAX_SPOT_SHADOW_MAPS 8
 #define MAX_CASCADED_SHADOW_MAPS 4
 #define MAX_NUM_CASCADES 6
-#define SHADOWS 1
+#define MAX_POINT_SHADOW_MAPS 6
 
 #include "CommonShader.hlsli"
 #include "Lighting.hlsli"
@@ -72,6 +73,13 @@ Texture2D CascadedShadowMap1[MAX_NUM_CASCADES] : register(t7, space3);
 Texture2D CascadedShadowMap2[MAX_NUM_CASCADES] : register(t13, space3);
 Texture2D CascadedShadowMap3[MAX_NUM_CASCADES] : register(t19, space3);
 
+TextureCube PointShadowMap0 : register(t0, space4);
+TextureCube PointShadowMap1 : register(t1, space4);
+TextureCube PointShadowMap2 : register(t2, space4);
+TextureCube PointShadowMap3 : register(t3, space4);
+TextureCube PointShadowMap4 : register(t4, space4);
+TextureCube PointShadowMap5 : register(t5, space4);
+
 struct PS_IN
 {
     float4 Position : SV_Position; // Position in screenspace
@@ -129,7 +137,7 @@ PS_IN VS(CommonShaderVertex v)
     return o;
 }
 
-LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 viewPos, float specularPower, float spotShadowFactors[MAX_SPOT_SHADOW_MAPS], float cascadedShadowFactors[MAX_CASCADED_SHADOW_MAPS])
+LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 viewPos, float specularPower, float spotShadowFactors[MAX_SPOT_SHADOW_MAPS], float cascadedShadowFactors[MAX_CASCADED_SHADOW_MAPS], float pointShadowFactors[MAX_POINT_SHADOW_MAPS])
 {
     LightResult result = (LightResult) 0;
     float3 viewDir = normalize(viewPos - worldPos);
@@ -139,7 +147,11 @@ LightResult DoLighting(float3 screenPos, float3 worldPos, float3 normal, float3 
     for (i = 0; i < LightPropertiesCB.PointLightCount; i++)
     {
         lightResult = DoPointLighting(PointLights[i], worldPos, normal, viewDir, specularPower);
-        
+        if (i < MAX_POINT_SHADOW_MAPS)
+        {
+            lightResult.Diffuse *= pointShadowFactors[i];
+            lightResult.Specular *= pointShadowFactors[i];
+        }
         result.Diffuse += lightResult.Diffuse;
         result.Specular += lightResult.Specular;
     }
@@ -195,6 +207,7 @@ float4 PS(PS_IN i) : SV_Target
     {
         float spotShadowFactors[MAX_SPOT_SHADOW_MAPS];
         float cascadedShadowFactors[MAX_CASCADED_SHADOW_MAPS];
+        float pointShadowFactors[MAX_POINT_SHADOW_MAPS];
         
         [branch]
         if (MaterialPropertiesCB.ReceivesShadows > 0.5f) // receives shadows so calculate shadowFactors for the lights
@@ -237,7 +250,7 @@ float4 PS(PS_IN i) : SV_Target
                 }
             }
             
-            // Actually calculate the shadow factors
+            // Actually calculate the cascade shadow factors
             uint cascadeShadowCount = LightPropertiesCB.CascadeShadowCount;
             [branch]
             if (cascadeShadowCount <= 0) // No shadows
@@ -260,6 +273,20 @@ float4 PS(PS_IN i) : SV_Target
                     col *= CascadeDebugDraw(cascadeShadowCount, i.PositionWS, i.Depth, CInfos, NumCascades, 0);
                 }
             }
+            
+            // Calculate PointLight shadow factors
+            PointLight lights[MAX_POINT_SHADOW_MAPS];
+            for (uint l = 0; l < min(LightPropertiesCB.PointLightCount, MAX_POINT_SHADOW_MAPS); l++)
+            {
+                lights[l] = PointLights[l];
+            }
+            TextureCube textures[MAX_POINT_SHADOW_MAPS] =
+            {
+                PointShadowMap0, PointShadowMap1, PointShadowMap2, PointShadowMap3, PointShadowMap4, PointShadowMap5
+            };
+            
+            CalcPointShadowFactors(LightPropertiesCB.PointShadowCount, i.PositionWS.xyz, PixelInfoCB.CameraPosition.xyz, lights, textures, pointShadowFactors);
+
         }
         else // If no shadows received then populate
         {
@@ -274,10 +301,15 @@ float4 PS(PS_IN i) : SV_Target
             {
                 cascadedShadowFactors[j] = 1.0f;
             }
+            
+            [unroll]
+            for (int k = 0; k < MAX_POINT_SHADOW_MAPS; k++)
+            {
+                pointShadowFactors[k] = 1.0f;
+            }
         }
         
-        LightResult
-            result = DoLighting(i.Position.xyz, i.PositionWS.xyz, normal, PixelInfoCB.CameraPosition, MaterialPropertiesCB.SpecularPower, spotShadowFactors, cascadedShadowFactors);
+        LightResult result = DoLighting(i.Position.xyz, i.PositionWS.xyz, normal, PixelInfoCB.CameraPosition, MaterialPropertiesCB.SpecularPower, spotShadowFactors, cascadedShadowFactors, pointShadowFactors);
         float3 diffuse = result.Diffuse * MaterialPropertiesCB.Diffuse;
         float3 specular = result.Specular * MaterialPropertiesCB.Specular;
         float3 ambient = result.Ambient;

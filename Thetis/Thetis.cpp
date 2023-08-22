@@ -759,6 +759,53 @@ void Thetis::DrawImGuiProperties()
                             ImGui::Separator();
                             ImGui::DragFloat("Rank", &pointLight.Light.Rank, 0.25f, -25.0f, 25.0f, "%.0f");
 
+                            ImGui::Separator();
+                            std::shared_ptr<ShadowCamera> shadowCamera = lightObject->GetShadowCamera(LightType::Point, nullptr);
+                            if (shadowCamera && shadowCamera->GetShadowMap() != nullptr)
+                            {
+                                static uint32_t selectedPointCubeDirection = 0;
+
+                                std::string selectedPointCubeDirectionStr = std::to_string(selectedPointCubeDirection);
+                                if (ImGui::BeginCombo("View Direction", selectedPointCubeDirectionStr.c_str()))
+                                {
+                                    for (uint32_t c = 0; c < 6; c++)
+                                    {
+                                        if (ImGui::Selectable(std::to_string(c).c_str(), selectedPointCubeDirection == c))
+                                        {
+                                            selectedPointCubeDirection = c;
+                                        }
+                                        if (selectedPointCubeDirection == c)
+                                        {
+                                            ImGui::SetItemDefaultFocus();
+                                        }
+                                    }
+
+                                    ImGui::EndCombo();
+                                }
+
+                                std::shared_ptr<ShadowMap> shadowMap = shadowCamera->GetShadowMap(selectedPointCubeDirection);
+
+                                uint32_t shadowMapSize = shadowCamera->cameraWidth;
+                                std::string shadowMapSizeStr = std::to_string(shadowMapSize);
+                                if (ImGui::BeginCombo("Shadow Map Size", shadowMapSizeStr.c_str()))
+                                {
+                                    THETIS_SHADOWMAP_COMBO(128);
+                                    THETIS_SHADOWMAP_COMBO(256);
+                                    THETIS_SHADOWMAP_COMBO(512);
+                                    THETIS_SHADOWMAP_COMBO(1024);
+                                    THETIS_SHADOWMAP_COMBO(2048);
+                                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
+                                    THETIS_SHADOWMAP_COMBO(4096);
+                                    THETIS_SHADOWMAP_COMBO(8192);
+                                    // THETIS_SHADOWMAP_COMBO(16384);
+                                    ImGui::PopStyleColor();
+
+                                    ImGui::EndCombo();
+                                }
+
+                                AchillesImGui::Image(shadowMap, ImVec2(256.0f, 256.0f));
+                            }
+
                             ImGui::TreePop();
                         }
                     }
@@ -1428,7 +1475,7 @@ void Thetis::LoadContent()
     spotLight.InnerSpotAngle = toRad(35.0f);
     spotLight.OuterSpotAngle = toRad(40.0f);
     spotLightObject->AddLight(spotLight);
-    spotLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
+    spotLightObject->SetLocalPosition(Vector3(0, 7.5f, 0));
     spotLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
     spotLightObject->SetActive(false);
     spotLightObject->SetIsShadowCaster(true);
@@ -1436,11 +1483,19 @@ void Thetis::LoadContent()
 
     std::shared_ptr<LightObject> sunLightObject = std::make_shared<LightObject>(L"Sun");
     sunLightObject->AddLight(DirectionalLight());
-    sunLightObject->SetLocalPosition(Vector3(0, 7.5, 0));
+    sunLightObject->SetLocalPosition(Vector3(0, 7.5f, 0));
     sunLightObject->SetLocalRotation(Quaternion(0.0f, -1.0f, 0.0f, 0.0f));
-    sunLightObject->SetActive(true);
+    sunLightObject->SetActive(false);
     sunLightObject->SetIsShadowCaster(true);
     mainScene->AddObjectToScene(sunLightObject);
+
+    std::shared_ptr<LightObject> pointLightObject = std::make_shared<LightObject>(L"Pointlight");
+    pointLightObject->AddLight(PointLight());
+    pointLightObject->SetLocalPosition(Vector3(0, 2.0f, 0));
+    pointLightObject->SetLocalRotation(Quaternion::Identity);
+    pointLightObject->SetActive(true);
+    pointLightObject->SetIsShadowCaster(true);
+    mainScene->AddObjectToScene(pointLightObject);
 
     // Secondary scene
     {

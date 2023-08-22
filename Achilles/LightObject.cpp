@@ -214,6 +214,10 @@ std::shared_ptr<ShadowCamera> LightObject::GetShadowCamera(LightType lightType, 
         }
         pointShadowCamera->SetLightObject(this);
 
+        // Check if 6 shadow maps have been created, one for each direction
+        if (pointShadowCamera->GetShadowMap(5) == nullptr)
+            pointShadowCamera->CreatePointShadowMaps();
+
         if (camera != nullptr)
             pointShadowCamera->UpdateMatrix(GetWorldPosition(), GetWorldRotation(), boundingBox, camera);
         return pointShadowCamera;

@@ -59,6 +59,7 @@ namespace BlinnPhong
         RootParameterTextures, // Texture2D DiffuseTexture : register( t0, space1 );
         RootParameterSpotShadowMaps, // Texture2D SpotShadowMap0 : register(t0, space2);
         RootParameterCascadeShadowMaps, // Texture2D CascadedShadowMap0[8] : register(t0, space3);
+        RootParameterPointShadowMaps, // TextureCube PointShadowMap0 : register(t0, space4);
 
         RootParameterCount
     };

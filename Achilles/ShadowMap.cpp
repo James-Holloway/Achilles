@@ -37,12 +37,12 @@ void ShadowMap::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySiz
     Texture::Resize(width, height, depthOrArraySize);
 }
 
-std::shared_ptr<ShadowMap> ShadowMap::CreateShadowMap(uint32_t width, uint32_t height)
+std::shared_ptr<ShadowMap> ShadowMap::CreateShadowMap(uint32_t width, uint32_t height, uint16_t arraySize)
 {
     auto device = Application::GetD3D12Device();
     CD3DX12_RESOURCE_DESC depthTextureDesc{};
 
-    depthTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, (UINT64)width, (UINT)height, 1U, 1U, 1U, 0U, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+    depthTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, (UINT64)width, (UINT)height, (UINT16)arraySize, 1U, 1U, 0U, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
     D3D12_CLEAR_VALUE optClear{};
     optClear.Format = depthTextureDesc.Format;
@@ -67,6 +67,20 @@ D3D12_SHADER_RESOURCE_VIEW_DESC ShadowMap::GetShadowMapR32SRV()
     srvDesc.Texture2D.MostDetailedMip = 0;
     srvDesc.Texture2D.PlaneSlice = 0;
     srvDesc.Texture2D.ResourceMinLODClamp = 0;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    return srvDesc;
+}
+
+D3D12_SHADER_RESOURCE_VIEW_DESC ShadowMap::GetCubeShadowMapR32SRV()
+{
+    // Use a srvDesc to convert D32x6 to R32x6
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    srvDesc.TextureCube.MipLevels = 1;
+    srvDesc.TextureCube.MostDetailedMip = 0;
+    srvDesc.TextureCube.ResourceMinLODClamp = 0;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
     return srvDesc;

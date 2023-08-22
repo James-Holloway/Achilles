@@ -8,6 +8,7 @@
 constexpr size_t MAX_SPOT_SHADOW_MAPS = 8; // Maximum number of spotlight shadows that are supported by shaders
 constexpr size_t MAX_CASCADED_SHADOW_MAPS = 4; // Maximum number of cascaded shadow maps that are supported by shaders
 constexpr size_t MAX_NUM_CASCADES = 6; // The maximum number of cascades/textures per cascaded shadow map
+constexpr size_t MAX_POINT_SHADOW_MAPS = 6; // Maximum number of pointlight shadows (x6) that are supported by shaders
 
 class LightObject;
 class ShadowCamera;
@@ -120,7 +121,8 @@ struct LightProperties
     uint32_t DirectionalLightCount;
     uint32_t SpotShadowCount;
     uint32_t CascadeShadowCount;
-    float Padding[3] = { 0 };
+    uint32_t PointShadowCount;
+    float Padding[2] = { 0 };
 
     LightProperties();
 };
@@ -137,6 +139,7 @@ public:
     std::vector<std::shared_ptr<ShadowMap>> SortedSpotShadowMaps{};
     std::vector<std::shared_ptr<ShadowMap>> SortedCascadeShadowMaps{};
     std::vector<CascadeInfo> SortedCascadeShadowInfos{};
+    std::vector<std::shared_ptr<ShadowMap>> SortedPointShadowMaps{};
     
     LightProperties GetLightProperties();
 };

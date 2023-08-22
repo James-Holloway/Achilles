@@ -848,6 +848,41 @@ void CommandList::CopyTextureSubresource(Texture& texture, uint32_t firstSubreso
     }
 }
 
+void CommandList::CopyTextureRegion(Texture& destination, Texture& source, uint32_t destinationFirstSubresource, uint32_t destinationNumSubresources, uint32_t sourceFirstSubresource, uint32_t sourceNumSubresources, UINT x, UINT y, UINT z, D3D12_BOX* size)
+{
+    if (destinationFirstSubresource + destinationNumSubresources < sourceFirstSubresource + sourceNumSubresources)
+    {
+        throw std::exception("Source subresources exceed destination subresources");
+        return;
+    }
+    if (destinationNumSubresources < sourceNumSubresources)
+    {
+        throw std::exception("Not enough destination subresources to occupy the number of source subresources");
+        return;
+    }
+
+    auto device = Application::GetD3D12Device();
+    auto destinationResource = destination.GetD3D12Resource();
+    auto sourceResource = source.GetD3D12Resource();
+    if (destinationResource && sourceResource)
+    {
+        // Resource must be in the copy-destination state.
+        TransitionBarrier(source, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        TransitionBarrier(destination, D3D12_RESOURCE_STATE_COPY_DEST);
+        FlushResourceBarriers();
+
+        for (uint32_t i = 0; i < destinationNumSubresources; i++)
+        {
+            CD3DX12_TEXTURE_COPY_LOCATION dst(destinationResource.Get(), destinationFirstSubresource + i);
+            CD3DX12_TEXTURE_COPY_LOCATION src(sourceResource.Get(), sourceFirstSubresource + i);
+            d3d12CommandList->CopyTextureRegion(&dst, x, y, z, &src, size);
+        }
+
+        TrackObject(sourceResource);
+        TrackObject(destinationResource);
+    }
+}
+
 void CommandList::SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData)
 {
     // Constant buffers must be 256-byte aligned.

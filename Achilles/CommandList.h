@@ -164,6 +164,9 @@ public:
     // Copy subresource data to a texture
     void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
 
+    // Copies texture data between two locations
+    void CopyTextureRegion(Texture& destination, Texture& source, uint32_t destinationFirstSubresource = 0, uint32_t destinationNumSubresources = 1, uint32_t sourceFirstSubresource = 0, uint32_t sourceNumSubresources = 1, UINT x = 0, UINT y = 0, UINT z = 0, D3D12_BOX* size = nullptr);
+
 
     // Set a dynamic constant buffer data to an inline descriptor in the root signature
     void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData);
@@ -308,7 +311,7 @@ public:
     }
 
     //// Helpers functions that simplify drawing ////
-    
+
     // Sets shader pipeline state and root signature
     void SetShader(std::shared_ptr<Shader> shader);
 

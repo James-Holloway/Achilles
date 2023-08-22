@@ -520,6 +520,9 @@
     <None Include="content\shaders\ZPrePass.hlsl">
       <Filter>content\shaders</Filter>
     </None>
+    <None Include="content\shaders\ShadowMappingPoint.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\lightbulb.png">

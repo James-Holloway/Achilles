@@ -699,6 +699,7 @@ void Achilles::LoadInternalContent()
     // Ensures we have loaded the shadow mapping shaders inside ShadowMapping::RenderShadowScene
     std::shared_ptr<Shader> shadowShader = ShadowMapping::GetShadowMappingShader(device);
     std::shared_ptr<Shader> shadowHighBiasShader = ShadowMapping::GetShadowMappingHighBiasShader(device);
+    std::shared_ptr<Shader> shadowPointShader = ShadowMapping::GetShadowMappingPointShader(device);
     std::shared_ptr<Shader> zPrePassShader = ZPrePass::GetZPrePassShader(device);
 
     commandQueue->ExecuteCommandList(commandList);
@@ -1443,13 +1444,16 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList, std::s
     }
 #pragma endregion
 
-    // Populate ShadowMaps and finish populating LightInfos of lights
+    // Clear shadow maps and infos
     lightData.SortedSpotShadowMaps.clear();
     lightData.SortedCascadeShadowMaps.clear();
     lightData.SortedCascadeShadowInfos.clear();
+    lightData.SortedPointShadowMaps.clear();
 
+    // Populate ShadowMaps and finish populating LightInfos of lights
     size_t spotCameraIndex = 0;
     size_t cascadeCameraIndex = 0;
+    size_t pointCameraIndex = 0;
     for (size_t i = 0; i < allLights.size(); i++)
     {
         CombinedLight& combinedLight = allLights[i];
@@ -1526,6 +1530,17 @@ void Achilles::DrawShadowScenes(std::shared_ptr<CommandList> commandList, std::s
                         }
                     }
                     cascadeCameraIndex++;
+                }
+            }
+            else if (combinedLight.LightType == LightType::Point && pointCameraIndex < MAX_POINT_SHADOW_MAPS)
+            {
+                auto iter = lightObjectShadowCameraMap.find(lightObject);
+                if (iter != lightObjectShadowCameraMap.end())
+                {
+                    std::shared_ptr<ShadowCamera> shadowCamera = iter->second;
+
+                    lightData.SortedPointShadowMaps.push_back(shadowCamera->GetPointCubeShadowMap(commandList));
+                    pointCameraIndex++;
                 }
             }
         }
