@@ -1604,7 +1604,7 @@ void Achilles::AddObjectToScene(std::shared_ptr<Object> object)
 }
 
 // Achilles drawing functions
-void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
+void Achilles::QueueObjectDraw(std::shared_ptr<Object> object, bool forceTransparentPass)
 {
     if (object == nullptr)
         return;
@@ -1627,9 +1627,9 @@ void Achilles::QueueObjectDraw(std::shared_ptr<Object> object)
         Knit knit = object->GetKnit(i);
         std::shared_ptr<Shader> shader = knit.material.shader;
 
-        if (shader->knitTransparencyCallback != nullptr)
+        if (forceTransparentPass || shader->knitTransparencyCallback != nullptr)
         {
-            bool isTransparent = shader->knitTransparencyCallback(de.object, i, knit.mesh, knit.material);
+            bool isTransparent = forceTransparentPass || shader->knitTransparencyCallback(de.object, i, knit.mesh, knit.material);
             if (isTransparent)
                 drawEventQueueTransparent.push_back(de);
             else

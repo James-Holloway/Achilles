@@ -235,7 +235,7 @@ public:
 
 public:
     // Achilles drawing functions
-    void QueueObjectDraw(std::shared_ptr<Object> object);
+    void QueueObjectDraw(std::shared_ptr<Object> object, bool forceTransparentPass = false);
     void QueueSpriteObjectDraw(std::shared_ptr<Object> object);
     void QueueSceneDraw(std::shared_ptr<Scene> scene); // Already called by DrawActiveScenes for active scenes in scenes
     void ClearLightData(LightData& lightData);

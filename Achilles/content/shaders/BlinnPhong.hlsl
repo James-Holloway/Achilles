@@ -67,11 +67,10 @@ Texture2D SpotShadowMap5 : register(t5, space2);
 Texture2D SpotShadowMap6 : register(t6, space2);
 Texture2D SpotShadowMap7 : register(t7, space2);
 
-Texture2D UnmappedCascadedShadowMap : register(t0, space3);
-Texture2D CascadedShadowMap0[MAX_NUM_CASCADES] : register(t1, space3);
-Texture2D CascadedShadowMap1[MAX_NUM_CASCADES] : register(t7, space3);
-Texture2D CascadedShadowMap2[MAX_NUM_CASCADES] : register(t13, space3);
-Texture2D CascadedShadowMap3[MAX_NUM_CASCADES] : register(t19, space3);
+Texture2D CascadedShadowMap0[MAX_NUM_CASCADES] : register(t0, space3);
+Texture2D CascadedShadowMap1[MAX_NUM_CASCADES] : register(t6, space3);
+Texture2D CascadedShadowMap2[MAX_NUM_CASCADES] : register(t12, space3);
+Texture2D CascadedShadowMap3[MAX_NUM_CASCADES] : register(t18, space3);
 
 TextureCube PointShadowMap0 : register(t0, space4);
 TextureCube PointShadowMap1 : register(t1, space4);

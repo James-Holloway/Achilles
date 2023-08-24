@@ -44,17 +44,17 @@ void Thetis::OnRender(float deltaTime)
         debugBoundingBox->SetLocalPosition(obb.Center);
         debugBoundingBox->SetLocalRotation(obb.Orientation);
         debugBoundingBox->SetLocalScale(obb.Extents);
-        QueueObjectDraw(debugBoundingBox);
+        QueueObjectDraw(debugBoundingBox, true);
 
         debugBoundingBoxCenter->SetLocalPosition(obb.Center);
         debugBoundingBoxCenter->SetLocalRotation(Quaternion::Identity);
         debugBoundingBoxCenter->SetLocalScale(Vector3(0.05f));
-        QueueObjectDraw(debugBoundingBoxCenter);
+        QueueObjectDraw(debugBoundingBoxCenter, true);
 
         debugBoundingBoxAABB->SetLocalPosition(aabb.Center);
         debugBoundingBoxAABB->SetLocalRotation(Quaternion::Identity);
         debugBoundingBoxAABB->SetLocalScale(aabb.Extents);
-        QueueObjectDraw(debugBoundingBoxAABB);
+        QueueObjectDraw(debugBoundingBoxAABB, true);
     }
 }
 

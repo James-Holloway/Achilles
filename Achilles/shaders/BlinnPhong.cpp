@@ -113,9 +113,6 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
             commandList->SetShaderResourceView(RootParameters::RootParameterSpotShadowMaps, i, *shadowMap, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, 0, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, &srvDesc);
     }
 
-    // Bind UnmappedCascadedShadowMap
-    material.shader->BindTexture(*commandList, RootParameters::RootParameterCascadeShadowMaps, 0, nullptr);
-
     // We multiply max num cascades by max cascades to fill all texture slots
     for (int i = 0; i < MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES; i++)
     {
@@ -124,9 +121,9 @@ bool BlinnPhong::BlinnPhongShaderRender(std::shared_ptr<CommandList> commandList
             shadowMap = lightData.SortedCascadeShadowMaps[i];
 
         if (shadowMap == nullptr)
-            material.shader->BindTexture(*commandList, RootParameters::RootParameterCascadeShadowMaps, 1 + i, nullptr);
+            material.shader->BindTexture(*commandList, RootParameters::RootParameterCascadeShadowMaps, i, nullptr);
         else
-            commandList->SetShaderResourceView(RootParameters::RootParameterCascadeShadowMaps, 1 + i, *shadowMap, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, 0, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, &srvDesc);
+            commandList->SetShaderResourceView(RootParameters::RootParameterCascadeShadowMaps, i, *shadowMap, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, 0, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, &srvDesc);
     }
 
     std::vector<CascadeInfo> cascadeInfos;
@@ -334,7 +331,7 @@ std::shared_ptr<Shader> BlinnPhong::GetBlinnPhongShader(ComPtr<ID3D12Device2> de
     // Texture descriptor ranges
     CD3DX12_DESCRIPTOR_RANGE1 textureDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 1); // 3 textures, offset at 0, in space 1
     CD3DX12_DESCRIPTOR_RANGE1 spotShadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_SPOT_SHADOW_MAPS, 0, 2); // MAX_SPOT_SHADOW_MAPS textures, offset at 0, in space 2
-    CD3DX12_DESCRIPTOR_RANGE1 cascadeShadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 + (MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES), 0, 3); // 1 + MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES textures, offset at 0, in space 3
+    CD3DX12_DESCRIPTOR_RANGE1 cascadeShadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES, 0, 3); // MAX_CASCADED_SHADOW_MAPS * MAX_NUM_CASCADES textures, offset at 0, in space 3
     CD3DX12_DESCRIPTOR_RANGE1 pointShadowDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MAX_POINT_SHADOW_MAPS, 0, 4); // MAX_POINT_SHADOW_MAPS textures, offset at 0, in space 4
 
     // Root parameters
