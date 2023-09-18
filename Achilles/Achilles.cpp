@@ -755,6 +755,7 @@ void Achilles::Update()
     float dt = deltaTime.count() * 1e-9f;
     totalElapsedSeconds += dt;
     elapsedSeconds += dt;
+    Application::UpdateTimeElapsed(totalElapsedSeconds);
 
     // Print FPS every half second
     if (elapsedSeconds > 0.1)

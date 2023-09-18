@@ -1,5 +1,6 @@
 #include "Thetis.h"
 #include "Achilles/AchillesShaders.h"
+#include "shaders/Water.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -193,7 +194,8 @@ void Thetis::DrawImGuiScenes()
         ImGui::SetWindowPos(ImVec2(0, 235), ImGuiCond_Always);
         ImGui::SetWindowSize(ImVec2(300, (float)(clientHeight - 235)), ImGuiCond_Always);
 
-        ImGui::BeginChild("padding", ImVec2(0, -(ImGui::GetTextLineHeightWithSpacing() * 3)));
+        unsigned int bottomPaddingLines = 2;
+        ImGui::BeginChild("padding", ImVec2(0, -(ImGui::GetTextLineHeightWithSpacing() * (2 + bottomPaddingLines))));
         {
             if (selectedPropertiesScene == nullptr)
                 selectedPropertiesScene = mainScene;
@@ -342,6 +344,10 @@ void Thetis::DrawImGuiScenes()
             CreateObjectAsSelectedChild(selectedMeshName);
         }
         ImGui::EndDisabled();
+        if (ImGui::Button("Add Water Plane"))
+        {
+            AddWaterPlane();
+        }
     }
     ImGui::End();
 }
@@ -1453,6 +1459,8 @@ void Thetis::LoadContent()
     std::shared_ptr<Shader> posTexturedShader = PosTextured::GetPosTexturedShader(device);
     std::shared_ptr<Shader> blinnPhongShader = BlinnPhong::GetBlinnPhongShader(device);
 
+    std::shared_ptr<Shader> waterShader = Water::GetWaterShader(device);
+
     // Create floor quad
     std::shared_ptr<Object> floorQuad = Object::CreateObjectsFromContentFile(L"plane.fbx", blinnPhongShader);
     floorQuad->SetLocalPosition(Vector3(0, -3, 0));
@@ -1887,4 +1895,19 @@ void Thetis::ClearSelectedParent()
         currentScene = selectedPropertiesObject->GetScene();
 
     selectedPropertiesObject->SetParentKeepTransform(currentScene->GetObjectTree());
+}
+
+void Thetis::AddWaterPlane()
+{
+    std::shared_ptr<Object> plane = Object::CreateObjectsFromContentFile(L"subdiv plane.fbx", BlinnPhong::GetBlinnPhongShader(device));
+    if (plane != nullptr)
+    {
+        plane->GetMaterial(0).shader = Water::GetWaterShader(device);
+        plane->SetName(L"Water Plane");
+        plane->SetLocalScale(Vector3(1, 1, 1));
+        plane->SetCastsShadows(false);
+
+        selectedPropertiesScene->AddObjectToScene(plane);
+        selectedPropertiesObject = plane;
+    }
 }

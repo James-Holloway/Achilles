@@ -131,9 +131,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="shaders\Water.cpp" />
     <ClCompile Include="Thetis.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="shaders\Water.h" />
     <ClInclude Include="Thetis.h" />
   </ItemGroup>
   <ItemGroup>
@@ -168,6 +170,9 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\monkey.fbx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="content\models\subdiv plane.fbx">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="content\models\uv sphere high.fbx">
@@ -210,6 +215,12 @@
     <Image Include="content\textures\UVGrid.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="content\shaders\Water.hlsl">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

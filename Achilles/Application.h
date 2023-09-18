@@ -21,6 +21,7 @@ class Application
 {
 private:
     inline static uint64_t globalFrameCounter = 0;
+    inline static float timeElapsed = 0;
 
     inline static ComPtr<ID3D12Device2> d3d12Device = nullptr;
 
@@ -45,6 +46,16 @@ public:
     inline static void IncrementGlobalFrameCounter()
     {
         globalFrameCounter++;
+    }
+
+    inline static float GetTimeElapsed()
+    {
+        return timeElapsed;
+    }
+
+    inline static void UpdateTimeElapsed(float newTimeElapsed)
+    {
+        timeElapsed = newTimeElapsed;
     }
 
     // D3D12Device

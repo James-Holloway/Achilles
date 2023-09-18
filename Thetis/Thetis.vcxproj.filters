@@ -24,6 +24,12 @@
       <UniqueIdentifier>{d1452998-79ad-463c-bf56-5793bd7e60d7}</UniqueIdentifier>
       <Extensions>fbx</Extensions>
     </Filter>
+    <Filter Include="content\shaders">
+      <UniqueIdentifier>{cc0c16b3-ea6a-412a-a044-1a08128ace0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{722724bb-8d49-4038-91cb-186725119915}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Thetis.cpp">
@@ -32,10 +38,16 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="shaders\Water.cpp">
+      <Filter>shaders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Thetis.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\Water.h">
+      <Filter>shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -83,6 +95,12 @@
       <Filter>content\models</Filter>
     </None>
     <None Include="content\models\duck.fbx">
+      <Filter>content\models</Filter>
+    </None>
+    <None Include="content\shaders\Water.hlsl">
+      <Filter>content\shaders</Filter>
+    </None>
+    <None Include="content\models\subdiv plane.fbx">
       <Filter>content\models</Filter>
     </None>
   </ItemGroup>

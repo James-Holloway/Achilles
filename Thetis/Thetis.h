@@ -72,4 +72,6 @@ protected:
     void DeleteSelectedObject();
     std::shared_ptr<Object> CopySelectedObject();
     void ClearSelectedParent();
+
+    void AddWaterPlane();
 };
