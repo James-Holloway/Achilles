@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Achilles", "Achilles\Achill
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Thetis", "Thetis\Thetis.vcxproj", "{A68FF4D1-0A2A-4AD4-85E3-B76FA39FA5BC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Helios", "Helios\Helios.vcxproj", "{FD36EC90-006C-4711-B586-B7897195DE1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -26,6 +28,12 @@ Global
 		{A68FF4D1-0A2A-4AD4-85E3-B76FA39FA5BC}.Release|x64.Build.0 = Release|x64
 		{A68FF4D1-0A2A-4AD4-85E3-B76FA39FA5BC}.Unoptimized|x64.ActiveCfg = Unoptimized|x64
 		{A68FF4D1-0A2A-4AD4-85E3-B76FA39FA5BC}.Unoptimized|x64.Build.0 = Unoptimized|x64
+		{FD36EC90-006C-4711-B586-B7897195DE1E}.Debug|x64.ActiveCfg = Debug|x64
+		{FD36EC90-006C-4711-B586-B7897195DE1E}.Debug|x64.Build.0 = Debug|x64
+		{FD36EC90-006C-4711-B586-B7897195DE1E}.Release|x64.ActiveCfg = Release|x64
+		{FD36EC90-006C-4711-B586-B7897195DE1E}.Release|x64.Build.0 = Release|x64
+		{FD36EC90-006C-4711-B586-B7897195DE1E}.Unoptimized|x64.ActiveCfg = Release|x64
+		{FD36EC90-006C-4711-B586-B7897195DE1E}.Unoptimized|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

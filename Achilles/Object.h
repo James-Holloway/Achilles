@@ -139,6 +139,7 @@ public:
     DirectX::SimpleMath::Vector3 GetLocalPosition();
     DirectX::SimpleMath::Quaternion GetLocalRotation();
     DirectX::SimpleMath::Vector3 GetLocalScale();
+    DirectX::SimpleMath::Vector3 GetLocalEulerRotation();
 
     DirectX::SimpleMath::Matrix GetWorldMatrix();
     DirectX::SimpleMath::Matrix GetInverseWorldMatrix();
@@ -150,6 +151,7 @@ public:
     void SetLocalRotation(DirectX::SimpleMath::Quaternion _rotation);
     void SetLocalScale(DirectX::SimpleMath::Vector3 _scale);
     void SetLocalMatrix(DirectX::SimpleMath::Matrix _matrix);
+    void SetLocalEulerRotation(DirectX::SimpleMath::Vector3 _eulerRotation);
 
     void SetWorldPosition(DirectX::SimpleMath::Vector3 _position);
     void SetWorldRotation(DirectX::SimpleMath::Quaternion _rotation);
@@ -203,6 +205,7 @@ protected:
 
     DirectX::SimpleMath::Vector3 position {0, 0, 0};
     DirectX::SimpleMath::Quaternion rotation {0, 0, 0, 1};
+    DirectX::SimpleMath::Vector3 eulerRotation {0, 0, 0};
     DirectX::SimpleMath::Vector3 scale {1, 1, 1};
     DirectX::SimpleMath::Matrix matrix;
     DirectX::SimpleMath::Matrix worldMatrix;

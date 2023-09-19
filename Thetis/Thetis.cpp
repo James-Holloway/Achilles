@@ -30,6 +30,11 @@ Thetis::Thetis(std::wstring _name, uint32_t width, uint32_t height) : Achilles(_
 
 }
 
+Thetis::~Thetis()
+{
+
+}
+
 void Thetis::OnUpdate(float deltaTime)
 {
 
@@ -419,6 +424,17 @@ void Thetis::DrawImGuiProperties()
                         object->SetLocalRotation(Quaternion::CreateFromYawPitchRoll(EulerToRadians(Vector3(rot[0], rot[1], rot[2]))));
                     }
 
+                    Vector3 degRotE = EulerToDegrees(object->GetLocalEulerRotation());
+                    float rotE[3] = {
+                        degRotE.x,
+                        degRotE.y,
+                        degRotE.z
+                    };
+                    if (ImGui::DragFloat3("Local Euler Rotation", rotE, 5.0f, -360, 360, "% .3f"))
+                    {
+                        object->SetLocalEulerRotation(EulerToRadians(Vector3(rotE[0], rotE[1], rotE[2])));
+                    }
+
                     float scale[3] = {
                         object->GetLocalScale().x,
                         object->GetLocalScale().y,
@@ -464,6 +480,17 @@ void Thetis::DrawImGuiProperties()
                     if (ImGui::DragFloat3("Euler Angles", rot, 5.0f, -360, 360, "% .3f"))
                     {
                         object->SetWorldRotation(Quaternion::CreateFromYawPitchRoll(EulerToRadians(Vector3(rot[0], rot[1], rot[2]))));
+                    }
+
+                    Vector3 degRotE = EulerToDegrees(object->GetLocalEulerRotation());
+                    float rotE[3] = {
+                        degRotE.x,
+                        degRotE.y,
+                        degRotE.z
+                    };
+                    if (ImGui::DragFloat3("Local Euler Rotation", rotE, 5.0f, -360, 360, "% .3f"))
+                    {
+                        object->SetLocalEulerRotation(EulerToRadians(Vector3(rotE[0], rotE[1], rotE[2])));
                     }
 
                     float scale[3] = {

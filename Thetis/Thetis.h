@@ -39,6 +39,7 @@ public:
 
 public:
     Thetis(std::wstring _name = L"Thetis", uint32_t width = 1600, uint32_t height = 900);
+    virtual ~Thetis();
 public:
     virtual void OnUpdate(float deltaTime) override; // Post internal Update
     virtual void OnRender(float deltaTime) override;

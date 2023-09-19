@@ -1853,6 +1853,7 @@ void Achilles::DrawQueuedEvents(std::shared_ptr<CommandList> commandList)
 
     std::shared_ptr<RenderTarget> rt = GetCurrentRenderTarget();
 
+    if (doZPrePass)
     {
         ScopedTimer _prof2(L"Z-PrePass");
 

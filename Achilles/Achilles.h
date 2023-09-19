@@ -124,6 +124,7 @@ protected:
     std::deque<DrawEvent> drawEventQueueTransparent{}; // Transparent Draw Queue
     std::shared_ptr<AchillesImGui> achillesImGui;
     std::shared_ptr<Object> skydome;
+    bool doZPrePass = true;
 
     // Scene objects
     std::shared_ptr<Scene> mainScene;
@@ -141,7 +142,7 @@ protected:
 public:
     // Constructor and destructor functions
     Achilles(std::wstring _name = L"Achilles", uint32_t width = 1600, uint32_t height = 900);
-    ~Achilles();
+    virtual ~Achilles();
 
 protected:
     // Setup functions

@@ -13,7 +13,7 @@ bool Skybox::SkyboxShaderRender(std::shared_ptr<CommandList> commandList, std::s
     SkyboxInfo skyboxInfo{};
 
     skyboxInfo.Model = object->GetLocalMatrix();
-    skyboxInfo.MVP = skyboxInfo.Model * Matrix::CreateScale(camera->farZ * 1.999f) * Matrix::CreateFromYawPitchRoll(camera->GetRotation()).Invert() * camera->GetProj();
+    skyboxInfo.MVP = skyboxInfo.Model * Matrix::CreateScale(camera->farZ * 1.95f) * Matrix::CreateFromYawPitchRoll(camera->GetRotation()).Invert() * camera->GetProj();
 
     skyboxInfo.LookDirection = camera->GetInverseView().Backward();
     skyboxInfo.LookDirection.Normalize();

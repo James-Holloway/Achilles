@@ -475,6 +475,11 @@ Vector3 Object::GetLocalScale()
     return scale;
 }
 
+DirectX::SimpleMath::Vector3 Object::GetLocalEulerRotation()
+{
+    return eulerRotation;
+}
+
 Matrix Object::GetWorldMatrix()
 {
     if (dirtyWorldMatrix)
@@ -543,6 +548,14 @@ void Object::SetLocalMatrix(Matrix _matrix)
     position = matrixPos;
     rotation = matrixQuaternion;
     scale = matrixScale;
+    eulerRotation = Vector3::Zero;
+    dirtyMatrix = true;
+    SetWorldMatrixDirty();
+}
+
+void Object::SetLocalEulerRotation(DirectX::SimpleMath::Vector3 _eulerRotation)
+{
+    eulerRotation = _eulerRotation;
     dirtyMatrix = true;
     SetWorldMatrixDirty();
 }
@@ -636,7 +649,7 @@ bool Object::ShouldDraw(DirectX::BoundingFrustum frustum)
 void Object::ConstructMatrix()
 {
     // SRT
-    matrix = (Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation)) * Matrix::CreateTranslation(position);
+    matrix = (Matrix::CreateScale(scale) * (Matrix::CreateFromQuaternion(rotation) * Matrix::CreateFromYawPitchRoll(eulerRotation))) * Matrix::CreateTranslation(position);
     dirtyMatrix = false;
 }
 void Object::ConstructWorldMatrix()
