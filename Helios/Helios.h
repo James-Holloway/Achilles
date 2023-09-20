@@ -28,4 +28,5 @@ protected:
     virtual void LoadContent() override; // Load content to be used in Render
     virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt) override;
     virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt) override;
+    virtual void OnGamePad(float dt) override;
 };

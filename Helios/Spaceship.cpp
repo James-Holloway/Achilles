@@ -1,4 +1,5 @@
 #include "Spaceship.h"
+#include "Achilles/LightObject.h"
 #include "Achilles/shaders/BlinnPhong.h"
 
 Spaceship::Spaceship()
@@ -10,6 +11,23 @@ void Spaceship::SetupDrawableShip()
 {
     drawable = Object::CreateObjectsFromContentFile(L"spaceship.fbx", BlinnPhong::GetBlinnPhongShader(nullptr));
     AddChild(drawable);
+
+    thrusterPointLight = Object::CreateLightObject(L"Spaceship Thruster Point Light");
+    PointLight pointLight;
+    pointLight.Light.Color = Color(0.259f, 0.735f, 0.995f);
+    thrusterPointLight->AddLight(pointLight);
+    AddChild(thrusterPointLight);
+    thrusterPointLight->SetLocalPosition(Vector3(0, 1.75f, 4.25f));
+    thrusterPointLight->SetIsShadowCaster(true);
+
+    spotLightObject = Object::CreateLightObject(L"Spaceship Spot Light");
+    SpotLight spot;
+    spot.Light.MaxDistance = 500.0f;
+    spotLightObject->AddLight(spot);
+    AddChild(spotLightObject);
+    spotLightObject->SetLocalPosition(Vector3(0.0f, 1.0f, 4.5f));
+    spotLightObject->SetLocalRotation(Quaternion::CreateFromYawPitchRoll(toRad(-90.0f), 0, 0));
+    spotLightObject->SetActive(false); // Disable as rotation doesn't work properly yet - engine bug (TODO)
 }
 
 void Spaceship::SetupCamera(int width, int height)
@@ -57,6 +75,12 @@ void Spaceship::OnUpdate(float dt)
         playerCamera->SetPosition(playerCameraObject->GetWorldPosition());
         playerCamera->SetRotation(playerCameraObject->GetWorldRotation().ToEuler());
     }
+
+    if (thrusterPointLight != nullptr)
+    {
+        // Increase thruster light intensity the faster you are going. Strength ranges from 0-2
+        thrusterPointLight->GetPointLight().Light.Strength = velocity.Length() / (maxVelocity * 0.5f);
+    }
 }
 
 void Spaceship::OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt)
@@ -84,10 +108,11 @@ void Spaceship::OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX:
         rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(rotationImpulse * AchillesPi * dt, 0, 0));
     if (kb.Left)
         rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(-rotationImpulse * AchillesPi * dt, 0, 0));
+    float invertYFactor = invertY ? -1.0f : 1.0f;
     if (kb.Up)
-        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, -rotationImpulse * AchillesPi * dt, 0));
+        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, invertYFactor * rotationImpulse * AchillesPi * dt, 0));
     if (kb.Down)
-        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, rotationImpulse * AchillesPi * dt, 0));
+        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, invertYFactor * -rotationImpulse * AchillesPi * dt, 0));
 
     rotation.Normalize();
     SetWorldRotation(rotation);
@@ -113,7 +138,40 @@ void Spaceship::OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, Dir
     {
         ResetCamera();
     }
+}
 
+void Spaceship::OnGamePad(DirectX::GamePad::State state, float dt)
+{
+    Vector3 newVelocity;
+    if (state.thumbSticks.leftY > 0)
+        newVelocity += Vector3(0, 0, -state.thumbSticks.leftY * impulse) * dt; // Full impulse for forward
+    else if (state.thumbSticks.leftY < 0)
+        newVelocity += Vector3(0, 0, -state.thumbSticks.leftY * impulse * 0.5f) * dt; // Half reverse impulse
+
+    newVelocity += Vector3(-state.thumbSticks.leftX * impulse * 0.25f, 0, 0) * dt; // Quarter impulse for strafe
+
+    if (state.triggers.left > 0)
+        newVelocity -= Vector3(0, state.triggers.left * impulse * 0.25f, 0) * dt; // Quarter impulse for strafe
+    if (state.triggers.right > 0)
+        newVelocity += Vector3(0, state.triggers.right * impulse * 0.25f, 0) * dt;
+
+    velocity += Multiply(GetWorldRotation(), newVelocity);
+
+    Quaternion rotation = GetWorldRotation();
+    rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(state.thumbSticks.rightX * rotationImpulse * AchillesPi * dt, 0, 0));
+    float invertYFactor = invertY ? -1.0f : 1.0f;
+    rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, invertYFactor * state.thumbSticks.rightY * rotationImpulse * AchillesPi * dt, 0));
+
+    rotation.Normalize();
+    SetWorldRotation(rotation);
+
+    if (state.buttons.a) // Naive slow down method
+    {
+        if (velocity.Length() > 0.125)
+            velocity -= velocity * 2.0f * dt;
+        else
+            velocity = Vector3(0, 0, 0);
+    }
 }
 
 DirectX::BoundingOrientedBox Spaceship::GetWorldBoundingBox()

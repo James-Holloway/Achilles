@@ -48,6 +48,9 @@ void Helios::OnUpdate(float deltaTime)
 
 void Helios::OnPostRender(float deltaTime)
 {
+    // As we have moving shadowed point lights (from spaceship thruster), we want to render shadows every frame;
+    SetRenderShadowsNextFrame();
+
     if (showDebug)
     {
         if (ImGui::Begin("Debug", &showDebug, ImGuiWindowFlags_NoResize))
@@ -82,6 +85,8 @@ void Helios::OnPostRender(float deltaTime)
                 ImGui::BeginDisabled(true);
                 ImGui::InputFloat("Ship Speed", &speed);
                 ImGui::EndDisabled();
+
+                ImGui::Checkbox("Invert ship Y", &playerShip->invertY);
             }
         }
         ImGui::End();
@@ -194,4 +199,11 @@ void Helios::OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Ke
 void Helios::OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt)
 {
     playerShip->OnMouse(mt, md, state, dt);
+}
+
+void Helios::OnGamePad(float dt)
+{
+    DirectX::GamePad::State state = gamepad->GetState(0, DirectX::GamePad::DEAD_ZONE_CIRCULAR);
+    if (state.IsConnected())
+        playerShip->OnGamePad(state, dt);
 }

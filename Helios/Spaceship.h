@@ -6,6 +6,7 @@
 #include "Achilles/MouseData.h"
 #include "Achilles/Camera.h"
 #include "Achilles/MathHelpers.h"
+#include <directxtk12/GamePad.h>
 
 class Spaceship : public Object
 {
@@ -23,8 +24,10 @@ public:
 
     std::shared_ptr<Object> playerCameraObject;
     std::shared_ptr<Camera> playerCamera;
+    std::shared_ptr<LightObject> thrusterPointLight;
+    std::shared_ptr<LightObject> spotLightObject;
 
-protected:
+public:
     // Config variables
     float maxVelocity = 100.0;
     float impulse = 10.0f;
@@ -32,6 +35,8 @@ protected:
 
     float mouseSensitivity = 1.0f;
     float cameraBaseMoveSpeed = 4.0f;
+
+    bool invertY = false;
 
     // Default Camera transform
     DirectX::SimpleMath::Vector3 defaultCameraPosition = DirectX::SimpleMath::Vector3(0, 4, 8);
@@ -45,6 +50,7 @@ public:
     virtual void OnUpdate(float dt);
     virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt);
     virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt);
+    virtual void OnGamePad(DirectX::GamePad::State state, float dt);
     virtual DirectX::BoundingOrientedBox GetWorldBoundingBox() override;
 };
 
