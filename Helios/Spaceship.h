@@ -17,6 +17,7 @@ public:
 
 public:
     std::shared_ptr<Object> drawable;
+
     DirectX::SimpleMath::Vector3 velocity;
     DirectX::SimpleMath::Vector3 acceleration;
 
@@ -25,8 +26,9 @@ public:
 
 protected:
     // Config variables
-    float maxVelocity = 50.0;
-    float impulse = 5.0f;
+    float maxVelocity = 100.0;
+    float impulse = 10.0f;
+    float rotationImpulse = 0.75f;
 
     float mouseSensitivity = 1.0f;
     float cameraBaseMoveSpeed = 4.0f;
@@ -43,5 +45,6 @@ public:
     virtual void OnUpdate(float dt);
     virtual void OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt);
     virtual void OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, DirectX::Mouse::State state, float dt);
+    virtual DirectX::BoundingOrientedBox GetWorldBoundingBox() override;
 };
 

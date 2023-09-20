@@ -86,11 +86,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Helios.h" />
+    <ClInclude Include="Planet.h" />
     <ClInclude Include="Spaceship.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helios.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Planet.cpp" />
     <ClCompile Include="Spaceship.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -105,6 +107,30 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="content\textures\Blue Moon Planet Diffuse.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Dusty Planet Diffuse.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Dusty Planet Normal.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Earth Like Planet Diffuse.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Earth Like Planet Normal.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Purple Planet Diffuse.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Purple Planet Normal.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="content\textures\Rocky Planet Diffuse.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
     <Image Include="content\textures\Skymap.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>

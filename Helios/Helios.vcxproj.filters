@@ -30,6 +30,9 @@
     <ClInclude Include="Spaceship.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Planet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helios.cpp">
@@ -41,6 +44,9 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Planet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -50,6 +56,30 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="content\textures\Skymap.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Dusty Planet Diffuse.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Earth Like Planet Diffuse.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Purple Planet Diffuse.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Rocky Planet Diffuse.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Blue Moon Planet Diffuse.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Dusty Planet Normal.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Earth Like Planet Normal.png">
+      <Filter>content\textures</Filter>
+    </Image>
+    <Image Include="content\textures\Purple Planet Normal.png">
       <Filter>content\textures</Filter>
     </Image>
   </ItemGroup>

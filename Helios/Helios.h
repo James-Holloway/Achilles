@@ -6,6 +6,7 @@
 #include "implot.h"
 #pragma warning (pop)
 #include "Spaceship.h"
+#include "Planet.h"
 
 class Helios : public Achilles
 {
@@ -13,10 +14,12 @@ protected:
     std::shared_ptr<Spaceship> playerShip;
     std::shared_ptr<LightObject> sun;
 
-    bool showDebug = true;
+    bool showDebug = false;
 
 public:
     Helios(std::wstring _name = L"Helios", uint32_t width = 1600, uint32_t height = 900);
+
+    void CollideObjects();
 
 protected:
     virtual void OnUpdate(float deltaTime) override; // Post internal Update

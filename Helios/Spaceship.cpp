@@ -61,37 +61,41 @@ void Spaceship::OnUpdate(float dt)
 
 void Spaceship::OnKeyboard(DirectX::Keyboard::KeyboardStateTracker kbt, DirectX::Keyboard::Keyboard::State kb, float dt)
 {
+    Vector3 newVelocity;
     if (kb.W)
-        velocity += Vector3(impulse, 0, 0) * dt; // Full impulse for forward
+        newVelocity -= Vector3(0, 0, impulse) * dt; // Full impulse for forward
     if (kb.S)
-        velocity -= Vector3(impulse * 0.5f, 0, 0) * dt; // Half reverse impulse
+        newVelocity += Vector3(0, 0, impulse * 0.5f) * dt; // Half reverse impulse
 
-    if (kb.A)
-        velocity -= Vector3(0, 0, impulse * 0.25f) * dt; // Quarter impulse for strafe
     if (kb.D)
-        velocity += Vector3(0, 0, impulse * 0.25f) * dt;
+        newVelocity -= Vector3(impulse * 0.25f, 0, 0) * dt; // Quarter impulse for strafe
+    if (kb.A)
+        newVelocity += Vector3(impulse * 0.25f, 0, 0) * dt;
 
     if (kb.Q)
-        velocity -= Vector3(0, impulse * 0.25f, 0) * dt; // Quarter impulse for strafe
+        newVelocity -= Vector3(0, impulse * 0.25f, 0) * dt; // Quarter impulse for strafe
     if (kb.E)
-        velocity += Vector3(0, impulse * 0.25f, 0) * dt;
+        newVelocity += Vector3(0, impulse * 0.25f, 0) * dt;
 
-    Vector3 rotation = GetLocalEulerRotation();
+    velocity += Multiply(GetWorldRotation(), newVelocity);
+
+    Quaternion rotation = GetWorldRotation();
     if (kb.Right)
-        rotation.y += 0.25f * impulse * AchillesPi * dt;
+        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(rotationImpulse * AchillesPi * dt, 0, 0));
     if (kb.Left)
-        rotation.y -= 0.25f * impulse * AchillesPi * dt;
+        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(-rotationImpulse * AchillesPi * dt, 0, 0));
     if (kb.Up)
-        rotation.x += 0.25f * impulse * AchillesPi * dt;
+        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, -rotationImpulse * AchillesPi * dt, 0));
     if (kb.Down)
-        rotation.x -= 0.25f * impulse * AchillesPi * dt;
+        rotation = Quaternion::Concatenate(rotation, Quaternion::CreateFromYawPitchRoll(0, rotationImpulse * AchillesPi * dt, 0));
 
-    SetLocalEulerRotation(rotation);
+    rotation.Normalize();
+    SetWorldRotation(rotation);
 
     if (kb.Space) // Naive slow down method
     {
         if (velocity.Length() > 0.125)
-            velocity -= velocity * 0.5 * dt;
+            velocity -= velocity * 2.0f * dt;
         else
             velocity = Vector3(0, 0, 0);
     }
@@ -110,4 +114,9 @@ void Spaceship::OnMouse(DirectX::Mouse::ButtonStateTracker mt, MouseData md, Dir
         ResetCamera();
     }
 
+}
+
+DirectX::BoundingOrientedBox Spaceship::GetWorldBoundingBox()
+{
+    return drawable->GetWorldBoundingBox();
 }
